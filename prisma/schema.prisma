@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  items     Json
+  total     Int
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  address   String
+  date      DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  secureUrl String   @map("secure_url")
+  publicId  String   @map("public_id") @unique
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  @@map("product_images")
+}
