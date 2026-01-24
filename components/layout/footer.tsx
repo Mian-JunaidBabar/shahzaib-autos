@@ -17,28 +17,28 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <Link
               href="/"
-              className="flex items-center justify-center md:justify-start gap-2 text-(--text-primary) mb-4"
+              className="flex items-center justify-center md:justify-start gap-2 text-text-primary mb-4"
             >
-              <span className="material-symbols-outlined text-[32px]! text-(--text-primary)">
+              <span className="material-symbols-outlined text-[32px]! text-text-primary">
                 directions_car
               </span>
               <h2 className="text-xl font-bold tracking-tight">
                 Shahzaib Autos
               </h2>
             </Link>
-            <p className="`text-(--text-muted) text-sm max-w-xs">
+            <p className="text-text-muted text-sm max-w-xs">
               Premium automotive solutions for the modern driver. Excellence in
               every detail.
             </p>
           </div>
 
           {/* Navigation Links */}
-          <div className="flex gap-8 text-sm font-medium `text-(--text-muted)">
+          <div className="flex gap-8 text-sm font-medium text-text-muted">
             {footerLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="hover:text-(--text-primary) transition-colors"
+                className="hover:text-text-primary transition-colors"
               >
                 {link.label}
               </Link>
@@ -49,19 +49,19 @@ export default function Footer() {
           <div className="flex gap-4">
             <a
               href="#"
-              className="text-(--text-muted) hover:text-(--text-primary) transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors"
             >
               <span className="material-symbols-outlined">public</span>
             </a>
             <a
               href="#"
-              className="text-(--text-muted) hover:text-(--text-primary) transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors"
             >
               <span className="material-symbols-outlined">thumb_up</span>
             </a>
             <a
               href="#"
-              className="text-(--text-muted) hover:text-(--text-primary) transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors"
             >
               <span className="material-symbols-outlined">photo_camera</span>
             </a>
@@ -69,7 +69,7 @@ export default function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-(--border) pt-8 text-center text-xs text-(--text-subtle)">
+        <div className="border-t border-border pt-8 text-center text-xs text-text-subtle">
           <p>
             © {new Date().getFullYear()} Shahzaib Autos. All rights reserved.
           </p>

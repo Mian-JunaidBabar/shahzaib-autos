@@ -24,17 +24,17 @@ export default function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur-md transition-colors duration-300">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-header-bg backdrop-blur-md transition-colors duration-300">
       <div className="px-4 md:px-8 lg:px-40 flex h-16 items-center justify-between">
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 text-[var(--text-primary)] hover:text-[var(--primary)] transition-colors"
+          className="flex items-center gap-2 text-text-primary hover:text-primary transition-colors"
         >
-          <span className="material-symbols-outlined text-[28px]! text-[var(--primary)]">
+          <span className="material-symbols-outlined text-[28px]! text-primary">
             directions_car
           </span>
-          <h2 className="text-[var(--text-primary)] text-lg font-bold tracking-tight">
+          <h2 className="text-text-primary text-lg font-bold tracking-tight">
             Shahzaib Autos
           </h2>
         </Link>
@@ -45,7 +45,7 @@ export default function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="text-sm font-medium text-text-muted hover:text-text-primary transition-colors"
             >
               {link.label}
             </Link>
@@ -57,7 +57,7 @@ export default function Header() {
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--muted)] transition-colors"
+            className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-muted transition-colors"
             aria-label={
               theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
             }
@@ -72,11 +72,11 @@ export default function Header() {
           {/* Cart Icon */}
           <Link
             href="/checkout"
-            className="relative p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            className="relative p-2 text-text-muted hover:text-text-primary transition-colors"
           >
             <ShoppingCart className="h-5 w-5" />
             {itemCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[var(--primary)] text-white text-xs font-bold">
+              <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold">
                 {itemCount > 9 ? "9+" : itemCount}
               </span>
             )}
@@ -97,7 +97,7 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="md:hidden p-2 text-text-muted hover:text-text-primary"
           >
             <span className="material-symbols-outlined">
               {mobileMenuOpen ? "close" : "menu"}
@@ -108,14 +108,14 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[var(--border)] bg-[var(--background)]">
+        <div className="md:hidden border-t border-border bg-background">
           <nav className="flex flex-col px-4 py-4 space-y-4">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-sm font-medium text-text-muted hover:text-text-primary transition-colors"
               >
                 {link.label}
               </Link>
@@ -123,7 +123,7 @@ export default function Header() {
             <Link
               href="/checkout"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-primary transition-colors"
             >
               <ShoppingCart className="h-4 w-4" />
               Cart {itemCount > 0 && `(${itemCount})`}
@@ -133,7 +133,7 @@ export default function Header() {
                 toggleTheme();
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-primary transition-colors"
             >
               {theme === "dark" ? (
                 <>

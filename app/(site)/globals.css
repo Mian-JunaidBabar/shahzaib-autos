@@ -73,6 +73,12 @@
   --color-ring: var(--ring);
   --color-whatsapp: var(--whatsapp);
   --color-whatsapp-hover: var(--whatsapp-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-header-bg: var(--header-bg);
+  --color-section-bg: var(--section-bg);
   --font-sans: var(--font-inter);
 }
 

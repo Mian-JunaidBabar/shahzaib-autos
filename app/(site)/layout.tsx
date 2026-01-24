@@ -55,7 +55,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} antialiased bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300`}
+        className={`${inter.variable} antialiased bg-background text-foreground transition-colors duration-300`}
       >
         <ThemeProvider>
           <CartProvider>
