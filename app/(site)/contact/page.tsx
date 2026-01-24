@@ -1,40 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { generateWhatsAppUrl, getWhatsAppNumber } from "@/lib/whatsapp";
+import {
+  MessageCircle,
+  Calendar,
+  ShoppingCart,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  HelpCircle,
+  Wrench,
+  Package,
+  ChevronRight,
+} from "lucide-react";
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    service: "",
-    date: "",
-    time: "",
-    notes: "",
-  });
+  const whatsappNumber = getWhatsAppNumber();
+  const formattedNumber = whatsappNumber
+    .replace(/^\+/, "")
+    .replace(/(\d{2})(\d{3})(\d{7})/, "+$1 $2 $3");
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Build WhatsApp message
-    const message = `Hi! I'd like to book a service.
-    
-*Name:* ${formData.name}
-*Phone:* ${formData.phone}
-*Service:* ${formData.service}
-*Preferred Date:* ${formData.date}
-*Preferred Time:* ${formData.time}
-${formData.notes ? `*Notes:* ${formData.notes}` : ""}`;
-
-    const whatsappUrl = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-  };
+  const generalInquiryUrl = generateWhatsAppUrl(
+    "Hi! I have a question about your products/services.",
+  );
 
   return (
     <>
@@ -42,204 +32,120 @@ ${formData.notes ? `*Notes:* ${formData.notes}` : ""}`;
       <section className="border-b border-[#1e293b] bg-[#0f172a]/30 pt-8 pb-8">
         <div className="px-4 md:px-8 lg:px-40">
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
-            Contact Us
+            How Can We Help?
           </h1>
           <p className="text-slate-400 max-w-2xl">
-            Book a service, schedule a delivery, or get in touch with our team.
-            We&apos;re here to help.
+            Choose an option below to get started. We&apos;re here to help with
+            orders, installations, and inquiries.
           </p>
         </div>
       </section>
 
-      {/* Main Content */}
+      {/* Decision Points */}
       <section className="px-4 md:px-8 lg:px-40 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Booking Form */}
-          <div>
-            <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6 md:p-8">
-              <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#3b82f6]">
-                  calendar_month
-                </span>
-                Book a Service
-              </h2>
-              <p className="text-slate-400 text-sm mb-6">
-                Fill in the form below and we&apos;ll confirm your appointment
-                via WhatsApp.
-              </p>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Name */}
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium text-slate-300 mb-2"
-                  >
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="John Doe"
-                    className="w-full h-11 rounded-md border border-[#1e293b] bg-[#020817] px-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label
-                    htmlFor="phone"
-                    className="block text-sm font-medium text-slate-300 mb-2"
-                  >
-                    Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    required
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="+1 (555) 123-4567"
-                    className="w-full h-11 rounded-md border border-[#1e293b] bg-[#020817] px-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                  />
-                </div>
-
-                {/* Service */}
-                <div>
-                  <label
-                    htmlFor="service"
-                    className="block text-sm font-medium text-slate-300 mb-2"
-                  >
-                    Service Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="service"
-                    name="service"
-                    required
-                    value={formData.service}
-                    onChange={handleChange}
-                    className="w-full h-11 rounded-md border border-[#1e293b] bg-[#020817] px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                  >
-                    <option value="">Select a service</option>
-                    <option value="Interior Detailing">
-                      Interior Detailing
-                    </option>
-                    <option value="Exterior Detailing">
-                      Exterior Detailing
-                    </option>
-                    <option value="Ceramic Coating">Ceramic Coating</option>
-                    <option value="PPF Installation">PPF Installation</option>
-                    <option value="Vinyl Wrap">Vinyl Wrap</option>
-                    <option value="Custom Mats">Custom Mats</option>
-                    <option value="LED Upgrades">LED Upgrades</option>
-                    <option value="Other">Other Service</option>
-                  </select>
-                </div>
-
-                {/* Date & Time */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="date"
-                      className="block text-sm font-medium text-slate-300 mb-2"
-                    >
-                      Preferred Date <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      id="date"
-                      name="date"
-                      required
-                      value={formData.date}
-                      onChange={handleChange}
-                      className="w-full h-11 rounded-md border border-[#1e293b] bg-[#020817] px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="time"
-                      className="block text-sm font-medium text-slate-300 mb-2"
-                    >
-                      Preferred Time
-                    </label>
-                    <select
-                      id="time"
-                      name="time"
-                      value={formData.time}
-                      onChange={handleChange}
-                      className="w-full h-11 rounded-md border border-[#1e293b] bg-[#020817] px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-                    >
-                      <option value="">Select time</option>
-                      <option value="Morning (9AM - 12PM)">
-                        Morning (9AM - 12PM)
-                      </option>
-                      <option value="Afternoon (12PM - 4PM)">
-                        Afternoon (12PM - 4PM)
-                      </option>
-                      <option value="Evening (4PM - 7PM)">
-                        Evening (4PM - 7PM)
-                      </option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label
-                    htmlFor="notes"
-                    className="block text-sm font-medium text-slate-300 mb-2"
-                  >
-                    Additional Notes
-                  </label>
-                  <textarea
-                    id="notes"
-                    name="notes"
-                    rows={3}
-                    value={formData.notes}
-                    onChange={handleChange}
-                    placeholder="Vehicle make/model, specific requirements, etc."
-                    className="w-full rounded-md border border-[#1e293b] bg-[#020817] px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] resize-none"
-                  />
-                </div>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  className="w-full h-12 rounded-md bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-[#25D366]/20"
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    chat
-                  </span>
-                  Send via WhatsApp
-                </button>
-              </form>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {/* Shop Products */}
+          <Link
+            href="/products"
+            className="group p-6 bg-[#0f172a] border border-[#1e293b] rounded-xl hover:border-[#3b82f6]/50 transition-all hover:shadow-lg hover:shadow-[#3b82f6]/5"
+          >
+            <div className="w-14 h-14 rounded-xl bg-[#3b82f6]/10 flex items-center justify-center mb-4 group-hover:bg-[#3b82f6]/20 transition-colors">
+              <Package className="h-7 w-7 text-[#3b82f6]" />
             </div>
-          </div>
+            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+              Shop Products
+              <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-[#3b82f6] transition-colors" />
+            </h3>
+            <p className="text-sm text-slate-400">
+              Browse our collection of premium car accessories, mats, LED
+              lights, and more.
+            </p>
+          </Link>
 
-          {/* Contact Info */}
-          <div className="space-y-6">
-            {/* Quick Contact Cards */}
+          {/* Book Installation */}
+          <Link
+            href="/booking"
+            className="group p-6 bg-[#0f172a] border border-[#1e293b] rounded-xl hover:border-[#3b82f6]/50 transition-all hover:shadow-lg hover:shadow-[#3b82f6]/5"
+          >
+            <div className="w-14 h-14 rounded-xl bg-[#3b82f6]/10 flex items-center justify-center mb-4 group-hover:bg-[#3b82f6]/20 transition-colors">
+              <Calendar className="h-7 w-7 text-[#3b82f6]" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+              Book Installation
+              <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-[#3b82f6] transition-colors" />
+            </h3>
+            <p className="text-sm text-slate-400">
+              Schedule a home visit from our expert technicians for hassle-free
+              installation.
+            </p>
+          </Link>
+
+          {/* View Cart */}
+          <Link
+            href="/checkout"
+            className="group p-6 bg-[#0f172a] border border-[#1e293b] rounded-xl hover:border-[#3b82f6]/50 transition-all hover:shadow-lg hover:shadow-[#3b82f6]/5"
+          >
+            <div className="w-14 h-14 rounded-xl bg-[#3b82f6]/10 flex items-center justify-center mb-4 group-hover:bg-[#3b82f6]/20 transition-colors">
+              <ShoppingCart className="h-7 w-7 text-[#3b82f6]" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+              View Cart & Checkout
+              <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-[#3b82f6] transition-colors" />
+            </h3>
+            <p className="text-sm text-slate-400">
+              Review your cart and complete your order via WhatsApp.
+            </p>
+          </Link>
+        </div>
+
+        {/* General Inquiry CTA */}
+        <div className="bg-linear-to-r from-[#25D366]/10 to-[#0f172a] border border-[#25D366]/20 rounded-xl p-8 mb-12">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-xl bg-[#25D366]/20 flex items-center justify-center shrink-0">
+                <HelpCircle className="h-7 w-7 text-[#25D366]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white mb-1">
+                  Have a Question?
+                </h2>
+                <p className="text-slate-400">
+                  Chat with us directly on WhatsApp for the fastest response. We
+                  typically reply within minutes!
+                </p>
+              </div>
+            </div>
+            <a
+              href={generalInquiryUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-8 py-4 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold transition-all shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/30 whitespace-nowrap"
+            >
+              <MessageCircle className="h-5 w-5" />
+              Chat on WhatsApp
+            </a>
+          </div>
+        </div>
+
+        {/* Contact Info Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Quick Contact Cards */}
+          <div className="lg:col-span-2">
+            <h2 className="text-xl font-bold text-white mb-6">Get in Touch</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* WhatsApp */}
               <a
-                href="https://wa.me/15551234567"
+                href={generalInquiryUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-4 p-5 bg-[#0f172a] border border-[#1e293b] rounded-xl hover:border-[#25D366]/50 transition-colors group"
               >
                 <div className="w-12 h-12 rounded-lg bg-[#25D366]/10 flex items-center justify-center group-hover:bg-[#25D366]/20 transition-colors">
-                  <span className="material-symbols-outlined text-[#25D366] text-[24px]">
-                    chat
-                  </span>
+                  <MessageCircle className="h-6 w-6 text-[#25D366]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">WhatsApp</h3>
-                  <p className="text-sm text-slate-400">+1 555 123 4567</p>
+                  <p className="text-sm text-slate-400">{formattedNumber}</p>
                   <p className="text-xs text-[#25D366] mt-1">
                     Fastest response
                   </p>
@@ -248,108 +154,97 @@ ${formData.notes ? `*Notes:* ${formData.notes}` : ""}`;
 
               {/* Phone */}
               <a
-                href="tel:+15551234567"
+                href={`tel:${whatsappNumber}`}
                 className="flex items-start gap-4 p-5 bg-[#0f172a] border border-[#1e293b] rounded-xl hover:border-[#3b82f6]/50 transition-colors group"
               >
                 <div className="w-12 h-12 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center group-hover:bg-[#3b82f6]/20 transition-colors">
-                  <span className="material-symbols-outlined text-[#3b82f6] text-[24px]">
-                    call
-                  </span>
+                  <Phone className="h-6 w-6 text-[#3b82f6]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Phone</h3>
-                  <p className="text-sm text-slate-400">+1 555 123 4567</p>
+                  <p className="text-sm text-slate-400">{formattedNumber}</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    Mon-Sat, 9AM-7PM
+                    Mon-Sat, 9AM-8PM
                   </p>
                 </div>
               </a>
 
               {/* Email */}
               <a
-                href="mailto:info@ammotors.com"
+                href="mailto:shahzaibautos@gmail.com"
                 className="flex items-start gap-4 p-5 bg-[#0f172a] border border-[#1e293b] rounded-xl hover:border-[#3b82f6]/50 transition-colors group"
               >
                 <div className="w-12 h-12 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center group-hover:bg-[#3b82f6]/20 transition-colors">
-                  <span className="material-symbols-outlined text-[#3b82f6] text-[24px]">
-                    mail
-                  </span>
+                  <Mail className="h-6 w-6 text-[#3b82f6]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Email</h3>
-                  <p className="text-sm text-slate-400">info@ammotors.com</p>
+                  <p className="text-sm text-slate-400">
+                    shahzaibautos@gmail.com
+                  </p>
                   <p className="text-xs text-slate-500 mt-1">
                     24-48hr response
                   </p>
                 </div>
               </a>
 
-              {/* Location */}
+              {/* Workshop */}
               <a
-                href="https://maps.google.com"
+                href="https://maps.google.com/?q=Lahore,Pakistan"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-4 p-5 bg-[#0f172a] border border-[#1e293b] rounded-xl hover:border-[#3b82f6]/50 transition-colors group"
               >
                 <div className="w-12 h-12 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center group-hover:bg-[#3b82f6]/20 transition-colors">
-                  <span className="material-symbols-outlined text-[#3b82f6] text-[24px]">
-                    location_on
-                  </span>
+                  <MapPin className="h-6 w-6 text-[#3b82f6]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Workshop</h3>
-                  <p className="text-sm text-slate-400">
-                    123 Auto Street, City
-                  </p>
+                  <p className="text-sm text-slate-400">Lahore, Pakistan</p>
                   <p className="text-xs text-slate-500 mt-1">Get directions</p>
                 </div>
               </a>
             </div>
+          </div>
 
+          {/* Business Hours & Services */}
+          <div className="space-y-6">
             {/* Business Hours */}
             <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#3b82f6]">
-                  schedule
-                </span>
+                <Clock className="h-5 w-5 text-[#3b82f6]" />
                 Business Hours
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Monday - Friday</span>
+                  <span className="text-slate-400">Monday - Saturday</span>
                   <span className="text-white font-medium">
-                    9:00 AM - 7:00 PM
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Saturday</span>
-                  <span className="text-white font-medium">
-                    10:00 AM - 5:00 PM
+                    9:00 AM - 8:00 PM
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400">Sunday</span>
-                  <span className="text-red-400 font-medium">Closed</span>
+                  <span className="text-white font-medium">
+                    10:00 AM - 6:00 PM
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Map Placeholder */}
-            <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl overflow-hidden">
-              <div className="aspect-video bg-[#1e293b] flex items-center justify-center relative">
-                <div className="text-center">
-                  <span className="material-symbols-outlined text-[48px] text-slate-600 mb-2">
-                    map
-                  </span>
-                  <p className="text-slate-500 text-sm">Interactive map</p>
-                </div>
-                {/* You can replace this with an actual Google Maps embed */}
-              </div>
-              <div className="p-4">
-                <p className="text-sm text-slate-400">
-                  123 Auto Street, Downtown, City, State 12345
-                </p>
-              </div>
+            {/* Services */}
+            <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6">
+              <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-[#3b82f6]" />
+                Our Services
+              </h3>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li>• 7D Custom Floor Mats</li>
+                <li>• LED & Projector Lights</li>
+                <li>• Ceramic Coating</li>
+                <li>• Body Wraps & PPF</li>
+                <li>• Interior Detailing</li>
+                <li>• Home Installation</li>
+              </ul>
             </div>
           </div>
         </div>

@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useCart } from "@/context/cart-context";
+import { ShoppingCart } from "lucide-react";
+import { generateWhatsAppUrl } from "@/lib/whatsapp";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -12,6 +15,11 @@ const navLinks = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { getItemCount } = useCart();
+  const itemCount = getItemCount();
+  const whatsappUrl = generateWhatsAppUrl(
+    "Hi! I'm interested in your products.",
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#020817]/80 backdrop-blur-md">
@@ -43,9 +51,22 @@ export default function Header() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Cart Icon */}
+          <Link
+            href="/checkout"
+            className="relative p-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[#3b82f6] text-white text-xs font-bold">
+                {itemCount > 9 ? "9+" : itemCount}
+              </span>
+            )}
+          </Link>
+
           <a
-            href="https://wa.me/15551234567"
+            href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:flex h-9 items-center justify-center rounded-md bg-[#25D366] px-4 text-white text-sm font-semibold shadow-sm hover:bg-[#20bd5a] transition-all focus:ring-1 focus:ring-[#25D366]"
@@ -53,7 +74,7 @@ export default function Header() {
             <span className="material-symbols-outlined text-[18px] mr-2">
               chat
             </span>
-            Order on WhatsApp
+            WhatsApp
           </a>
 
           {/* Mobile Menu Button */}
@@ -82,8 +103,16 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/checkout"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Cart {itemCount > 0 && `(${itemCount})`}
+            </Link>
             <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-10 items-center justify-center rounded-md bg-[#25D366] px-4 text-white text-sm font-semibold shadow-sm hover:bg-[#20bd5a] transition-all"
@@ -91,7 +120,7 @@ export default function Header() {
               <span className="material-symbols-outlined text-[18px] mr-2">
                 chat
               </span>
-              Order on WhatsApp
+              WhatsApp
             </a>
           </nav>
         </div>
