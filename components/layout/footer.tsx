@@ -19,7 +19,7 @@ export default function Footer() {
               href="/"
               className="flex items-center justify-center md:justify-start gap-2 text-white mb-4"
             >
-              <span className="material-symbols-outlined !text-[32px] text-[#3b82f6]">
+              <span className="material-symbols-outlined text-[32px]! text-[#3b82f6]">
                 directions_car
               </span>
               <h2 className="text-xl font-bold tracking-tight">AM Motors</h2>

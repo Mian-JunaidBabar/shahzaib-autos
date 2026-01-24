@@ -514,7 +514,7 @@ export default function ProductDetailPage({
 
       {/* Related Products CTA */}
       <section className="px-4 md:px-8 lg:px-40 pb-16">
-        <div className="bg-gradient-to-r from-[#3b82f6]/10 to-[#0f172a] border border-[#1e293b] rounded-xl p-8 text-center">
+        <div className="bg-linear-to-r from-[#3b82f6]/10 to-[#0f172a] border border-[#1e293b] rounded-xl p-8 text-center">
           <h2 className="text-2xl font-bold text-white mb-3">
             Looking for something else?
           </h2>

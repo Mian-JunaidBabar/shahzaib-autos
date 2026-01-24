@@ -267,7 +267,7 @@ export default function WorkPage() {
             className="relative max-w-5xl max-h-[85vh] w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative aspect-[4/3] rounded-xl overflow-hidden">
+            <div className="relative aspect-4/3 rounded-xl overflow-hidden">
               <Image
                 src={currentItem.image}
                 alt={currentItem.title}
