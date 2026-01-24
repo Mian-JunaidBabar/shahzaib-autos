@@ -137,12 +137,12 @@ export default function WorkPage() {
   return (
     <>
       {/* Header Section */}
-      <section className="border-b border-[#1e293b] bg-[#0f172a]/30 pt-8 pb-8">
+      <section className="border-b border-[var(--border)] bg-[var(--section-bg)] pt-8 pb-8 transition-colors duration-300">
         <div className="px-4 md:px-8 lg:px-40">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-2">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--text-primary)] mb-2">
             Our Work
           </h1>
-          <p className="text-slate-400 max-w-2xl">
+          <p className="text-[var(--text-muted)] max-w-2xl">
             Explore our portfolio of premium transformations. Every project is a
             testament to our dedication to excellence.
           </p>
@@ -150,7 +150,7 @@ export default function WorkPage() {
       </section>
 
       {/* Filters */}
-      <section className="sticky top-16 z-40 border-b border-[#1e293b] bg-[#020817]/95 backdrop-blur supports-backdrop-filter:bg-[#020817]/60">
+      <section className="sticky top-16 z-40 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur supports-backdrop-filter:bg-[var(--header-bg)]/60 transition-colors duration-300">
         <div className="px-4 md:px-8 lg:px-40 py-4">
           <div className="overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-2">
@@ -160,8 +160,8 @@ export default function WorkPage() {
                   onClick={() => setActiveCategory(category.id)}
                   className={`inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${
                     activeCategory === category.id
-                      ? "border-[#3b82f6] bg-[#3b82f6] text-white shadow-sm"
-                      : "border-[#1e293b] bg-[#0f172a] text-slate-400 hover:bg-[#1e293b] hover:text-white"
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm"
+                      : "border-[var(--border)] bg-[var(--card)] text-[var(--text-muted)] hover:bg-[var(--muted)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   {category.label}
@@ -182,7 +182,7 @@ export default function WorkPage() {
               onClick={() => openLightbox(item.id)}
             >
               <div
-                className={`relative overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f172a] ${
+                className={`relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] ${
                   item.aspectRatio === "portrait"
                     ? "aspect-3/4"
                     : item.aspectRatio === "square"
@@ -199,7 +199,7 @@ export default function WorkPage() {
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-xs text-[#3b82f6] font-medium uppercase tracking-wide mb-1">
+                    <p className="text-xs text-[var(--primary)] font-medium uppercase tracking-wide mb-1">
                       {categories.find((c) => c.id === item.category)?.label}
                     </p>
                     <h3 className="text-white font-semibold">{item.title}</h3>
@@ -218,7 +218,7 @@ export default function WorkPage() {
 
         {/* Load More */}
         <div className="mt-12 flex justify-center">
-          <button className="px-6 py-2 rounded-md border border-[#1e293b] bg-[#0f172a] hover:bg-[#1e293b] hover:text-white text-slate-400 font-medium text-sm transition-colors flex items-center gap-2">
+          <button className="px-6 py-2 rounded-md border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)] hover:text-[var(--text-primary)] text-[var(--text-muted)] font-medium text-sm transition-colors flex items-center gap-2">
             Load More
             <span className="material-symbols-outlined text-[18px]">
               expand_more
@@ -230,21 +230,29 @@ export default function WorkPage() {
       {/* Stats Section */}
       <section className="px-4 md:px-8 lg:px-40 pb-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center p-6 bg-[#0f172a] border border-[#1e293b] rounded-xl">
-            <div className="text-4xl font-black text-[#3b82f6] mb-2">500+</div>
-            <p className="text-slate-400 text-sm">Cars Transformed</p>
+          <div className="text-center p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl transition-colors duration-300">
+            <div className="text-4xl font-black text-[var(--primary)] mb-2">
+              500+
+            </div>
+            <p className="text-[var(--text-muted)] text-sm">Cars Transformed</p>
           </div>
-          <div className="text-center p-6 bg-[#0f172a] border border-[#1e293b] rounded-xl">
-            <div className="text-4xl font-black text-[#3b82f6] mb-2">50+</div>
-            <p className="text-slate-400 text-sm">Premium Brands</p>
+          <div className="text-center p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl transition-colors duration-300">
+            <div className="text-4xl font-black text-[var(--primary)] mb-2">
+              50+
+            </div>
+            <p className="text-[var(--text-muted)] text-sm">Premium Brands</p>
           </div>
-          <div className="text-center p-6 bg-[#0f172a] border border-[#1e293b] rounded-xl">
-            <div className="text-4xl font-black text-[#3b82f6] mb-2">10+</div>
-            <p className="text-slate-400 text-sm">Years Experience</p>
+          <div className="text-center p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl transition-colors duration-300">
+            <div className="text-4xl font-black text-[var(--primary)] mb-2">
+              10+
+            </div>
+            <p className="text-[var(--text-muted)] text-sm">Years Experience</p>
           </div>
-          <div className="text-center p-6 bg-[#0f172a] border border-[#1e293b] rounded-xl">
-            <div className="text-4xl font-black text-[#3b82f6] mb-2">100%</div>
-            <p className="text-slate-400 text-sm">Satisfaction</p>
+          <div className="text-center p-6 bg-[var(--card)] border border-[var(--border)] rounded-xl transition-colors duration-300">
+            <div className="text-4xl font-black text-[var(--primary)] mb-2">
+              100%
+            </div>
+            <p className="text-[var(--text-muted)] text-sm">Satisfaction</p>
           </div>
         </div>
       </section>
@@ -276,7 +284,7 @@ export default function WorkPage() {
               />
             </div>
             <div className="mt-4 text-center">
-              <p className="text-sm text-[#3b82f6] font-medium uppercase tracking-wide mb-1">
+              <p className="text-sm text-[var(--primary)] font-medium uppercase tracking-wide mb-1">
                 {categories.find((c) => c.id === currentItem.category)?.label}
               </p>
               <h3 className="text-xl font-bold text-white">

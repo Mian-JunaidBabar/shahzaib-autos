@@ -114,19 +114,19 @@ export default function BookingPage() {
   return (
     <>
       {/* Header */}
-      <section className="border-b border-[#1e293b] bg-[#0f172a]/30 pt-6 pb-6">
+      <section className="border-b border-[var(--border)] bg-[var(--section-bg)] pt-6 pb-6 transition-colors duration-300">
         <div className="px-4 md:px-8 lg:px-40">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-4"
           >
             <ChevronLeft className="h-4 w-4" />
             Back to Home
           </Link>
-          <h1 className="text-3xl md:text-4xl font-black text-white">
+          <h1 className="text-3xl md:text-4xl font-black text-[var(--text-primary)]">
             Book Installation
           </h1>
-          <p className="text-slate-400 mt-2">
+          <p className="text-[var(--text-muted)] mt-2">
             Schedule a home visit from our expert technicians
           </p>
         </div>
@@ -139,16 +139,16 @@ export default function BookingPage() {
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Info */}
-              <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <User className="h-5 w-5 text-[#3b82f6]" />
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 transition-colors duration-300">
+                <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <User className="h-5 w-5 text-[var(--primary)]" />
                   Personal Information
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="name"
-                      className="block text-sm font-medium text-slate-300 mb-2"
+                      className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                     >
                       Full Name *
                     </label>
@@ -159,9 +159,11 @@ export default function BookingPage() {
                       value={formData.name}
                       onChange={handleChange}
                       placeholder="Your full name"
-                      className={`w-full h-12 px-4 rounded-lg bg-[#020817] border ${
-                        errors.name ? "border-red-500" : "border-[#1e293b]"
-                      } text-white placeholder-slate-500 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors`}
+                      className={`w-full h-12 px-4 rounded-lg bg-[var(--background)] border ${
+                        errors.name
+                          ? "border-red-500"
+                          : "border-[var(--border)]"
+                      } text-[var(--text-primary)] placeholder-[var(--text-subtle)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors`}
                     />
                     {errors.name && (
                       <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -170,12 +172,12 @@ export default function BookingPage() {
                   <div>
                     <label
                       htmlFor="phone"
-                      className="block text-sm font-medium text-slate-300 mb-2"
+                      className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                     >
                       Phone Number *
                     </label>
                     <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-subtle)]" />
                       <input
                         type="tel"
                         id="phone"
@@ -183,9 +185,11 @@ export default function BookingPage() {
                         value={formData.phone}
                         onChange={handleChange}
                         placeholder="0300 1234567"
-                        className={`w-full h-12 pl-12 pr-4 rounded-lg bg-[#020817] border ${
-                          errors.phone ? "border-red-500" : "border-[#1e293b]"
-                        } text-white placeholder-slate-500 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors`}
+                        className={`w-full h-12 pl-12 pr-4 rounded-lg bg-[var(--background)] border ${
+                          errors.phone
+                            ? "border-red-500"
+                            : "border-[var(--border)]"
+                        } text-[var(--text-primary)] placeholder-[var(--text-subtle)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors`}
                       />
                     </div>
                     {errors.phone && (
@@ -198,15 +202,15 @@ export default function BookingPage() {
               </div>
 
               {/* Address */}
-              <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-[#3b82f6]" />
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 transition-colors duration-300">
+                <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-[var(--primary)]" />
                   Location
                 </h2>
                 <div>
                   <label
                     htmlFor="address"
-                    className="block text-sm font-medium text-slate-300 mb-2"
+                    className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                   >
                     Full Address *
                   </label>
@@ -217,9 +221,11 @@ export default function BookingPage() {
                     onChange={handleChange}
                     rows={3}
                     placeholder="House/Flat number, Street, Area, City"
-                    className={`w-full px-4 py-3 rounded-lg bg-[#020817] border ${
-                      errors.address ? "border-red-500" : "border-[#1e293b]"
-                    } text-white placeholder-slate-500 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors resize-none`}
+                    className={`w-full px-4 py-3 rounded-lg bg-[var(--background)] border ${
+                      errors.address
+                        ? "border-red-500"
+                        : "border-[var(--border)]"
+                    } text-[var(--text-primary)] placeholder-[var(--text-subtle)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors resize-none`}
                   />
                   {errors.address && (
                     <p className="text-red-500 text-sm mt-1">
@@ -230,16 +236,16 @@ export default function BookingPage() {
               </div>
 
               {/* Date & Time */}
-              <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#3b82f6]" />
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 transition-colors duration-300">
+                <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[var(--primary)]" />
                   Schedule
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="date"
-                      className="block text-sm font-medium text-slate-300 mb-2"
+                      className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                     >
                       Preferred Date *
                     </label>
@@ -250,9 +256,11 @@ export default function BookingPage() {
                       value={formData.date}
                       onChange={handleChange}
                       min={today}
-                      className={`w-full h-12 px-4 rounded-lg bg-[#020817] border ${
-                        errors.date ? "border-red-500" : "border-[#1e293b]"
-                      } text-white focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors`}
+                      className={`w-full h-12 px-4 rounded-lg bg-[var(--background)] border ${
+                        errors.date
+                          ? "border-red-500"
+                          : "border-[var(--border)]"
+                      } text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors`}
                     />
                     {errors.date && (
                       <p className="text-red-500 text-sm mt-1">{errors.date}</p>
@@ -261,20 +269,22 @@ export default function BookingPage() {
                   <div>
                     <label
                       htmlFor="time"
-                      className="block text-sm font-medium text-slate-300 mb-2"
+                      className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                     >
                       Preferred Time *
                     </label>
                     <div className="relative">
-                      <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-subtle)]" />
                       <select
                         id="time"
                         name="time"
                         value={formData.time}
                         onChange={handleChange}
-                        className={`w-full h-12 pl-12 pr-4 rounded-lg bg-[#020817] border ${
-                          errors.time ? "border-red-500" : "border-[#1e293b]"
-                        } text-white focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors appearance-none`}
+                        className={`w-full h-12 pl-12 pr-4 rounded-lg bg-[var(--background)] border ${
+                          errors.time
+                            ? "border-red-500"
+                            : "border-[var(--border)]"
+                        } text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors appearance-none`}
                       >
                         <option value="">Select time slot</option>
                         {timeSlots.map((slot) => (
@@ -292,16 +302,16 @@ export default function BookingPage() {
               </div>
 
               {/* Service Details */}
-              <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Wrench className="h-5 w-5 text-[#3b82f6]" />
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 transition-colors duration-300">
+                <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-[var(--primary)]" />
                   Service Details
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label
                       htmlFor="serviceType"
-                      className="block text-sm font-medium text-slate-300 mb-2"
+                      className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                     >
                       Service Type *
                     </label>
@@ -310,11 +320,11 @@ export default function BookingPage() {
                       name="serviceType"
                       value={formData.serviceType}
                       onChange={handleChange}
-                      className={`w-full h-12 px-4 rounded-lg bg-[#020817] border ${
+                      className={`w-full h-12 px-4 rounded-lg bg-[var(--background)] border ${
                         errors.serviceType
                           ? "border-red-500"
-                          : "border-[#1e293b]"
-                      } text-white focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors appearance-none`}
+                          : "border-[var(--border)]"
+                      } text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors appearance-none`}
                     >
                       <option value="">Select service</option>
                       {serviceTypes.map((service) => (
@@ -332,12 +342,12 @@ export default function BookingPage() {
                   <div>
                     <label
                       htmlFor="carModel"
-                      className="block text-sm font-medium text-slate-300 mb-2"
+                      className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                     >
                       Car Make & Model
                     </label>
                     <div className="relative">
-                      <Car className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <Car className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-subtle)]" />
                       <input
                         type="text"
                         id="carModel"
@@ -345,7 +355,7 @@ export default function BookingPage() {
                         value={formData.carModel}
                         onChange={handleChange}
                         placeholder="e.g., Honda Civic 2022"
-                        className="w-full h-12 pl-12 pr-4 rounded-lg bg-[#020817] border border-[#1e293b] text-white placeholder-slate-500 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors"
+                        className="w-full h-12 pl-12 pr-4 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors"
                       />
                     </div>
                   </div>
@@ -353,12 +363,12 @@ export default function BookingPage() {
                 <div>
                   <label
                     htmlFor="notes"
-                    className="block text-sm font-medium text-slate-300 mb-2"
+                    className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
                   >
                     Additional Notes
                   </label>
                   <div className="relative">
-                    <FileText className="absolute left-4 top-3 h-4 w-4 text-slate-500" />
+                    <FileText className="absolute left-4 top-3 h-4 w-4 text-[var(--text-subtle)]" />
                     <textarea
                       id="notes"
                       name="notes"
@@ -366,7 +376,7 @@ export default function BookingPage() {
                       onChange={handleChange}
                       rows={3}
                       placeholder="Any specific requirements or questions..."
-                      className="w-full pl-12 pr-4 py-3 rounded-lg bg-[#020817] border border-[#1e293b] text-white placeholder-slate-500 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] transition-colors resize-none"
+                      className="w-full pl-12 pr-4 py-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-subtle)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-colors resize-none"
                     />
                   </div>
                 </div>
@@ -385,21 +395,21 @@ export default function BookingPage() {
 
           {/* Sidebar Info */}
           <div className="lg:col-span-1">
-            <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-6 sticky top-24">
-              <h2 className="text-xl font-bold text-white mb-6">
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 sticky top-24 transition-colors duration-300">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6">
                 Why Book With Us?
               </h2>
 
               <div className="space-y-5">
                 <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center shrink-0">
-                    <MapPin className="h-5 w-5 text-[#3b82f6]" />
+                  <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
+                    <MapPin className="h-5 w-5 text-[var(--primary)]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">
+                    <h3 className="font-semibold text-[var(--text-primary)] mb-1">
                       Home Service
                     </h3>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-[var(--text-muted)]">
                       Our technicians come to your location for hassle-free
                       installation.
                     </p>
@@ -407,28 +417,28 @@ export default function BookingPage() {
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center shrink-0">
-                    <Wrench className="h-5 w-5 text-[#3b82f6]" />
+                  <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
+                    <Wrench className="h-5 w-5 text-[var(--primary)]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">
+                    <h3 className="font-semibold text-[var(--text-primary)] mb-1">
                       Expert Technicians
                     </h3>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-[var(--text-muted)]">
                       Certified professionals with years of experience.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center shrink-0">
-                    <CheckCircle className="h-5 w-5 text-[#3b82f6]" />
+                  <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
+                    <CheckCircle className="h-5 w-5 text-[var(--primary)]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">
+                    <h3 className="font-semibold text-[var(--text-primary)] mb-1">
                       Quality Guaranteed
                     </h3>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-[var(--text-muted)]">
                       All installations come with warranty and after-service
                       support.
                     </p>
@@ -436,13 +446,13 @@ export default function BookingPage() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-[#1e293b]">
-                <p className="text-sm text-slate-400 mb-4">
+              <div className="mt-8 pt-6 border-t border-[var(--border)]">
+                <p className="text-sm text-[var(--text-muted)] mb-4">
                   Have questions before booking?
                 </p>
                 <Link
                   href="/contact"
-                  className="inline-flex items-center gap-2 text-[#3b82f6] hover:text-[#60a5fa] font-medium transition-colors"
+                  className="inline-flex items-center gap-2 text-[var(--primary)] hover:opacity-80 font-medium transition-colors"
                 >
                   Contact Us
                   <ChevronLeft className="h-4 w-4 rotate-180" />

@@ -41,10 +41,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group flex flex-col rounded-xl border border-[#1e293b] bg-[#0f172a] overflow-hidden hover:border-[#3b82f6]/50 transition-all duration-300 hover:shadow-lg hover:shadow-[#3b82f6]/5">
+    <div className="group flex flex-col rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden hover:border-[var(--primary)]/50 transition-all duration-300 hover:shadow-lg hover:shadow-[var(--primary)]/5">
       <Link
         href={`/products/${product.slug}`}
-        className="aspect-4/3 w-full overflow-hidden bg-[#1e293b] relative block"
+        className="aspect-4/3 w-full overflow-hidden bg-[var(--muted)] relative block"
       >
         <Image
           src={product.image}
@@ -54,7 +54,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         />
         {product.badge && (
           <div
-            className={`absolute top-3 right-3 ${product.badgeColor || "bg-[#3b82f6]"} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm`}
+            className={`absolute top-3 right-3 ${product.badgeColor || "bg-[var(--primary)]"} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm`}
           >
             {product.badge}
           </div>
@@ -63,21 +63,21 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="flex flex-col flex-1 p-5">
         <div className="flex justify-between items-start mb-2">
           <Link href={`/products/${product.slug}`}>
-            <h3 className="font-semibold text-lg text-white group-hover:text-[#3b82f6] transition-colors">
+            <h3 className="font-semibold text-lg text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">
               {product.name}
             </h3>
           </Link>
-          <span className="font-bold text-white">
+          <span className="font-bold text-[var(--text-primary)]">
             {formatPrice(product.price)}
           </span>
         </div>
-        <p className="text-sm text-slate-500 mb-6 line-clamp-2 flex-1">
+        <p className="text-sm text-[var(--text-subtle)] mb-6 line-clamp-2 flex-1">
           {product.description}
         </p>
         <div className="grid grid-cols-2 gap-3 mt-auto">
           <Link
             href={`/products/${product.slug}`}
-            className="h-10 rounded-md border border-[#1e293b] bg-transparent hover:bg-[#1e293b] hover:text-white text-slate-300 text-sm font-medium transition-colors flex items-center justify-center"
+            className="h-10 rounded-md border border-[var(--border)] bg-transparent hover:bg-[var(--muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm font-medium transition-colors flex items-center justify-center"
           >
             View Details
           </Link>
@@ -88,8 +88,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               justAdded
                 ? "bg-green-600"
                 : isInCart
-                  ? "bg-[#3b82f6] hover:bg-[#2563eb]"
-                  : "bg-[#3b82f6] hover:bg-[#2563eb]"
+                  ? "bg-[var(--primary)] hover:opacity-90"
+                  : "bg-[var(--primary)] hover:opacity-90"
             }`}
           >
             {justAdded ? (

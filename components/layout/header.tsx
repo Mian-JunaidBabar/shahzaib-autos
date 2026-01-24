@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/context/cart-context";
-import { ShoppingCart } from "lucide-react";
+import { useTheme } from "@/context/theme-context";
+import { ShoppingCart, Sun, Moon } from "lucide-react";
 import { generateWhatsAppUrl } from "@/lib/whatsapp";
 
 const navLinks = [
@@ -16,23 +17,24 @@ const navLinks = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { getItemCount } = useCart();
+  const { theme, toggleTheme } = useTheme();
   const itemCount = getItemCount();
   const whatsappUrl = generateWhatsAppUrl(
     "Hi! I'm interested in your products.",
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#1e293b] bg-[#020817]/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur-md transition-colors duration-300">
       <div className="px-4 md:px-8 lg:px-40 flex h-16 items-center justify-between">
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 text-white hover:text-[#3b82f6] transition-colors"
+          className="flex items-center gap-2 text-[var(--text-primary)] hover:text-[var(--primary)] transition-colors"
         >
-          <span className="material-symbols-outlined text-[28px]! text-[#3b82f6]">
+          <span className="material-symbols-outlined text-[28px]! text-[var(--primary)]">
             directions_car
           </span>
-          <h2 className="text-white text-lg font-bold tracking-tight">
+          <h2 className="text-[var(--text-primary)] text-lg font-bold tracking-tight">
             AM Motors
           </h2>
         </Link>
@@ -43,7 +45,7 @@ export default function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
               {link.label}
             </Link>
@@ -51,15 +53,30 @@ export default function Header() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--muted)] transition-colors"
+            aria-label={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+
           {/* Cart Icon */}
           <Link
             href="/checkout"
-            className="relative p-2 text-slate-300 hover:text-white transition-colors"
+            className="relative p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ShoppingCart className="h-5 w-5" />
             {itemCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[#3b82f6] text-white text-xs font-bold">
+              <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[var(--primary)] text-white text-xs font-bold">
                 {itemCount > 9 ? "9+" : itemCount}
               </span>
             )}
@@ -80,7 +97,7 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-slate-300 hover:text-white"
+            className="md:hidden p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           >
             <span className="material-symbols-outlined">
               {mobileMenuOpen ? "close" : "menu"}
@@ -91,14 +108,14 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#1e293b] bg-[#020817]">
+        <div className="md:hidden border-t border-[var(--border)] bg-[var(--background)]">
           <nav className="flex flex-col px-4 py-4 space-y-4">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               >
                 {link.label}
               </Link>
@@ -106,11 +123,28 @@ export default function Header() {
             <Link
               href="/checkout"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
             >
               <ShoppingCart className="h-4 w-4" />
               Cart {itemCount > 0 && `(${itemCount})`}
             </Link>
+            <button
+              onClick={() => {
+                toggleTheme();
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              {theme === "dark" ? (
+                <>
+                  <Sun className="h-4 w-4" /> Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon className="h-4 w-4" /> Dark Mode
+                </>
+              )}
+            </button>
             <a
               href={whatsappUrl}
               target="_blank"

@@ -22,21 +22,26 @@ export default function ProductsPage() {
   return (
     <>
       {/* Header Section */}
-      <section className="border-b border-[#1e293b] bg-[#0f172a]/30 pt-8 pb-8">
+      <section className="border-b border-[var(--border)] bg-[var(--section-bg)] pt-8 pb-8 transition-colors duration-300">
         <div className="px-4 md:px-8 lg:px-40">
-          <nav className="flex items-center text-sm text-slate-500 mb-4">
-            <Link href="/" className="hover:text-[#3b82f6] transition-colors">
+          <nav className="flex items-center text-sm text-[var(--text-subtle)] mb-4">
+            <Link
+              href="/"
+              className="hover:text-[var(--primary)] transition-colors"
+            >
               Home
             </Link>
-            <span className="mx-2 text-slate-600">/</span>
-            <span className="text-white font-medium">Products</span>
+            <span className="mx-2 text-[var(--text-subtle)]">/</span>
+            <span className="text-[var(--text-primary)] font-medium">
+              Products
+            </span>
           </nav>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--text-primary)]">
                 Car Accessories
               </h1>
-              <p className="text-slate-400 mt-2 max-w-2xl">
+              <p className="text-[var(--text-muted)] mt-2 max-w-2xl">
                 Premium upgrades for interior comfort, exterior styling, and
                 vehicle protection. Professional installation available.
               </p>
@@ -46,7 +51,7 @@ export default function ProductsPage() {
       </section>
 
       {/* Filters Section */}
-      <section className="sticky top-16 z-40 border-b border-[#1e293b] bg-[#020817]/95 backdrop-blur supports-backdrop-filter:bg-[#020817]/60">
+      <section className="sticky top-16 z-40 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur transition-colors duration-300">
         <div className="px-4 md:px-8 lg:px-40 py-4">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
             {/* Category Filters */}
@@ -58,8 +63,8 @@ export default function ProductsPage() {
                     onClick={() => setActiveCategory(category.id)}
                     className={`inline-flex items-center justify-center rounded-full border px-4 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${
                       activeCategory === category.id
-                        ? "border-[#3b82f6] bg-[#3b82f6] text-white shadow-sm"
-                        : "border-[#1e293b] bg-[#0f172a] text-slate-400 hover:bg-[#1e293b] hover:text-white"
+                        ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-sm"
+                        : "border-[var(--border)] bg-[var(--card)] text-[var(--text-muted)] hover:bg-[var(--muted)] hover:text-[var(--text-primary)]"
                     }`}
                   >
                     {category.label}
@@ -70,13 +75,13 @@ export default function ProductsPage() {
 
             {/* Search */}
             <div className="w-full md:w-auto relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-[#3b82f6] transition-colors" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-subtle)] group-focus-within:text-[var(--primary)] transition-colors" />
               <input
                 type="text"
                 placeholder="Search accessories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-full md:w-64 rounded-md border border-[#1e293b] bg-[#0f172a] px-3 py-2 pl-10 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] text-white"
+                className="h-10 w-full md:w-64 rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2 pl-10 text-sm placeholder:text-[var(--text-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-[var(--text-primary)]"
               />
             </div>
           </div>
@@ -87,11 +92,11 @@ export default function ProductsPage() {
       <section className="px-4 md:px-8 lg:px-40 py-12">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16">
-            <Search className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">
+            <Search className="h-12 w-12 text-[var(--text-subtle)] mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
               No products found
             </h3>
-            <p className="text-slate-400">
+            <p className="text-[var(--text-muted)]">
               Try adjusting your search or filter criteria.
             </p>
           </div>

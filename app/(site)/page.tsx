@@ -131,29 +131,27 @@ export default function HomePage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative w-full py-20 lg:py-32 overflow-hidden bg-[#020817]">
+      <section className="relative w-full py-20 lg:py-32 overflow-hidden bg-background transition-colors duration-300">
         {/* Background Effects */}
-        <div className="absolute top-0 right-0 -z-10 h-125 w-125 bg-[#3b82f6]/10 blur-[100px] rounded-full" />
+        <div className="absolute top-0 right-0 -z-10 h-125 w-125 bg-(--primary)/10 blur-[100px] rounded-full" />
         <div className="absolute bottom-0 left-0 -z-10 h-75 w-75 bg-blue-600/10 blur-[80px] rounded-full" />
 
         <div className="px-4 md:px-8 lg:px-40">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div className="flex flex-col gap-6 order-2 lg:order-1">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#3b82f6]/20 bg-[#3b82f6]/10 px-3 py-1 text-xs font-medium text-[#3b82f6] w-fit">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary w-fit">
                 <span className="material-symbols-outlined text-[14px]">
                   stars
                 </span>
                 <span>No.1 Automotive Workshop</span>
               </div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-white">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-(--text-primary)">
                 Premium Car Accessories &{" "}
-                <span className="text-[#3b82f6]">
-                  Professional Installation
-                </span>
+                <span className="text-primary">Professional Installation</span>
               </h1>
 
-              <p className="text-slate-400 text-lg leading-relaxed max-w-lg">
+              <p className="text-(--text-muted) text-lg leading-relaxed max-w-lg">
                 Transform your vehicle with high-quality parts and expert
                 craftsmanship. From detailing to custom modifications, we do it
                 all.
@@ -162,13 +160,13 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-4 mt-2">
                 <Link
                   href="/products"
-                  className="h-11 px-8 rounded-md bg-white text-[#020817] font-semibold text-sm hover:bg-slate-200 transition-all flex items-center gap-2"
+                  className="h-11 px-8 rounded-md bg-primary text-white font-semibold text-sm hover:opacity-90 transition-all flex items-center gap-2"
                 >
                   Explore Catalog
                 </Link>
                 <Link
-                  href="/contact"
-                  className="h-11 px-8 rounded-md bg-transparent border border-slate-700 text-white font-semibold text-sm hover:bg-slate-800 transition-all flex items-center gap-2"
+                  href="/booking"
+                  className="h-11 px-8 rounded-md bg-transparent border border-border text-(--text-primary) font-semibold text-sm hover:bg-muted transition-all flex items-center gap-2"
                 >
                   Book Service
                 </Link>
@@ -177,8 +175,8 @@ export default function HomePage() {
 
             {/* Hero Image */}
             <div className="relative order-1 lg:order-2 group">
-              <div className="absolute -inset-1 bg-linear-to-r from-[#3b82f6] to-blue-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-              <div className="relative aspect-video rounded-xl overflow-hidden border border-[#1e293b] bg-[#0f172a] shadow-2xl">
+              <div className="absolute -inset-1 bg-linear-to-r from-primary to-blue-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+              <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-card shadow-2xl">
                 <Image
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuD00zIN8_8SUI957_XQfS6bdXzkF4h4SSmjbn2D2wb45ibyAeOkX4uTwlfDsLVBtlrOlGIY5b4GthE_pePfduRbgvuxodWHJbA_QWGdadmVd3E-q5Mck8cKfpQMpsXgawOTUI0ITAZIaGyV83r5YU3oo-jIaT8CeVuzed5iBjquC8T6ElhCa25PUA35oq1nnFTyvOZ3l712lAAfel2Bq8mrZMjjjbeYV8dVPdxJdQLgKpOaHllimldqfaIVTX8iQLmEMaHthfqp7JBw"
                   alt="Cinematic shot of workshop activity"
@@ -204,21 +202,21 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="border-y border-[#1e293b] bg-[#0f172a]/50">
+      <section className="border-y border-(--border) bg-(--section-bg) transition-colors duration-300">
         <div className="px-4 md:px-8 lg:px-40 py-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature) => (
               <div key={feature.title} className="flex flex-col gap-3">
-                <div className="h-10 w-10 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center text-[#3b82f6]">
+                <div className="h-10 w-10 rounded-lg bg-(--primary)/10 flex items-center justify-center text-(--primary)">
                   <span className="material-symbols-outlined">
                     {feature.icon}
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-base">
+                  <h3 className="font-bold text-(--text-primary) text-base">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-slate-400 mt-1">
+                  <p className="text-sm text-(--text-muted) mt-1">
                     {feature.description}
                   </p>
                 </div>
@@ -229,19 +227,19 @@ export default function HomePage() {
       </section>
 
       {/* Featured Products Section */}
-      <section className="py-20 px-4 md:px-8 lg:px-40 bg-[#020817]">
+      <section className="py-20 px-4 md:px-8 lg:px-40 bg-(--background) transition-colors duration-300">
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-(--text-primary)">
               Featured Products
             </h2>
-            <p className="text-slate-400 mt-2">
+            <p className="text-(--text-muted) mt-2">
               Best-selling upgrades for your car.
             </p>
           </div>
           <Link
             href="/products"
-            className="hidden sm:flex text-[#3b82f6] text-sm font-semibold items-center gap-1 hover:gap-2 transition-all"
+            className="hidden sm:flex text-(--primary) text-sm font-semibold items-center gap-1 hover:gap-2 transition-all"
           >
             View Catalog{" "}
             <span className="material-symbols-outlined text-sm">
@@ -254,9 +252,9 @@ export default function HomePage() {
           {featuredProducts.map((product) => (
             <div
               key={product.id}
-              className="group rounded-xl border border-[#1e293b] bg-[#0f172a] overflow-hidden hover:border-[#3b82f6]/50 transition-colors"
+              className="group rounded-xl border border-(--border) bg-(--card) overflow-hidden hover:border-(--primary)/50 transition-colors"
             >
-              <div className="aspect-4/3 w-full overflow-hidden bg-[#1e293b] relative">
+              <div className="aspect-4/3 w-full overflow-hidden bg-(--muted) relative">
                 <Image
                   src={product.image}
                   alt={product.name}
@@ -265,7 +263,7 @@ export default function HomePage() {
                 />
                 {product.badge && (
                   <div
-                    className={`absolute top-3 right-3 ${product.badgeColor || "bg-[#3b82f6]"} text-white text-[10px] font-bold px-2 py-1 rounded`}
+                    className={`absolute top-3 right-3 ${product.badgeColor || "bg-(--primary)"} text-white text-[10px] font-bold px-2 py-1 rounded`}
                   >
                     {product.badge}
                   </div>
@@ -273,14 +271,14 @@ export default function HomePage() {
               </div>
               <div className="p-5">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-lg text-white">
+                  <h3 className="font-semibold text-lg text-(--text-primary)">
                     {product.name}
                   </h3>
-                  <span className="font-medium text-slate-400">
+                  <span className="font-medium text-(--text-muted)">
                     {product.price}
                   </span>
                 </div>
-                <p className="text-sm text-slate-500 mb-4 line-clamp-2">
+                <p className="text-sm text-(--text-subtle) mb-4 line-clamp-2">
                   {product.description}
                 </p>
                 <a
@@ -301,15 +299,15 @@ export default function HomePage() {
       </section>
 
       {/* Workshop Stories Section */}
-      <section className="py-20 px-4 md:px-8 lg:px-40 bg-[#1e293b]/30">
+      <section className="py-20 px-4 md:px-8 lg:px-40 bg-(--section-bg) transition-colors duration-300">
         <div className="mb-12 text-center max-w-2xl mx-auto">
-          <span className="text-[#3b82f6] font-bold text-sm tracking-wider uppercase mb-2 block">
+          <span className="text-(--primary) font-bold text-sm tracking-wider uppercase mb-2 block">
             Our Portfolio
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-(--text-primary) mb-4">
             Workshop Stories
           </h2>
-          <p className="text-slate-400 text-lg">
+          <p className="text-(--text-muted) text-lg">
             Real results from our garage. See how we upgrade everyday rides into
             dream machines.
           </p>
@@ -332,7 +330,7 @@ export default function HomePage() {
               <div className="absolute bottom-0 left-0 p-6 w-full">
                 {story.tag && (
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="bg-[#3b82f6] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <span className="bg-(--primary) text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                       {story.tag}
                     </span>
                   </div>
@@ -351,7 +349,7 @@ export default function HomePage() {
         <div className="text-center mt-8">
           <Link
             href="/work"
-            className="inline-flex items-center gap-2 text-[#3b82f6] text-sm font-semibold hover:gap-3 transition-all"
+            className="inline-flex items-center gap-2 text-(--primary) text-sm font-semibold hover:gap-3 transition-all"
           >
             View All Stories{" "}
             <span className="material-symbols-outlined text-sm">
@@ -363,19 +361,19 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <section className="py-20 px-4 md:px-8 lg:px-40">
-        <div className="relative overflow-hidden rounded-2xl bg-white text-[#020817] px-8 py-16 md:px-16 text-center shadow-[0_0_50px_-12px_rgba(255,255,255,0.2)]">
+        <div className="relative overflow-hidden rounded-2xl bg-(--primary) text-white px-8 py-16 md:px-16 text-center shadow-2xl">
           <div className="relative z-10 max-w-3xl mx-auto">
-            <h2 className="text-slate-900 text-3xl md:text-5xl font-black mb-6 tracking-tight">
+            <h2 className="text-white text-3xl md:text-5xl font-black mb-6 tracking-tight">
               Ready to Transform Your Ride?
             </h2>
-            <p className="text-slate-600 text-lg md:text-xl mb-8 font-medium">
+            <p className="text-white/80 text-lg md:text-xl mb-8 font-medium">
               Join thousands of satisfied customers. Book your appointment today
               or order premium parts directly to your doorstep.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/contact"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-black text-white rounded-lg font-bold text-base hover:bg-slate-800 transition-colors shadow-lg"
+                href="/booking"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-(--primary) rounded-lg font-bold text-base hover:bg-white/90 transition-colors shadow-lg"
               >
                 <span className="material-symbols-outlined">
                   calendar_month
