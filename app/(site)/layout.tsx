@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AM Motors - Premium Automotive Services",
+  title: "Shahzaib Autos - Premium Automotive Services",
   description:
     "Premium car accessories and professional installation services. From detailing to custom modifications, we do it all.",
 };

@@ -22,7 +22,9 @@ export default function Footer() {
               <span className="material-symbols-outlined text-[32px]! text-(--text-primary)">
                 directions_car
               </span>
-              <h2 className="text-xl font-bold tracking-tight">AM Motors</h2>
+              <h2 className="text-xl font-bold tracking-tight">
+                Shahzaib Autos
+              </h2>
             </Link>
             <p className="`text-(--text-muted) text-sm max-w-xs">
               Premium automotive solutions for the modern driver. Excellence in
@@ -68,7 +70,9 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-(--border) pt-8 text-center text-xs text-(--text-subtle)">
-          <p>© {new Date().getFullYear()} AM Motors. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} Shahzaib Autos. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

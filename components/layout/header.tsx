@@ -35,7 +35,7 @@ export default function Header() {
             directions_car
           </span>
           <h2 className="text-[var(--text-primary)] text-lg font-bold tracking-tight">
-            AM Motors
+            Shahzaib Autos
           </h2>
         </Link>
 
