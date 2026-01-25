@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
+import { useAuth } from "@/context/auth-context";
 
 function formatLabel(segment: string) {
   const cleaned = segment.replace(/\[|\]/g, "").replace(/-/g, " ");
@@ -12,6 +13,7 @@ function formatLabel(segment: string) {
 export default function AdminHeader() {
   const pathname = usePathname() || "/admin";
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   // Build breadcrumbs from the current path
   const segments = pathname.split("/").filter(Boolean);
@@ -19,6 +21,11 @@ export default function AdminHeader() {
     href: "/" + segments.slice(0, idx + 1).join("/"),
     label: formatLabel(seg),
   }));
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = "/admin/auth/login";
+  };
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10">
@@ -101,15 +108,41 @@ export default function AdminHeader() {
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive border-2 border-background"></span>
         </button>
 
-        {/* User avatar */}
-        <button
-          className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-blue-600 p-[1px]"
-          aria-label="Account"
-        >
-          <div className="h-full w-full rounded-full bg-background flex items-center justify-center">
-            <span className="font-bold text-xs text-primary">SA</span>
+        {/* User Menu */}
+        <div className="relative group">
+          <button className="flex items-center gap-2 p-2 rounded-full hover:bg-muted transition-colors">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-blue-600 flex items-center justify-center">
+              <span className="font-bold text-xs text-white">
+                {user?.name?.charAt(0) || "A"}
+              </span>
+            </div>
+            <span className="hidden sm:block text-sm font-medium text-foreground">
+              {user?.name || "Admin"}
+            </span>
+            <span className="material-symbols-outlined text-muted-foreground text-sm">
+              expand_more
+            </span>
+          </button>
+
+          {/* Dropdown Menu */}
+          <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="p-3 border-b border-border">
+              <p className="font-medium text-foreground">{user?.name}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
+            <div className="py-1">
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  logout
+                </span>
+                Sign Out
+              </button>
+            </div>
           </div>
-        </button>
+        </div>
       </div>
     </header>
   );
