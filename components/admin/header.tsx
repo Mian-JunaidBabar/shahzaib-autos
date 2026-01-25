@@ -1,52 +1,41 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 
-const breadcrumbMap: Record<string, string> = {
-  "/admin": "Dashboard",
-  "/admin/orders": "Orders",
-  "/admin/bookings": "Bookings",
-  "/admin/inventory": "Inventory",
-  "/admin/leads": "Leads",
-  "/admin/customers": "Customers",
-  "/admin/team": "Team",
-  "/admin/settings": "Settings",
-};
+function formatLabel(segment: string) {
+  const cleaned = segment.replace(/\[|\]/g, "").replace(/-/g, " ");
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
 
 export default function AdminHeader() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "/admin";
   const { theme, toggleTheme } = useTheme();
 
-  const getBreadcrumbs = () => {
-    const segments = pathname.split("/").filter(Boolean);
-    const breadcrumbs: { label: string; href: string }[] = [];
-
-    let currentPath = "";
-    segments.forEach((segment) => {
-      currentPath += `/${segment}`;
-      const label =
-        breadcrumbMap[currentPath] ||
-        segment.charAt(0).toUpperCase() + segment.slice(1);
-      breadcrumbs.push({ label, href: currentPath });
-    });
-
-    return breadcrumbs;
-  };
-
-  const breadcrumbs = getBreadcrumbs();
+  // Build breadcrumbs from the current path
+  const segments = pathname.split("/").filter(Boolean);
+  const breadcrumbs = segments.map((seg, idx) => ({
+    href: "/" + segments.slice(0, idx + 1).join("/"),
+    label: formatLabel(seg),
+  }));
 
   return (
     <header className="h-16 border-b border-border flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10">
       <div className="flex items-center gap-4">
         {/* Mobile menu button */}
-        <button className="md:hidden p-2 text-muted-foreground hover:text-foreground">
+        <button
+          className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+          aria-label="Open menu"
+        >
           <span className="material-symbols-outlined">menu</span>
         </button>
 
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-muted-foreground"
+        >
           {breadcrumbs.map((crumb, index) => (
             <span key={crumb.href} className="flex items-center gap-2">
               {index > 0 && (
@@ -68,7 +57,7 @@ export default function AdminHeader() {
               )}
             </span>
           ))}
-        </div>
+        </nav>
       </div>
 
       <div className="flex items-center gap-4">
@@ -81,6 +70,7 @@ export default function AdminHeader() {
             className="h-9 w-64 rounded-md border border-border bg-muted/50 pl-9 pr-4 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
             placeholder="Search..."
             type="text"
+            aria-label="Search"
           />
         </div>
 
@@ -91,6 +81,9 @@ export default function AdminHeader() {
           title={
             theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
           }
+          aria-label={
+            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
         >
           <span className="material-symbols-outlined text-[22px]">
             {theme === "dark" ? "light_mode" : "dark_mode"}
@@ -98,7 +91,10 @@ export default function AdminHeader() {
         </button>
 
         {/* Notifications */}
-        <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted">
+        <button
+          className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
+          aria-label="Notifications"
+        >
           <span className="material-symbols-outlined text-[22px]">
             notifications
           </span>
@@ -106,7 +102,10 @@ export default function AdminHeader() {
         </button>
 
         {/* User avatar */}
-        <button className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-blue-600 p-[1px]">
+        <button
+          className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-blue-600 p-[1px]"
+          aria-label="Account"
+        >
           <div className="h-full w-full rounded-full bg-background flex items-center justify-center">
             <span className="font-bold text-xs text-primary">SA</span>
           </div>

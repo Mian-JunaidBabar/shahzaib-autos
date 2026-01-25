@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
-/* Admin Dark theme color palette */
-:root {
+/* Admin theme color palette */
+:root,
+.dark {
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
   --background: #020817;
@@ -19,6 +20,27 @@
   --success: #22c55e;
   --warning: #eab308;
   --destructive: #ef4444;
+}
+
+/* Light theme overrides */
+.light {
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #f8fafc;
+  --card-foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #2563eb;
+  --radius: 0.5rem;
+  --success: #16a34a;
+  --warning: #ca8a04;
+  --destructive: #dc2626;
 }
 
 @theme inline {
@@ -39,6 +61,13 @@
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --font-sans: var(--font-inter);
+}
+
+/* Base styles driven by CSS variables */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 
 /* Custom scrollbar */
