@@ -8,7 +8,7 @@ import {
  *
  * Use these functions to verify your Cloudinary setup is working correctly
  */
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 
 /**
  * Test environment variables are properly configured

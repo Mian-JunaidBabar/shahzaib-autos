@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Upload, X, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import {
   saveProductImage,
   deleteProductImage,
