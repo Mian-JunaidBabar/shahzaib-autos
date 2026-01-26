@@ -1,10 +1,9 @@
-import "./globals.css";
-
 import { ThemeProvider } from "@/context/theme-context";
 import { CartProvider } from "@/context/cart-context";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import type { Metadata } from "next";
+
 
 export const metadata: Metadata = {
   title: "Shahzaib Autos - Premium Automotive Services",
@@ -18,7 +17,7 @@ export default function PublicLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <script
         dangerouslySetInnerHTML={{
           __html: `

@@ -9,6 +9,7 @@ import { generateWhatsAppUrl } from "@/lib/whatsapp";
 
 const navLinks = [
   { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
   { href: "/products", label: "Products" },
   { href: "/work", label: "Stories" },
   { href: "/contact", label: "Contact" },
