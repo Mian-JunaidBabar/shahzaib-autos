@@ -6,21 +6,29 @@ import {
   useEffect,
   useState,
   ReactNode,
+  useCallback,
 } from "react";
+import { authClient } from "@/lib/auth-client";
 
+// Types
 interface User {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "user";
+  role: "ADMIN" | "STAFF";
+  image?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,70 +37,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for existing session
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem("admin_token");
-        if (token) {
-          // In a real app, validate token with your API
-          // For now, we'll use a mock user
-          setUser({
-            id: "1",
-            email: "admin@shahzaibautos.com",
-            name: "Admin",
-            role: "admin",
-          });
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        localStorage.removeItem("admin_token");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Fetch current session
+  const fetchSession = useCallback(async () => {
+    try {
+      const session = await authClient.getSession();
 
-    checkAuth();
+      if (session.data?.user) {
+        setUser({
+          id: session.data.user.id,
+          email: session.data.user.email,
+          name: session.data.user.name,
+          role: (session.data.user as any).role || "STAFF",
+          image: session.data.user.image,
+        });
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Session fetch failed:", error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  // Check session on mount
+  useEffect(() => {
+    fetchSession();
+  }, [fetchSession]);
+
+  // Login function
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
 
     try {
-      // Mock authentication - replace with real API call
-      if (email === "admin@shahzaibautos.com" && password === "admin123") {
-        const mockUser: User = {
-          id: "1",
-          email,
-          name: "Admin",
-          role: "admin",
+      const result = await authClient.signIn.email({
+        email,
+        password,
+      });
+
+      if (result.error) {
+        return {
+          success: false,
+          error: result.error.message || "Login failed",
         };
-
-        setUser(mockUser);
-        localStorage.setItem("admin_token", "mock_jwt_token");
-
-        // Set cookie for middleware
-        document.cookie = "admin_token=mock_jwt_token; path=/; max-age=86400"; // 24 hours
-
-        return true;
       }
 
-      return false;
+      // Fetch updated session
+      await fetchSession();
+
+      return { success: true };
     } catch (error) {
       console.error("Login failed:", error);
-      return false;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Login failed",
+      };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("admin_token");
+  // Logout function
+  const logout = async (): Promise<void> => {
+    try {
+      await authClient.signOut();
+      setUser(null);
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Still clear user on error
+      setUser(null);
+    }
+  };
 
-    // Remove cookie
-    document.cookie =
-      "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  // Refresh session
+  const refreshSession = async (): Promise<void> => {
+    await fetchSession();
   };
 
   const isAuthenticated = !!user;
@@ -105,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         login,
         logout,
+        refreshSession,
       }}
     >
       {children}
@@ -114,8 +138,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
+}
+
+// Hook to check if user has specific role
+export function useRequireRole(requiredRole: "ADMIN" | "STAFF") {
+  const { user, isAuthenticated } = useAuth();
+
+  const hasRole =
+    isAuthenticated &&
+    user &&
+    (user.role === "ADMIN" || user.role === requiredRole);
+
+  return hasRole;
+}
+
+// Hook to check if user is admin
+export function useIsAdmin() {
+  const { user, isAuthenticated } = useAuth();
+  return isAuthenticated && user?.role === "ADMIN";
 }

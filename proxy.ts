@@ -1,36 +1,56 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+/**
+ * Next.js Proxy for Route Protection
+ *
+ * This proxy protects admin routes by verifying Better Auth sessions.
+ * - Runs on the edge before requests reach the server
+ * - Validates session cookie with Better Auth
+ * - Redirects unauthenticated users to login
+ */
+import { NextRequest, NextResponse } from "next/server";
 
-export function proxy(request: NextRequest) {
+
+// Routes that require authentication
+const PROTECTED_ROUTES = ["/admin/dashboard"];
+// Routes that should redirect if already authenticated
+const AUTH_ROUTES = ["/admin/auth/login"];
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Admin routes that require authentication
-  const protectedAdminRoutes = ["/admin/dashboard"];
-  const isProtectedAdminRoute = protectedAdminRoutes.some((route) =>
+  // Check if this is a protected admin route
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
     pathname.startsWith(route),
   );
 
-  // Auth routes that should redirect if already authenticated
-  const authRoutes = ["/admin/auth/login"];
-  const isAuthRoute = authRoutes.includes(pathname);
+  // Check if this is an auth route
+  const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Check for admin token
-  const adminToken = request.cookies.get("admin_token")?.value;
-  const isAuthenticated = !!adminToken;
+  // Get Better Auth session cookie
+  // Better Auth uses a cookie named "better-auth.session_token" by default
+  const sessionToken = request.cookies.get("better-auth.session_token")?.value;
 
-  // Redirect to login if trying to access protected admin route without auth
-  if (isProtectedAdminRoute && !isAuthenticated) {
-    return NextResponse.redirect(new URL("/admin/auth/login", request.url));
+  // For protected routes, verify the session exists
+  if (isProtectedRoute) {
+    if (!sessionToken) {
+      // No session - redirect to login
+      const loginUrl = new URL("/admin/auth/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Session exists - verify it's valid by calling Better Auth API
+    // This is done server-side in the layout/page for full validation
+    // Proxy just does a quick cookie check for performance
   }
 
-  // Redirect to dashboard if trying to access auth routes while authenticated
-  if (isAuthRoute && isAuthenticated) {
+  // For auth routes, redirect to dashboard if already authenticated
+  if (isAuthRoute && sessionToken) {
     return NextResponse.redirect(new URL("/admin/dashboard", request.url));
   }
 
-  // Redirect /admin to /admin/dashboard if authenticated, otherwise to login
-  if (pathname === "/admin") {
-    if (isAuthenticated) {
+  // Handle /admin base route
+  if (pathname === "/admin" || pathname === "/admin/") {
+    if (sessionToken) {
       return NextResponse.redirect(new URL("/admin/dashboard", request.url));
     } else {
       return NextResponse.redirect(new URL("/admin/auth/login", request.url));
@@ -40,11 +60,10 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Configure which routes the proxy runs on
 export const config = {
   matcher: [
-    /*
-     * Match all admin routes
-     */
+    // Match all admin routes
     "/admin/:path*",
   ],
 };

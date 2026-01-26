@@ -12,31 +12,267 @@ datasource db {
   provider = "postgresql"
 }
 
-model Order {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String
-  items     Json
-  total     Int
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
+// ============================================
+// BETTER AUTH TABLES
+// ============================================
+
+enum Role {
+  ADMIN
+  STAFF
 }
 
-model Booking {
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false) @map("email_verified")
+  image         String?
+  role          Role      @default(STAFF)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  sessions Session[]
+  accounts Account[]
+
+  @@map("users")
+}
+
+model Session {
   id        String   @id @default(uuid())
-  name      String
-  phone     String
-  address   String
-  date      DateTime
-  notes     String?
-  createdAt DateTime @default(now())
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("verifications")
+}
+
+// ============================================
+// PRODUCT & INVENTORY
+// ============================================
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  price       Int      // Price in cents
+  category    String?
+  badge       String?  // e.g., "BESTSELLER", "TRENDING"
+  badgeColor  String?  @map("badge_color")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  images      ProductImage[]
+  inventory   Inventory?
+  orderItems  OrderItem[]
+
+  @@map("products")
 }
 
 model ProductImage {
-  id        String   @id @default(uuid())
-  secureUrl String   @map("secure_url")
-  publicId  String   @map("public_id") @unique
+  id         String   @id @default(uuid())
+  productId  String   @map("product_id")
+  secureUrl  String   @map("secure_url")
+  publicId   String   @map("public_id") @unique
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  sortOrder  Int      @default(0) @map("sort_order")
   uploadedAt DateTime @default(now()) @map("uploaded_at")
 
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@map("product_images")
+}
+
+model Inventory {
+  id           String   @id @default(uuid())
+  productId    String   @unique @map("product_id")
+  quantity     Int      @default(0)
+  lowStockAt   Int      @default(10) @map("low_stock_at") // Alert threshold
+  reorderPoint Int      @default(5) @map("reorder_point")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("inventory")
+}
+
+// ============================================
+// ORDERS & ORDER ITEMS
+// ============================================
+
+enum OrderStatus {
+  NEW
+  CONTACTED
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  orderNumber   String      @unique @map("order_number")
+  customerId    String?     @map("customer_id")
+  customerName  String      @map("customer_name")
+  customerPhone String      @map("customer_phone")
+  customerEmail String?     @map("customer_email")
+  address       String?     @db.Text
+  subtotal      Int         // In cents
+  total         Int         // In cents
+  status        OrderStatus @default(NEW)
+  notes         String?     @db.Text
+  whatsappSent  Boolean     @default(false) @map("whatsapp_sent")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  items    OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  orderId   String @map("order_id")
+  productId String @map("product_id")
+  name      String // Snapshot of product name at order time
+  price     Int    // Snapshot of price at order time (cents)
+  quantity  Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+// ============================================
+// BOOKINGS (Service Appointments)
+// ============================================
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  bookingNumber String        @unique @map("booking_number")
+  customerId    String?       @map("customer_id")
+  customerName  String        @map("customer_name")
+  customerPhone String        @map("customer_phone")
+  customerEmail String?       @map("customer_email")
+  serviceType   String        @map("service_type")
+  vehicleInfo   String?       @map("vehicle_info") // Make, model, year
+  date          DateTime
+  timeSlot      String?       @map("time_slot")
+  address       String        @db.Text
+  notes         String?       @db.Text
+  status        BookingStatus @default(PENDING)
+  whatsappSent  Boolean       @default(false) @map("whatsapp_sent")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@map("bookings")
+}
+
+// ============================================
+// LEADS (Contact Form & General Inquiries)
+// ============================================
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum LeadSource {
+  CONTACT_FORM
+  WHATSAPP
+  PHONE
+  REFERRAL
+  OTHER
+}
+
+model Lead {
+  id        String     @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  source    LeadSource @default(CONTACT_FORM)
+  subject   String?
+  message   String?    @db.Text
+  status    LeadStatus @default(NEW)
+  notes     String?    @db.Text
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("leads")
+}
+
+// ============================================
+// CUSTOMERS
+// ============================================
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  @unique
+  phone     String   @unique
+  address   String?  @db.Text
+  notes     String?  @db.Text
+  isVip     Boolean  @default(false) @map("is_vip")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  orders   Order[]
+  bookings Booking[]
+
+  @@map("customers")
 }

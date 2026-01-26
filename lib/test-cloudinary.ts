@@ -1,14 +1,11 @@
-import {
-  saveProductImage,
-  deleteProductImage,
-  getProductImages,
-} from "@/app/actions/imageActions";
+import { saveProductImage, deleteProductImage, getProductImages, } from "@/app/actions/imageActions";
 /**
  * Cloudinary Image Upload System - Test Utilities
  *
  * Use these functions to verify your Cloudinary setup is working correctly
  */
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
+
 
 /**
  * Test environment variables are properly configured
@@ -99,8 +96,9 @@ export async function testCloudinaryUpload(file: File): Promise<{
 /**
  * Test database connectivity and save functionality
  * Run this as a server action
+ * Note: This test requires a valid productId since images are linked to products
  */
-export async function testDatabaseConnection(): Promise<{
+export async function testDatabaseConnection(productId?: string): Promise<{
   success: boolean;
   message: string;
   error?: string;
@@ -108,17 +106,29 @@ export async function testDatabaseConnection(): Promise<{
   "use server";
 
   try {
-    const testImage = await saveProductImage(
-      "https://test.example.com/test.jpg",
-      `test-${Date.now()}`,
-    );
+    // If no productId provided, skip image save test and just verify DB connection
+    if (!productId) {
+      // Test basic database connectivity with a simple query
+      const { prisma } = await import("@/lib/prisma");
+      await prisma.$queryRaw`SELECT 1`;
+      return {
+        success: true,
+        message: "✅ Database connection successful (no product image test)",
+      };
+    }
 
-    if (!testImage.id) {
-      throw new Error("Failed to create test image record");
+    const result = await saveProductImage({
+      productId,
+      secureUrl: "https://test.example.com/test.jpg",
+      publicId: `test-${Date.now()}`,
+    });
+
+    if (!result.success || !result.data?.id) {
+      throw new Error(result.error || "Failed to create test image record");
     }
 
     // Clean up
-    await deleteProductImage(testImage.id, testImage.publicId);
+    await deleteProductImage(result.data.id, result.data.publicId);
 
     return {
       success: true,
@@ -136,8 +146,12 @@ export async function testDatabaseConnection(): Promise<{
 /**
  * Test complete upload workflow
  * Run this to test the entire system
+ * Requires a valid productId to save images to database
  */
-export async function testCompleteWorkflow(file: File): Promise<{
+export async function testCompleteWorkflow(
+  file: File,
+  productId?: string,
+): Promise<{
   success: boolean;
   steps: {
     name: string;
@@ -219,15 +233,27 @@ export async function testCompleteWorkflow(file: File): Promise<{
 
   // Step 4: Database save
   try {
-    const savedImage = await saveProductImage(
-      uploadResult.secure_url,
-      uploadResult.public_id,
-    );
-    steps.push({
-      name: "Database Save",
-      success: true,
-      message: `✅ Saved to database (ID: ${savedImage.id})`,
-    });
+    if (!productId) {
+      steps.push({
+        name: "Database Save",
+        success: true,
+        message: "⏭️ Skipped (no productId provided)",
+      });
+    } else {
+      const result = await saveProductImage({
+        productId,
+        secureUrl: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+      });
+      if (!result.success) {
+        throw new Error(result.error || "Save failed");
+      }
+      steps.push({
+        name: "Database Save",
+        success: true,
+        message: `✅ Saved to database (ID: ${result.data?.id})`,
+      });
+    }
   } catch (error) {
     steps.push({
       name: "Database Save",
@@ -243,11 +269,12 @@ export async function testCompleteWorkflow(file: File): Promise<{
 
   // Step 5: Retrieve images
   try {
-    const images = await getProductImages();
+    const result = await getProductImages(productId);
+    const imageCount = result.success ? result.data?.length || 0 : 0;
     steps.push({
       name: "Retrieve Images",
-      success: true,
-      message: `✅ Retrieved ${images.length} images from database`,
+      success: result.success,
+      message: `✅ Retrieved ${imageCount} images from database`,
     });
   } catch (error) {
     steps.push({

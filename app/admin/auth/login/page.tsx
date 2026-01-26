@@ -1,28 +1,35 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 
 export default function AdminLoginPage() {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isAuthenticated } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/admin/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    const success = await login(email, password);
+    const result = await login(email, password);
 
-    if (success) {
+    if (result.success) {
       router.push("/admin/dashboard");
     } else {
-      setError("Invalid credentials. Use admin@shahzaibautos.com / admin123");
+      setError(result.error || "Invalid credentials");
     }
   };
 
@@ -108,7 +115,7 @@ export default function AdminLoginPage() {
           </div>
 
           <div className="mt-4 text-xs text-muted-foreground text-center">
-            Demo credentials: admin@shahzaibautos.com / admin123
+            Contact administrator for access credentials
           </div>
         </form>
       </div>

@@ -2,42 +2,55 @@
 
 import { prisma } from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
+import type {
+  SavedImageDTO,
+  CreateProductImageInput,
+  ActionResult,
+} from "@/lib/types/dto";
 
-export interface SavedImage {
-  id: string;
-  secureUrl: string;
-  publicId: string;
-  uploadedAt: string;
-}
-
+/**
+ * Save product image to database
+ * Requires a valid productId since ProductImage must be associated with a Product
+ */
 export async function saveProductImage(
-  secureUrl: string,
-  publicId: string,
-): Promise<SavedImage> {
+  input: CreateProductImageInput,
+): Promise<ActionResult<SavedImageDTO>> {
   try {
     const image = await prisma.productImage.create({
       data: {
-        secureUrl,
-        publicId,
+        productId: input.productId,
+        secureUrl: input.secureUrl,
+        publicId: input.publicId,
+        isPrimary: input.isPrimary ?? false,
+        sortOrder: input.sortOrder ?? 0,
       },
     });
 
     return {
-      id: image.id,
-      secureUrl: image.secureUrl,
-      publicId: image.publicId,
-      uploadedAt: image.uploadedAt.toISOString(),
+      success: true,
+      data: {
+        id: image.id,
+        productId: image.productId,
+        secureUrl: image.secureUrl,
+        publicId: image.publicId,
+        isPrimary: image.isPrimary,
+        sortOrder: image.sortOrder,
+        uploadedAt: image.uploadedAt.toISOString(),
+      },
     };
   } catch (error) {
     console.error("Error saving image to database:", error);
-    throw new Error("Failed to save image metadata to database");
+    return {
+      success: false,
+      error: "Failed to save image metadata to database",
+    };
   }
 }
 
 export async function deleteProductImage(
   imageId: string,
   publicId: string,
-): Promise<void> {
+): Promise<ActionResult<void>> {
   try {
     // Delete from Cloudinary
     await cloudinary.uploader.destroy(publicId, {
@@ -50,28 +63,45 @@ export async function deleteProductImage(
         id: imageId,
       },
     });
+
+    return { success: true };
   } catch (error) {
     console.error("Error deleting image:", error);
-    throw new Error("Failed to delete image");
+    return {
+      success: false,
+      error: "Failed to delete image",
+    };
   }
 }
 
-export async function getProductImages(): Promise<SavedImage[]> {
+export async function getProductImages(
+  productId?: string,
+): Promise<ActionResult<SavedImageDTO[]>> {
   try {
     const images = await prisma.productImage.findMany({
+      where: productId ? { productId } : undefined,
       orderBy: {
         uploadedAt: "desc",
       },
     });
 
-    return images.map((image) => ({
-      id: image.id,
-      secureUrl: image.secureUrl,
-      publicId: image.publicId,
-      uploadedAt: image.uploadedAt.toISOString(),
-    }));
+    return {
+      success: true,
+      data: images.map((image) => ({
+        id: image.id,
+        productId: image.productId,
+        secureUrl: image.secureUrl,
+        publicId: image.publicId,
+        isPrimary: image.isPrimary,
+        sortOrder: image.sortOrder,
+        uploadedAt: image.uploadedAt.toISOString(),
+      })),
+    };
   } catch (error) {
     console.error("Error fetching product images:", error);
-    throw new Error("Failed to fetch product images");
+    return {
+      success: false,
+      error: "Failed to fetch product images",
+    };
   }
 }

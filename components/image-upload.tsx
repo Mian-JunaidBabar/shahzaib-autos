@@ -16,6 +16,7 @@ export interface UploadedImage {
 }
 
 interface ImageUploadProps {
+  productId?: string; // Required for saving to database
   onImagesUpload?: (images: UploadedImage[]) => void;
   maxFiles?: number;
 }
@@ -28,6 +29,7 @@ interface ImageState {
 }
 
 export function ImageUpload({
+  productId,
   onImagesUpload,
   maxFiles = 5,
 }: ImageUploadProps) {
@@ -80,16 +82,23 @@ export function ImageUpload({
           // Upload to Cloudinary
           const uploadResponse = await uploadImageToCloudinary(file);
 
-          // Save to database
-          const savedImage = await saveProductImage(
-            uploadResponse.secure_url,
-            uploadResponse.public_id,
-          );
+          // Save to database if productId is provided
+          let savedImageId: string | undefined;
+          if (productId) {
+            const result = await saveProductImage({
+              productId,
+              secureUrl: uploadResponse.secure_url,
+              publicId: uploadResponse.public_id,
+            });
+            if (result.success && result.data) {
+              savedImageId = result.data.id;
+            }
+          }
 
           uploadedImages.push({
             url: uploadResponse.secure_url,
             publicId: uploadResponse.public_id,
-            id: savedImage.id,
+            id: savedImageId || "",
           });
 
           // Update the image state with actual data
@@ -99,7 +108,7 @@ export function ImageUpload({
                 ? {
                     url: uploadResponse.secure_url,
                     publicId: uploadResponse.public_id,
-                    id: savedImage.id,
+                    id: savedImageId,
                     isLoading: false,
                   }
                 : img,
