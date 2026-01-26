@@ -1,3 +1,4 @@
+import { PrismaClient, Role } from "@prisma/client";
 /**
  * Prisma Seed Script
  *
@@ -7,19 +8,38 @@
  *
  * Run: npx prisma db seed
  */
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "@node-rs/argon2";
+import { Pool } from "pg";
 
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+const pool = connectionString
+  ? new Pool({
+      connectionString,
+      ssl: {
+        rejectUnauthorized: false, // Accept self-signed certificates from Supabase
+      },
+    })
+  : undefined;
+
+const prisma = new PrismaClient({
+  log: ["query", "error", "warn"],
+  adapter: pool ? new PrismaPg(pool) : undefined,
+});
 
 async function main() {
   console.log("🌱 Starting database seed...\n");
 
   // ============ Create Admin User ============
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@shahzaibautos.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "Admin@123";
-  const adminName = process.env.ADMIN_NAME || "Admin";
+  const adminEmail =
+    process.env.ADMIN_EMAIL || "owner.shahzaib.autos@gmail.com";
+  const adminPassword = process.env.ADMIN_PASSWORD || "Shahzaib.Owner@786";
+  const adminName = process.env.ADMIN_NAME || "Shahzaib";
+
+  if (!adminEmail || !adminPassword || !adminName) {
+    throw new Error("Admin credentials not found in environment variables");
+  }
 
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
@@ -77,51 +97,42 @@ async function main() {
         slug: "engine-oil-5w-30",
         description:
           "High-quality synthetic engine oil for optimal performance",
-        price: 2500,
+        price: 250000, // Price in cents (PKR 2500)
         category: "Oils & Fluids",
-        brand: "Castrol",
-        sku: "OIL-5W30-001",
-        featured: true,
+        badge: "BESTSELLER",
+        badgeColor: "#10b981",
       },
       {
         name: "Air Filter Universal",
         slug: "air-filter-universal",
         description: "Universal air filter for various car models",
-        price: 800,
+        price: 80000, // Price in cents (PKR 800)
         category: "Filters",
-        brand: "Mann Filter",
-        sku: "FIL-AIR-001",
-        featured: false,
       },
       {
         name: "Brake Pads Set",
         slug: "brake-pads-set",
         description: "Premium brake pads for safe stopping",
-        price: 3500,
+        price: 350000, // Price in cents (PKR 3500)
         category: "Brakes",
-        brand: "Brembo",
-        sku: "BRK-PAD-001",
-        featured: true,
+        badge: "TRENDING",
+        badgeColor: "#f59e0b",
       },
       {
         name: "Car Battery 12V 60Ah",
         slug: "car-battery-12v-60ah",
         description: "Reliable car battery with 2-year warranty",
-        price: 12000,
+        price: 1200000, // Price in cents (PKR 12000)
         category: "Electrical",
-        brand: "AGS",
-        sku: "BAT-12V-001",
-        featured: true,
+        badge: "HOT",
+        badgeColor: "#ef4444",
       },
       {
         name: "Spark Plugs Set (4pcs)",
         slug: "spark-plugs-set-4pcs",
         description: "Iridium spark plugs for better ignition",
-        price: 1800,
+        price: 180000, // Price in cents (PKR 1800)
         category: "Ignition",
-        brand: "NGK",
-        sku: "SPK-IRD-001",
-        featured: false,
       },
     ];
 
