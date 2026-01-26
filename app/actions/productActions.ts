@@ -131,6 +131,35 @@ export async function updateProductAction(
 }
 
 /**
+ * Toggle product active status
+ */
+export async function toggleProductActiveAction(
+  id: string,
+  isActive: boolean,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    await ProductService.updateProduct(id, { isActive });
+
+    revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
+    revalidatePath("/products");
+
+    return { success: true };
+  } catch (error) {
+    console.error("toggleProductActiveAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to toggle product status",
+    };
+  }
+}
+
+/**
  * Deactivate product (soft delete)
  */
 export async function deactivateProductAction(

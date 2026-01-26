@@ -167,6 +167,7 @@ export const orderUpdateSchema = z.object({
   id: z.string().uuid(),
   status: z.enum([
     "NEW",
+    "CONTACTED",
     "CONFIRMED",
     "PROCESSING",
     "SHIPPED",
@@ -181,6 +182,7 @@ export const orderFilterSchema = z.object({
   status: z
     .enum([
       "NEW",
+      "CONTACTED",
       "CONFIRMED",
       "PROCESSING",
       "SHIPPED",

@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, User } from "@supabase/supabase-js";
 /**
  * Seed Admin User into Supabase Auth
  *
@@ -80,7 +80,7 @@ async function main() {
   }
 
   const existingUser = existingUsers?.users?.find(
-    (u) => u.email === adminEmail,
+    (u: User) => u.email === adminEmail,
   );
 
   let supabaseUserId: string;
