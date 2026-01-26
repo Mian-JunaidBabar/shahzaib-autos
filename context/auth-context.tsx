@@ -8,14 +8,15 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { authClient } from "@/lib/auth-client";
+import { supabase } from "@/lib/auth-client";
+import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 
 // Types
 interface User {
   id: string;
   email: string;
   name: string;
-  role: "ADMIN" | "STAFF";
+  isAdmin: boolean;
   image?: string | null;
 }
 
@@ -37,36 +38,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Convert Supabase user to our User type
+  const mapSupabaseUser = useCallback(
+    (supabaseUser: SupabaseUser | null): User | null => {
+      if (!supabaseUser) return null;
+
+      return {
+        id: supabaseUser.id,
+        email: supabaseUser.email || "",
+        name:
+          supabaseUser.user_metadata?.name ||
+          supabaseUser.email?.split("@")[0] ||
+          "User",
+        isAdmin: supabaseUser.user_metadata?.is_admin === true,
+        image: supabaseUser.user_metadata?.avatar_url,
+      };
+    },
+    [],
+  );
+
   // Fetch current session
   const fetchSession = useCallback(async () => {
     try {
-      const session = await authClient.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-      if (session.data?.user) {
-        setUser({
-          id: session.data.user.id,
-          email: session.data.user.email,
-          name: session.data.user.name,
-          role: (session.data.user as any).role || "STAFF",
-          image: session.data.user.image,
-        });
-      } else {
+      if (error) {
+        console.error("Session fetch error:", error);
         setUser(null);
+        return;
       }
+
+      setUser(mapSupabaseUser(session?.user ?? null));
     } catch (error) {
       console.error("Session fetch failed:", error);
       setUser(null);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [mapSupabaseUser]);
 
-  // Check session on mount
+  // Check session on mount and listen for auth changes
   useEffect(() => {
     fetchSession();
-  }, [fetchSession]);
 
-  // Login function
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(mapSupabaseUser(session?.user ?? null));
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchSession, mapSupabaseUser]);
+
+  // Login function using Supabase
   const login = async (
     email: string,
     password: string,
@@ -74,21 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      const result = await authClient.signIn.email({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (result.error) {
+      if (error) {
         return {
           success: false,
-          error: result.error.message || "Login failed",
+          error: error.message || "Login failed",
         };
       }
 
-      // Fetch updated session
-      await fetchSession();
-
+      setUser(mapSupabaseUser(data.user));
       return { success: true };
     } catch (error) {
       console.error("Login failed:", error);
@@ -101,10 +130,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Logout function
+  // Logout function using Supabase
   const logout = async (): Promise<void> => {
     try {
-      await authClient.signOut();
+      await supabase.auth.signOut();
       setUser(null);
     } catch (error) {
       console.error("Logout failed:", error);
@@ -146,20 +175,8 @@ export function useAuth() {
   return context;
 }
 
-// Hook to check if user has specific role
-export function useRequireRole(requiredRole: "ADMIN" | "STAFF") {
-  const { user, isAuthenticated } = useAuth();
-
-  const hasRole =
-    isAuthenticated &&
-    user &&
-    (user.role === "ADMIN" || user.role === requiredRole);
-
-  return hasRole;
-}
-
 // Hook to check if user is admin
 export function useIsAdmin() {
   const { user, isAuthenticated } = useAuth();
-  return isAuthenticated && user?.role === "ADMIN";
+  return isAuthenticated && user?.isAdmin === true;
 }

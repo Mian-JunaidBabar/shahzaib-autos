@@ -1,58 +1,84 @@
-import { prismaAdapter } from "better-auth/adapters/prisma";
 /**
- * Better Auth Server Configuration
+ * Supabase Auth - Server-side utilities
  *
- * This is the server-side auth configuration.
- * - Uses Prisma adapter for session/user storage
- * - Configured for admin-only authentication
- * - Includes role-based access control (RBAC)
+ * Creates a Supabase client for server-side operations.
+ * Use in Server Components, Server Actions, and Route Handlers.
+ *
+ * NOTE: All authentication is handled by Supabase Auth.
+ * We do NOT store users, passwords, or sessions in Prisma.
  */
-import { betterAuth } from "better-auth";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-import { prisma } from "./prisma";
 
+// Supabase environment variables
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
+/**
+ * Create a Supabase client for server-side operations
+ * Automatically handles cookie-based auth
+ */
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
-  // Email + Password authentication
-  emailAndPassword: {
-    enabled: true,
-    // Require email verification for new accounts (disabled for admin-only setup)
-    requireEmailVerification: false,
-  },
-
-  // Session configuration
-  session: {
-    // Session expires in 7 days
-    expiresIn: 60 * 60 * 24 * 7, // 7 days in seconds
-    // Update session expiry on each request
-    updateAge: 60 * 60 * 24, // 1 day in seconds
-    // Use secure cookies in production
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // 5 minutes
-    },
-  },
-
-  // User configuration with custom fields
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        required: false,
-        defaultValue: "STAFF",
-        input: false, // Cannot be set by user during signup
+  return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(
+        cookiesToSet: {
+          name: string;
+          value: string;
+          options?: CookieOptions;
+        }[],
+      ) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          );
+        } catch {
+          // The `setAll` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing sessions.
+        }
       },
     },
-  },
+  });
+}
 
-  // Trust host for proper URL generation
-  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"],
-});
+/**
+ * Get the current authenticated user from Supabase
+ * Returns null if not authenticated
+ */
+export async function getSupabaseUser() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-// Export auth types for use throughout the app
-export type Session = typeof auth.$Infer.Session.session;
-export type User = typeof auth.$Infer.Session.user;
+  if (error || !user) {
+    return null;
+  }
+
+  return user;
+}
+
+/**
+ * Get the current session from Supabase
+ * Returns null if no active session
+ */
+export async function getSupabaseSession() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error || !session) {
+    return null;
+  }
+
+  return session;
+}

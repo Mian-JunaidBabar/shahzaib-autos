@@ -1,15 +1,17 @@
-import { PrismaClient, Role } from "@prisma/client";
 /**
  * Prisma Seed Script
  *
  * Seeds the database with initial data:
- * - Admin user
  * - Sample products (optional)
+ *
+ * NOTE: User/Admin creation is handled EXCLUSIVELY by Supabase Auth.
+ * After creating a user in Supabase, use the `addAdmin()` function from
+ * lib/services/auth.service.ts to grant admin access.
  *
  * Run: npx prisma db seed
  */
 import { PrismaPg } from "@prisma/adapter-pg";
-import { hash } from "@node-rs/argon2";
+import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 
 
@@ -31,59 +33,16 @@ const prisma = new PrismaClient({
 async function main() {
   console.log("🌱 Starting database seed...\n");
 
-  // ============ Create Admin User ============
-  const adminEmail =
-    process.env.ADMIN_EMAIL || "owner.shahzaib.autos@gmail.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "Shahzaib.Owner@786";
-  const adminName = process.env.ADMIN_NAME || "Shahzaib";
-
-  if (!adminEmail || !adminPassword || !adminName) {
-    throw new Error("Admin credentials not found in environment variables");
-  }
-
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: adminEmail },
-  });
-
-  if (existingAdmin) {
-    console.log(`✓ Admin user already exists: ${adminEmail}`);
-  } else {
-    const hashedPassword = await hash(adminPassword, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
-
-    await prisma.user.create({
-      data: {
-        email: adminEmail,
-        name: adminName,
-        role: Role.ADMIN,
-        emailVerified: true,
-      },
-    });
-
-    // Create account with password
-    const user = await prisma.user.findUnique({
-      where: { email: adminEmail },
-    });
-
-    if (user) {
-      await prisma.account.create({
-        data: {
-          userId: user.id,
-          providerId: "credential",
-          accountId: user.id,
-          password: hashedPassword,
-        },
-      });
-
-      console.log(`✓ Admin user created: ${adminEmail}`);
-      console.log(`  Password: ${adminPassword}`);
-      console.log("\n  ⚠️  Please change the password after first login!\n");
-    }
-  }
+  // ============ Admin User Notice ============
+  console.log("ℹ️  Admin users are managed via Supabase Auth.");
+  console.log(
+    "   1. Create a user in Supabase Dashboard > Authentication > Users",
+  );
+  console.log("   2. Copy the user's UUID from Supabase");
+  console.log("   3. Add them to the admins table:");
+  console.log(
+    "      INSERT INTO admins (supabase_user_id) VALUES ('supabase-uuid-here');\n",
+  );
 
   // ============ Create Sample Products (Optional) ============
   const createSampleProducts = process.env.SEED_SAMPLE_DATA === "true";

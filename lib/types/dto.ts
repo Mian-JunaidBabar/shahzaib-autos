@@ -6,8 +6,11 @@
  * - Service layer types
  * - Action result types
  * - Entity DTOs for frontend consumption
+ *
+ * NOTE: Authentication is handled EXCLUSIVELY by Supabase Auth.
+ * User/Role types are defined locally, not from Prisma.
  */
-import type { Product, ProductImage, Inventory, Order, OrderItem, Booking, Lead, Customer, User, OrderStatus, BookingStatus, LeadStatus, LeadSource, Role, } from "@prisma/client";
+import type { Product, ProductImage, Inventory, Order, OrderItem, Booking, Lead, Customer, OrderStatus, BookingStatus, LeadStatus, LeadSource, Admin, } from "@prisma/client";
 
 
 // ============================================
@@ -39,13 +42,25 @@ export interface PaginatedResult<T> {
 // USER / AUTH DTOs
 // ============================================
 
+/**
+ * User DTO - represents Supabase Auth user data
+ * NOT stored in Prisma - comes from Supabase Auth
+ */
 export interface UserDTO {
   id: string;
-  name: string;
   email: string;
-  role: Role;
+  name?: string;
+  isAdmin: boolean;
   image?: string | null;
-  emailVerified: boolean;
+  createdAt?: string;
+}
+
+/**
+ * Admin record from Prisma - maps Supabase user to admin access
+ */
+export interface AdminDTO {
+  id: string;
+  supabaseUserId: string;
   createdAt: string;
 }
 
@@ -564,7 +579,7 @@ export function isActionError<T>(
 // RE-EXPORT PRISMA ENUMS
 // ============================================
 
-export type { OrderStatus, BookingStatus, LeadStatus, LeadSource, Role };
+export type { OrderStatus, BookingStatus, LeadStatus, LeadSource };
 
 // Re-export for convenience
 export type {
@@ -576,5 +591,5 @@ export type {
   Booking,
   Lead,
   Customer,
-  User,
+  Admin,
 };

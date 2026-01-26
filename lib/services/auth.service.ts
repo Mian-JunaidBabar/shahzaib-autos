@@ -1,60 +1,48 @@
-import { headers } from "next/headers";
-import { Role } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 /**
  * Auth Service
  *
- * Server-side authentication utilities:
- * - Session verification
- * - Role-based access control (RBAC)
- * - Admin-only access enforcement
+ * Server-side authentication utilities using Supabase Auth:
+ * - Session verification via Supabase
+ * - Admin access verification via Prisma `admins` table
+ *
+ * NOTE: Authentication is handled EXCLUSIVELY by Supabase Auth.
+ * We only store the Supabase user ID in the `admins` table to grant admin access.
  */
-import { auth } from "@/lib/auth";
+import { createSupabaseServerClient, getSupabaseUser } from "@/lib/auth";
+import type { User } from "@supabase/supabase-js";
+import { prisma } from "@/lib/prisma";
 
 
 export type AuthSession = {
   user: {
     id: string;
-    name: string;
     email: string;
-    role: Role;
-  };
-  session: {
-    id: string;
-    expiresAt: Date;
+    isAdmin: boolean;
   };
 };
 
 /**
- * Get the current session from headers
+ * Get the current session from Supabase Auth
  * Use this in server components and server actions
  */
 export async function getServerSession(): Promise<AuthSession | null> {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const user = await getSupabaseUser();
 
-    if (!session?.user) {
+    if (!user) {
       return null;
     }
 
-    // Fetch the user's role from database (Better Auth stores it in additionalFields)
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true },
+    // Check if user is an admin by looking up their Supabase ID in the admins table
+    const admin = await prisma.admin.findUnique({
+      where: { supabaseUserId: user.id },
     });
 
     return {
       user: {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        role: user?.role || Role.STAFF,
-      },
-      session: {
-        id: session.session.id,
-        expiresAt: session.session.expiresAt,
+        id: user.id,
+        email: user.email || "",
+        isAdmin: !!admin,
       },
     };
   } catch (error) {
@@ -78,13 +66,13 @@ export async function requireAuth(): Promise<AuthSession> {
 }
 
 /**
- * Require admin role - throws if not admin
+ * Require admin access - throws if user is not in the admins table
  * Use for admin-only operations
  */
 export async function requireAdmin(): Promise<AuthSession> {
   const session = await requireAuth();
 
-  if (session.user.role !== Role.ADMIN) {
+  if (!session.user.isAdmin) {
     throw new Error("FORBIDDEN: Admin access required");
   }
 
@@ -92,40 +80,56 @@ export async function requireAdmin(): Promise<AuthSession> {
 }
 
 /**
- * Require specific role(s) - throws if user doesn't have any of the roles
- */
-export async function requireRole(...roles: Role[]): Promise<AuthSession> {
-  const session = await requireAuth();
-
-  if (!roles.includes(session.user.role)) {
-    throw new Error(`FORBIDDEN: Required role(s): ${roles.join(", ")}`);
-  }
-
-  return session;
-}
-
-/**
- * Check if user has permission - returns boolean instead of throwing
- */
-export async function hasPermission(role: Role): Promise<boolean> {
-  const session = await getServerSession();
-
-  if (!session) {
-    return false;
-  }
-
-  // ADMIN has all permissions
-  if (session.user.role === Role.ADMIN) {
-    return true;
-  }
-
-  return session.user.role === role;
-}
-
-/**
- * Check if current user is admin
+ * Check if current user has admin access - returns boolean instead of throwing
  */
 export async function isAdmin(): Promise<boolean> {
   const session = await getServerSession();
-  return session?.user.role === Role.ADMIN;
+  return session?.user.isAdmin ?? false;
+}
+
+/**
+ * Get the Supabase Auth user directly
+ * Useful when you need the full Supabase user object
+ */
+export async function getAuthUser(): Promise<User | null> {
+  return getSupabaseUser();
+}
+
+/**
+ * Sign out the current user
+ */
+export async function signOut(): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+}
+
+/**
+ * Add a Supabase user as an admin
+ * Call this after creating a user in Supabase Auth to grant admin access
+ */
+export async function addAdmin(supabaseUserId: string): Promise<void> {
+  await prisma.admin.upsert({
+    where: { supabaseUserId },
+    update: {},
+    create: { supabaseUserId },
+  });
+}
+
+/**
+ * Remove admin access from a Supabase user
+ */
+export async function removeAdmin(supabaseUserId: string): Promise<void> {
+  await prisma.admin.delete({
+    where: { supabaseUserId },
+  });
+}
+
+/**
+ * Check if a Supabase user ID has admin access
+ */
+export async function checkIsAdmin(supabaseUserId: string): Promise<boolean> {
+  const admin = await prisma.admin.findUnique({
+    where: { supabaseUserId },
+  });
+  return !!admin;
 }
