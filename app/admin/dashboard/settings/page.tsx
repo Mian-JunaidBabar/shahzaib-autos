@@ -1,6 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { Trash2 } from "lucide-react";
+import { ColorPicker } from "@/components/ui/color-picker";
+import {
+  createBadgeAction,
+  deleteBadgeAction,
+  getBadgesAction,
+  updateBadgeAction,
+} from "@/app/actions/badgeActions";
 
 interface SettingsSection {
   id: string;
@@ -47,10 +55,107 @@ const settingsSections: SettingsSection[] = [
     description: "Stock management, low stock alerts, and supplier settings",
     icon: "inventory",
   },
+  {
+    id: "badges",
+    title: "Product Badges",
+    description: "Create and manage product badges and colors",
+    icon: "label",
+  },
 ];
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("business");
+  const [badges, setBadges] = useState<
+    Array<{
+      id: string;
+      name: string;
+      color: string;
+      isActive: boolean;
+      sortOrder: number;
+    }>
+  >([]);
+  const [badgeEdits, setBadgeEdits] = useState<
+    Record<
+      string,
+      { name: string; color: string; isActive: boolean; sortOrder: number }
+    >
+  >({});
+  const [newBadgeName, setNewBadgeName] = useState("");
+  const [newBadgeColor, setNewBadgeColor] = useState("bg-blue-500");
+  const [isPending, startTransition] = useTransition();
+
+  const loadBadges = async () => {
+    const result = await getBadgesAction();
+    if (result.success && result.data) {
+      setBadges(result.data);
+      const editState: Record<
+        string,
+        { name: string; color: string; isActive: boolean; sortOrder: number }
+      > = {};
+      result.data.forEach((badge) => {
+        editState[badge.id] = {
+          name: badge.name,
+          color: badge.color,
+          isActive: badge.isActive,
+          sortOrder: badge.sortOrder,
+        };
+      });
+      setBadgeEdits(editState);
+    }
+  };
+
+  useEffect(() => {
+    loadBadges();
+  }, []);
+
+  const handleBadgeEditChange = (
+    id: string,
+    field: "name" | "color" | "isActive" | "sortOrder",
+    value: string | boolean | number
+  ) => {
+    setBadgeEdits((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleCreateBadge = () => {
+    if (!newBadgeName.trim()) return;
+    startTransition(async () => {
+      const result = await createBadgeAction({
+        name: newBadgeName.trim().toUpperCase().replace(/\s+/g, "_"),
+        color: newBadgeColor,
+      });
+      if (result.success) {
+        await loadBadges();
+        setNewBadgeName("");
+        setNewBadgeColor("bg-blue-500");
+      }
+    });
+  };
+
+  const handleSaveBadge = (id: string) => {
+    const data = badgeEdits[id];
+    if (!data) return;
+    startTransition(async () => {
+      const result = await updateBadgeAction(id, data);
+      if (result.success) {
+        await loadBadges();
+      }
+    });
+  };
+
+  const handleDeleteBadge = (id: string) => {
+    startTransition(async () => {
+      const result = await deleteBadgeAction(id);
+      if (result.success) {
+        await loadBadges();
+      }
+    });
+  };
 
   const renderBusinessSettings = () => (
     <div className="space-y-6">
@@ -503,6 +608,116 @@ export default function SettingsPage() {
     </div>
   );
 
+  const renderBadgeSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold text-foreground mb-6">
+          Product Badges
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card rounded-lg border border-border p-6 space-y-4">
+          <h3 className="text-lg font-medium text-foreground">Create Badge</h3>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              Badge Name
+            </label>
+            <input
+              type="text"
+              value={newBadgeName}
+              onChange={(e) => setNewBadgeName(e.target.value)}
+              placeholder="e.g., BESTSELLER"
+              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+            />
+          </div>
+          <ColorPicker
+            value={newBadgeColor}
+            onChange={setNewBadgeColor}
+            label="Badge Color"
+          />
+          <button
+            onClick={handleCreateBadge}
+            disabled={isPending || !newBadgeName.trim()}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            Create Badge
+          </button>
+        </div>
+
+        <div className="bg-card rounded-lg border border-border p-6 space-y-4">
+          <h3 className="text-lg font-medium text-foreground">
+            Existing Badges
+          </h3>
+          <div className="space-y-4 max-h-[520px] overflow-y-auto pr-2">
+            {badges.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                No badges created yet
+              </div>
+            ) : (
+              badges.map((badge) => (
+                <div
+                  key={badge.id}
+                  className="border border-border rounded-lg p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <input
+                      type="text"
+                      value={badgeEdits[badge.id]?.name || ""}
+                      onChange={(e) =>
+                        handleBadgeEditChange(badge.id, "name", e.target.value)
+                      }
+                      className="flex-1 px-3 py-2 border border-border rounded-md bg-background text-foreground mr-2"
+                    />
+                    <button
+                      onClick={() => handleDeleteBadge(badge.id)}
+                      className="text-destructive hover:text-destructive/80"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <ColorPicker
+                    value={badgeEdits[badge.id]?.color || "bg-blue-500"}
+                    onChange={(color) =>
+                      handleBadgeEditChange(badge.id, "color", color)
+                    }
+                    label="Color"
+                  />
+
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={badgeEdits[badge.id]?.isActive ?? true}
+                        onChange={(e) =>
+                          handleBadgeEditChange(
+                            badge.id,
+                            "isActive",
+                            e.target.checked
+                          )
+                        }
+                      />
+                      Active
+                    </label>
+
+                    <button
+                      onClick={() => handleSaveBadge(badge.id)}
+                      disabled={isPending}
+                      className="bg-secondary text-secondary-foreground px-3 py-1 rounded-md hover:bg-secondary/90 transition-colors disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderSectionContent = () => {
     switch (activeSection) {
       case "business":
@@ -517,6 +732,8 @@ export default function SettingsPage() {
         return renderBookingSettings();
       case "inventory":
         return renderInventorySettings();
+      case "badges":
+        return renderBadgeSettings();
       default:
         return renderBusinessSettings();
     }

@@ -9,25 +9,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BadgeSelector } from "@/components/ui/badge-selector";
 import {
   getProductAction,
   updateProductAction,
 } from "@/app/actions/productActions";
+import { getActiveBadgesAction } from "@/app/actions/badgeActions";
 import { toast } from "sonner";
+
+interface Badge {
+  id: string;
+  name: string;
+  color: string;
+  isActive: boolean;
+}
 
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
+  const [badges, setBadges] = useState<Badge[]>([]);
   const [form, setForm] = useState({
     name: "",
     slug: "",
     description: "",
     price: "",
     category: "",
-    badge: "",
-    badgeColor: "",
+    badgeId: "",
     stock: "",
     lowStockThreshold: "",
     isActive: true,
@@ -36,6 +45,14 @@ export default function EditProductPage() {
   useEffect(() => {
     const load = async () => {
       if (!params?.id) return;
+
+      // Load badges
+      const badgesResult = await getActiveBadgesAction();
+      if (badgesResult.success && badgesResult.data) {
+        setBadges(badgesResult.data as Badge[]);
+      }
+
+      // Load product
       const result = await getProductAction(params.id);
       if (!result.success || !result.data) {
         toast.error(result.error || "Product not found");
@@ -49,8 +66,7 @@ export default function EditProductPage() {
         description: p.description || "",
         price: ((p.price || 0) / 100).toString(),
         category: p.category || "",
-        badge: p.badge || "",
-        badgeColor: p.badgeColor || "",
+        badgeId: p.badgeId || "",
         stock: (p.inventory?.quantity ?? 0).toString(),
         lowStockThreshold: (p.inventory?.lowStockAt ?? 10).toString(),
         isActive: p.isActive,
@@ -79,8 +95,7 @@ export default function EditProductPage() {
         description: form.description || undefined,
         price,
         category: form.category || undefined,
-        badge: form.badge || undefined,
-        badgeColor: form.badgeColor || undefined,
+        badgeId: form.badgeId || undefined,
         stock,
         lowStockThreshold,
         isActive: form.isActive,
@@ -162,22 +177,6 @@ export default function EditProductPage() {
                 placeholder="SUV, Sedan, etc"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Badge (optional)</Label>
-              <Input
-                value={form.badge}
-                onChange={(e) => handleChange("badge", e.target.value)}
-                placeholder="New, Hot, Featured"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Badge Color (optional)</Label>
-              <Input
-                value={form.badgeColor}
-                onChange={(e) => handleChange("badgeColor", e.target.value)}
-                placeholder="bg-blue-500"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -189,6 +188,15 @@ export default function EditProductPage() {
               rows={4}
             />
           </div>
+
+          {badges.length > 0 && (
+            <BadgeSelector
+              badges={badges}
+              value={form.badgeId}
+              onChange={(badgeId) => handleChange("badgeId", badgeId || "")}
+              label="Badge (optional)"
+            />
+          )}
         </CardContent>
       </Card>
 

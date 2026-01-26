@@ -9,10 +9,9 @@ import { Prisma } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // Types
 export type ProductWithImages = Prisma.ProductGetPayload<{
-  include: { images: true; inventory: true };
+  include: { images: true; inventory: true; badge: true };
 }>;
 
 export type CreateProductInput = {
@@ -21,8 +20,7 @@ export type CreateProductInput = {
   description?: string | null;
   price: number; // In cents
   category?: string | null;
-  badge?: string | null;
-  badgeColor?: string | null;
+  badgeId?: string | null;
   isActive?: boolean;
   stock?: number; // Alias for initialStock
   initialStock?: number;
@@ -54,7 +52,7 @@ export type PaginationOptions = {
  */
 export async function getProducts(
   filters: ProductFilters = {},
-  pagination: PaginationOptions = {},
+  pagination: PaginationOptions = {}
 ) {
   const { search, category, isActive, lowStock } = filters;
   const {
@@ -99,6 +97,7 @@ export async function getProducts(
           orderBy: { sortOrder: "asc" },
         },
         inventory: true,
+        badge: true,
       },
       orderBy: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
@@ -122,7 +121,7 @@ export async function getProducts(
  * Get a single product by ID or slug
  */
 export async function getProduct(
-  idOrSlug: string,
+  idOrSlug: string
 ): Promise<ProductWithImages | null> {
   return prisma.product.findFirst({
     where: {
@@ -131,6 +130,7 @@ export async function getProduct(
     include: {
       images: { orderBy: { sortOrder: "asc" } },
       inventory: true,
+      badge: true,
     },
   });
 }
@@ -139,7 +139,7 @@ export async function getProduct(
  * Create a new product with inventory
  */
 export async function createProduct(
-  input: CreateProductInput,
+  input: CreateProductInput
 ): Promise<ProductWithImages> {
   const {
     initialStock,
@@ -176,6 +176,7 @@ export async function createProduct(
     include: {
       images: true,
       inventory: true,
+      badge: true,
     },
   });
 }
@@ -185,7 +186,7 @@ export async function createProduct(
  */
 export async function updateProduct(
   id: string,
-  input: UpdateProductInput,
+  input: UpdateProductInput
 ): Promise<ProductWithImages> {
   const {
     initialStock,
@@ -207,6 +208,7 @@ export async function updateProduct(
     include: {
       images: { orderBy: { sortOrder: "asc" } },
       inventory: true,
+      badge: true,
     },
   });
 
@@ -233,7 +235,7 @@ export async function updateProduct(
  * Soft delete a product (set isActive = false)
  */
 export async function deactivateProduct(
-  id: string,
+  id: string
 ): Promise<ProductWithImages> {
   return prisma.product.update({
     where: { id },
@@ -241,6 +243,7 @@ export async function deactivateProduct(
     include: {
       images: true,
       inventory: true,
+      badge: true,
     },
   });
 }
@@ -297,7 +300,7 @@ export async function getLowStockProducts() {
 export async function updateStock(
   productId: string,
   quantity: number,
-  operation: "set" | "increment" | "decrement" = "set",
+  operation: "set" | "increment" | "decrement" = "set"
 ): Promise<void> {
   if (operation === "set") {
     await prisma.inventory.upsert({

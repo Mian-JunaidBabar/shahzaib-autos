@@ -1,12 +1,27 @@
-import { ShoppingCart, DollarSign, Users, Clock, Package, Calendar, UserPlus, AlertTriangle, ArrowUpRight, ArrowDownRight, FileText, TrendingUp, } from "lucide-react";
-import { getDashboardStatsAction, getRecentActivityAction, } from "@/app/actions/dashboardActions";
+import {
+  ShoppingCart,
+  DollarSign,
+  Users,
+  Clock,
+  Package,
+  Calendar,
+  UserPlus,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+  FileText,
+  TrendingUp,
+} from "lucide-react";
+import {
+  getDashboardStatsAction,
+  getRecentActivityAction,
+} from "@/app/actions/dashboardActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
 import Link from "next/link";
-
 
 // Loading skeleton for stats cards
 function StatsCardSkeleton() {
@@ -198,7 +213,9 @@ async function RecentActivity() {
       {activities.map((activity, idx) => (
         <div
           key={activity.id}
-          className={`flex items-center gap-4 pb-4 ${idx < activities.length - 1 ? "border-b border-border" : ""}`}
+          className={`flex items-center gap-4 pb-4 ${
+            idx < activities.length - 1 ? "border-b border-border" : ""
+          }`}
         >
           <div
             className={`p-2 rounded-full ${getActivityColor(activity.type)}`}
@@ -234,7 +251,7 @@ function QuickActions() {
         className="h-auto p-4 justify-start gap-3 hover:bg-accent"
         asChild
       >
-        <Link href="/admin/dashboard/inventory?action=new">
+        <Link href="/admin/dashboard/inventory/new">
           <Package className="h-5 w-5 text-primary" />
           <span className="font-medium">Add New Product</span>
         </Link>

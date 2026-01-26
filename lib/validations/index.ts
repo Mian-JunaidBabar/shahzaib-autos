@@ -11,7 +11,6 @@
  */
 import { z } from "zod";
 
-
 // ============ Common Schemas ============
 
 export const phoneSchema = z
@@ -47,7 +46,7 @@ export const registerSchema = z.object({
     .min(8, "Password must be at least 8 characters")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain uppercase, lowercase, and number",
+      "Password must contain uppercase, lowercase, and number"
     ),
   name: z.string().min(2, "Name must be at least 2 characters"),
 });
@@ -60,7 +59,7 @@ export const changePasswordSchema = z
       .min(8, "Password must be at least 8 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain uppercase, lowercase, and number",
+        "Password must contain uppercase, lowercase, and number"
       ),
     confirmPassword: z.string(),
   })
@@ -75,29 +74,67 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 // ============ Product Schemas ============
 
-// Matches Prisma Product model
-export const productCreateSchema = z.object({
+// Helper function to generate slug from name
+const generateSlug = (name: string): string => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+};
+
+// Base product schema
+const productBaseSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(200),
   slug: z
     .string()
     .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
-    .optional(),
+    .optional()
+    .nullable(),
   description: z.string().optional().nullable(),
   price: z.coerce
     .number()
     .int()
     .min(0, "Price must be non-negative (in cents)"),
   category: z.string().optional().nullable(),
-  badge: z.string().optional().nullable(),
-  badgeColor: z.string().optional().nullable(),
+  badgeId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().default(true),
   // Inventory fields (created separately)
   stock: z.coerce.number().int().min(0).default(0),
   lowStockThreshold: z.coerce.number().int().min(0).default(10),
 });
 
-export const productUpdateSchema = productCreateSchema.partial().extend({
+// Create schema with slug auto-generation
+export const productCreateSchema = productBaseSchema.transform((data) => ({
+  ...data,
+  slug: data.slug || generateSlug(data.name),
+}));
+
+// Update schema - make all fields optional and add ID
+export const productUpdateSchema = z.object({
   id: z.string().uuid(),
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(200)
+    .optional(),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
+    .optional()
+    .nullable(),
+  description: z.string().optional().nullable(),
+  price: z.coerce
+    .number()
+    .int()
+    .min(0, "Price must be non-negative (in cents)")
+    .optional(),
+  category: z.string().optional().nullable(),
+  badgeId: z.string().uuid().optional().nullable(),
+  isActive: z.boolean().optional(),
+  stock: z.coerce.number().int().min(0).optional(),
+  lowStockThreshold: z.coerce.number().int().min(0).optional(),
 });
 
 export const productFilterSchema = z.object({
@@ -218,7 +255,7 @@ export const bookingCreateSchema = z.object({
     .date()
     .refine(
       (date) => date > new Date(),
-      "Scheduled date must be in the future",
+      "Scheduled date must be in the future"
     ),
   timeSlot: z.string().optional(),
   address: z.string().min(5, "Address is required"),
@@ -353,7 +390,7 @@ export const bulkProductSchema = z.object({
   price: z.coerce.number().int().min(0),
   description: z.string().optional(),
   category: z.string().optional(),
-  badge: z.string().optional(),
+  badgeId: z.string().uuid().optional(),
   stock: z.coerce.number().int().min(0).default(0),
 });
 

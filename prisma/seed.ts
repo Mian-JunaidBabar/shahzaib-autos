@@ -14,7 +14,6 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 
-
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 const pool = connectionString
   ? new Pool({
@@ -36,12 +35,12 @@ async function main() {
   // ============ Admin User Notice ============
   console.log("ℹ️  Admin users are managed via Supabase Auth.");
   console.log(
-    "   1. Create a user in Supabase Dashboard > Authentication > Users",
+    "   1. Create a user in Supabase Dashboard > Authentication > Users"
   );
   console.log("   2. Copy the user's UUID from Supabase");
   console.log("   3. Add them to the admins table:");
   console.log(
-    "      INSERT INTO admins (supabase_user_id) VALUES ('supabase-uuid-here');\n",
+    "      INSERT INTO admins (supabase_user_id) VALUES ('supabase-uuid-here');\n"
   );
 
   // ============ Create Sample Products (Optional) ============
@@ -49,6 +48,27 @@ async function main() {
 
   if (createSampleProducts) {
     console.log("Creating sample products...");
+
+    const seedBadges = [
+      { name: "BESTSELLER", color: "bg-emerald-500" },
+      { name: "TRENDING", color: "bg-amber-500" },
+      { name: "HOT", color: "bg-red-500" },
+    ];
+
+    const badgeMap = new Map<string, string>();
+    for (const badge of seedBadges) {
+      const existing = await prisma.badge.findUnique({
+        where: { name: badge.name },
+      });
+
+      const created = existing
+        ? existing
+        : await prisma.badge.create({
+            data: { name: badge.name, color: badge.color },
+          });
+
+      badgeMap.set(created.name, created.id);
+    }
 
     const sampleProducts = [
       {
@@ -58,8 +78,7 @@ async function main() {
           "High-quality synthetic engine oil for optimal performance",
         price: 250000, // Price in cents (PKR 2500)
         category: "Oils & Fluids",
-        badge: "BESTSELLER",
-        badgeColor: "#10b981",
+        badgeName: "BESTSELLER",
       },
       {
         name: "Air Filter Universal",
@@ -74,8 +93,7 @@ async function main() {
         description: "Premium brake pads for safe stopping",
         price: 350000, // Price in cents (PKR 3500)
         category: "Brakes",
-        badge: "TRENDING",
-        badgeColor: "#f59e0b",
+        badgeName: "TRENDING",
       },
       {
         name: "Car Battery 12V 60Ah",
@@ -83,8 +101,7 @@ async function main() {
         description: "Reliable car battery with 2-year warranty",
         price: 1200000, // Price in cents (PKR 12000)
         category: "Electrical",
-        badge: "HOT",
-        badgeColor: "#ef4444",
+        badgeName: "HOT",
       },
       {
         name: "Spark Plugs Set (4pcs)",
@@ -105,9 +122,15 @@ async function main() {
         continue;
       }
 
+      const { badgeName, ...productData } = product as {
+        badgeName?: string;
+        [key: string]: unknown;
+      };
+
       await prisma.product.create({
         data: {
-          ...product,
+          ...(productData as Omit<typeof product, "badgeName">),
+          badgeId: badgeName ? badgeMap.get(badgeName) : undefined,
           inventory: {
             create: {
               quantity: Math.floor(Math.random() * 50) + 10,

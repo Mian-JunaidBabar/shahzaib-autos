@@ -10,8 +10,21 @@
  * NOTE: Authentication is handled EXCLUSIVELY by Supabase Auth.
  * User/Role types are defined locally, not from Prisma.
  */
-import type { Product, ProductImage, Inventory, Order, OrderItem, Booking, Lead, Customer, OrderStatus, BookingStatus, LeadStatus, LeadSource, Admin, } from "@prisma/client";
-
+import type {
+  Product,
+  ProductImage,
+  Inventory,
+  Order,
+  OrderItem,
+  Booking,
+  Lead,
+  Customer,
+  OrderStatus,
+  BookingStatus,
+  LeadStatus,
+  LeadSource,
+  Admin,
+} from "@prisma/client";
 
 // ============================================
 // COMMON TYPES
@@ -83,8 +96,13 @@ export interface ProductDTO {
   description?: string | null;
   price: number;
   category?: string | null;
-  badge?: string | null;
-  badgeColor?: string | null;
+  badgeId?: string | null;
+  badge?: {
+    id: string;
+    name: string;
+    color: string;
+    isActive: boolean;
+  } | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -124,8 +142,7 @@ export interface CreateProductInput {
   description?: string | null;
   price: number;
   category?: string | null;
-  badge?: string | null;
-  badgeColor?: string | null;
+  badgeId?: string | null;
   isActive?: boolean;
   stock?: number;
   lowStockThreshold?: number;
@@ -564,13 +581,13 @@ export interface LowStockAlertInput {
 // ============================================
 
 export function isActionSuccess<T>(
-  result: ActionResult<T>,
+  result: ActionResult<T>
 ): result is ActionResult<T> & { data: T } {
   return result.success && result.data !== undefined;
 }
 
 export function isActionError<T>(
-  result: ActionResult<T>,
+  result: ActionResult<T>
 ): result is ActionResult<T> & { error: string } {
   return !result.success && result.error !== undefined;
 }

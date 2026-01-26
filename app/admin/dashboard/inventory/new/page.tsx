@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, ArrowLeft } from "lucide-react";
@@ -9,24 +9,45 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BadgeSelector } from "@/components/ui/badge-selector";
 import { createProductAction } from "@/app/actions/productActions";
+import { getActiveBadgesAction } from "@/app/actions/badgeActions";
 import { toast } from "sonner";
+
+interface Badge {
+  id: string;
+  name: string;
+  color: string;
+  isActive: boolean;
+}
 
 export default function NewProductPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [isLoadingBadges, setIsLoadingBadges] = useState(true);
   const [form, setForm] = useState({
     name: "",
     slug: "",
     description: "",
     price: "",
     category: "",
-    badge: "",
-    badgeColor: "",
+    badgeId: "",
     stock: "0",
     lowStockThreshold: "10",
     isActive: true,
   });
+
+  useEffect(() => {
+    const loadBadges = async () => {
+      const result = await getActiveBadgesAction();
+      if (result.success && result.data) {
+        setBadges(result.data as Badge[]);
+      }
+      setIsLoadingBadges(false);
+    };
+    loadBadges();
+  }, []);
 
   const handleChange = (field: keyof typeof form, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -44,8 +65,7 @@ export default function NewProductPage() {
         description: form.description || undefined,
         price,
         category: form.category || undefined,
-        badge: form.badge || undefined,
-        badgeColor: form.badgeColor || undefined,
+        badgeId: form.badgeId || undefined,
         stock,
         lowStockThreshold,
         isActive: form.isActive,
@@ -122,22 +142,6 @@ export default function NewProductPage() {
                 placeholder="SUV, Sedan, etc"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Badge (optional)</Label>
-              <Input
-                value={form.badge}
-                onChange={(e) => handleChange("badge", e.target.value)}
-                placeholder="New, Hot, Featured"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Badge Color (optional)</Label>
-              <Input
-                value={form.badgeColor}
-                onChange={(e) => handleChange("badgeColor", e.target.value)}
-                placeholder="bg-blue-500"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -149,6 +153,15 @@ export default function NewProductPage() {
               rows={4}
             />
           </div>
+
+          {!isLoadingBadges && (
+            <BadgeSelector
+              badges={badges}
+              value={form.badgeId}
+              onChange={(badgeId) => handleChange("badgeId", badgeId || "")}
+              label="Badge (optional)"
+            />
+          )}
         </CardContent>
       </Card>
 

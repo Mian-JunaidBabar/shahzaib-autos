@@ -103,8 +103,8 @@ export default async function ProductDetailPage({
                 {stockBadge.label}
               </Badge>
               {product.badge && (
-                <Badge className={product.badgeColor || ""}>
-                  {product.badge}
+                <Badge className={product.badge.color || ""}>
+                  {product.badge.name}
                 </Badge>
               )}
             </div>
