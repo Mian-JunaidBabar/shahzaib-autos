@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-
 export default function About() {
   return (
     <>
@@ -76,7 +75,7 @@ export default function About() {
                   fill
                   className="object-cover"
                 />
-                <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-6">
+                <div className="absolute bottom-0 left-0 w-full bg-linear-to-t from-black/80 to-transparent p-6">
                   <p className="text-white font-medium">
                     State-of-the-art facility in Downtown
                   </p>
@@ -184,7 +183,7 @@ export default function About() {
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
             <div className="absolute bottom-4 left-4">
               <p className="text-white font-semibold">Engine Bay Detailing</p>
               <p className="text-text-muted text-xs">Precision Cleaning</p>
@@ -197,7 +196,7 @@ export default function About() {
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
             <div className="absolute bottom-4 left-4">
               <p className="text-white font-semibold">Foam Treatment</p>
               <p className="text-text-muted text-xs">Exterior Care</p>
@@ -210,7 +209,7 @@ export default function About() {
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
             <div className="absolute bottom-4 left-4">
               <p className="text-white font-semibold">Ceramic Coating</p>
               <p className="text-text-muted text-xs">Protection Service</p>
