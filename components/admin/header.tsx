@@ -114,7 +114,9 @@ export default function AdminHeader() {
               alt={user.name || "Avatar"}
               width={36}
               height={36}
-              className="rounded-full object-cover"
+              className="rounded-full object-cover flex-shrink-0"
+              sizes="36px"
+              priority={false}
             />
           ) : (
             <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary to-blue-600 flex items-center justify-center">
