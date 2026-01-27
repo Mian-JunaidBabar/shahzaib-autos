@@ -87,6 +87,11 @@ export interface SessionDTO {
 // ============================================
 
 /**
+ * Product status enum (mirrors Prisma)
+ */
+export type ProductStatus = "ACTIVE" | "OUT_OF_STOCK" | "DRAFT" | "ARCHIVED";
+
+/**
  * Product with relations for display
  */
 export interface ProductDTO {
@@ -95,6 +100,8 @@ export interface ProductDTO {
   slug: string;
   description?: string | null;
   price: number;
+  salePrice?: number | null;
+  costPrice?: number | null;
   category?: string | null;
   badgeId?: string | null;
   badge?: {
@@ -103,7 +110,9 @@ export interface ProductDTO {
     color: string;
     isActive: boolean;
   } | null;
+  status: ProductStatus;
   isActive: boolean;
+  isArchived: boolean;
   createdAt: string;
   updatedAt: string;
   images: ProductImageDTO[];
@@ -141,11 +150,63 @@ export interface CreateProductInput {
   slug?: string;
   description?: string | null;
   price: number;
+  salePrice?: number | null;
+  costPrice?: number | null;
   category?: string | null;
   badgeId?: string | null;
   isActive?: boolean;
   stock?: number;
   lowStockThreshold?: number;
+}
+
+/**
+ * Product update input
+ */
+export interface UpdateProductInput extends Partial<CreateProductInput> {
+  id: string;
+  isArchived?: boolean;
+  keepImagePublicIds?: string[];
+}
+
+/**
+ * Stock rebalance item
+ */
+export interface StockRebalanceItem {
+  id: string;
+  newStock: number;
+}
+
+/**
+ * Stock rebalance result
+ */
+export interface StockRebalanceResult {
+  success: boolean;
+  updatedCount: number;
+  errors: string[];
+}
+
+/**
+ * Delete product result
+ */
+export interface DeleteProductResult {
+  success: boolean;
+  deleted?: boolean;
+  reason?: string;
+  orderCount?: number;
+}
+
+/**
+ * Lightweight product for rebalance view
+ */
+export interface ProductRebalanceDTO {
+  id: string;
+  name: string;
+  slug: string;
+  status: ProductStatus;
+  inventory: {
+    quantity: number;
+    lowStockAt: number;
+  } | null;
 }
 
 /**
@@ -581,13 +642,13 @@ export interface LowStockAlertInput {
 // ============================================
 
 export function isActionSuccess<T>(
-  result: ActionResult<T>
+  result: ActionResult<T>,
 ): result is ActionResult<T> & { data: T } {
   return result.success && result.data !== undefined;
 }
 
 export function isActionError<T>(
-  result: ActionResult<T>
+  result: ActionResult<T>,
 ): result is ActionResult<T> & { error: string } {
   return !result.success && result.error !== undefined;
 }

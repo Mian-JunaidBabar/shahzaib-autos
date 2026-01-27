@@ -11,7 +11,6 @@
  */
 import { z } from "zod";
 
-
 // ============ Common Schemas ============
 
 export const phoneSchema = z
@@ -47,7 +46,7 @@ export const registerSchema = z.object({
     .min(8, "Password must be at least 8 characters")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain uppercase, lowercase, and number"
+      "Password must contain uppercase, lowercase, and number",
     ),
   name: z.string().min(2, "Name must be at least 2 characters"),
 });
@@ -60,7 +59,7 @@ export const changePasswordSchema = z
       .min(8, "Password must be at least 8 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain uppercase, lowercase, and number"
+        "Password must contain uppercase, lowercase, and number",
       ),
     confirmPassword: z.string(),
   })
@@ -88,6 +87,14 @@ const normalizeSlug = (value: string): string => {
 
 const generateSlug = (name: string): string => normalizeSlug(name);
 
+// Product status enum
+export const productStatusSchema = z.enum([
+  "ACTIVE",
+  "OUT_OF_STOCK",
+  "DRAFT",
+  "ARCHIVED",
+]);
+
 // Base product schema
 const productBaseSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(200),
@@ -101,13 +108,15 @@ const productBaseSchema = z.object({
       .string()
       .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
       .optional()
-      .nullable()
+      .nullable(),
   ),
   description: z.string().optional().nullable(),
   price: z.coerce
     .number()
     .int()
     .min(0, "Price must be non-negative (in cents)"),
+  salePrice: z.coerce.number().int().min(0).optional().nullable(),
+  costPrice: z.coerce.number().int().min(0).optional().nullable(),
   category: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().default(true),
@@ -140,7 +149,7 @@ export const productUpdateSchema = z.object({
       .string()
       .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
       .optional()
-      .nullable()
+      .nullable(),
   ),
   description: z.string().optional().nullable(),
   price: z.coerce
@@ -148,17 +157,23 @@ export const productUpdateSchema = z.object({
     .int()
     .min(0, "Price must be non-negative (in cents)")
     .optional(),
+  salePrice: z.coerce.number().int().min(0).optional().nullable(),
+  costPrice: z.coerce.number().int().min(0).optional().nullable(),
   category: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().optional(),
+  isArchived: z.boolean().optional(),
   stock: z.coerce.number().int().min(0).optional(),
   lowStockThreshold: z.coerce.number().int().min(0).optional(),
+  keepImagePublicIds: z.array(z.string()).optional(),
 });
 
 export const productFilterSchema = z.object({
   search: z.string().optional(),
   category: z.string().optional(),
   isActive: z.coerce.boolean().optional(),
+  isArchived: z.coerce.boolean().optional(),
+  status: productStatusSchema.optional(),
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
   lowStock: z.coerce.boolean().optional(),
@@ -170,9 +185,18 @@ export const productFilterSchema = z.object({
   ...paginationSchema.shape,
 });
 
+// Stock rebalance schemas
+export const stockRebalanceItemSchema = z.object({
+  id: z.string().uuid(),
+  newStock: z.coerce.number().int().min(0),
+});
+
+export const stockRebalanceSchema = z.array(stockRebalanceItemSchema);
+
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type ProductFilterInput = z.infer<typeof productFilterSchema>;
+export type StockRebalanceInput = z.infer<typeof stockRebalanceSchema>;
 
 // ============ Product Image Schemas ============
 
@@ -273,7 +297,7 @@ export const bookingCreateSchema = z.object({
     .date()
     .refine(
       (date) => date > new Date(),
-      "Scheduled date must be in the future"
+      "Scheduled date must be in the future",
     ),
   timeSlot: z.string().optional(),
   address: z.string().min(5, "Address is required"),

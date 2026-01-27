@@ -171,6 +171,7 @@ export async function deactivateProductAction(
     await ProductService.deactivateProduct(id);
 
     revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
     revalidatePath("/products");
 
     return { success: true };
@@ -185,24 +186,147 @@ export async function deactivateProductAction(
 }
 
 /**
- * Permanently delete product
+ * Archive product (soft delete with isArchived flag)
  */
-export async function deleteProductAction(id: string): Promise<ActionResult> {
+export async function archiveProductAction(id: string): Promise<ActionResult> {
   try {
     await requireAdmin();
 
-    await ProductService.deleteProduct(id);
+    await ProductService.archiveProduct(id);
 
     revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
     revalidatePath("/products");
 
     return { success: true };
+  } catch (error) {
+    console.error("archiveProductAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to archive product",
+    };
+  }
+}
+
+/**
+ * Unarchive product
+ */
+export async function unarchiveProductAction(
+  id: string,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    await ProductService.unarchiveProduct(id);
+
+    revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
+    revalidatePath("/products");
+
+    return { success: true };
+  } catch (error) {
+    console.error("unarchiveProductAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to unarchive product",
+    };
+  }
+}
+
+/**
+ * Permanently delete product (with referential integrity check)
+ * Will fail if product has order history - returns reason to archive instead
+ */
+export async function deleteProductAction(
+  id: string,
+): Promise<ActionResult<ProductService.DeleteProductResult>> {
+  try {
+    await requireAdmin();
+
+    const result = await ProductService.deleteProduct(id);
+
+    if (result.deleted) {
+      revalidatePath("/admin/dashboard/products");
+      revalidatePath("/admin/dashboard/inventory");
+      revalidatePath("/products");
+    }
+
+    return {
+      success: result.success,
+      data: result,
+      error: result.reason,
+    };
   } catch (error) {
     console.error("deleteProductAction error:", error);
     return {
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to delete product",
+    };
+  }
+}
+
+/**
+ * Bulk archive products
+ */
+export async function bulkArchiveProductsAction(
+  ids: string[],
+): Promise<ActionResult<{ count: number }>> {
+  try {
+    await requireAdmin();
+
+    const result = await ProductService.bulkArchiveProducts(ids);
+
+    revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
+    revalidatePath("/products");
+
+    return { success: true, data: { count: result.count } };
+  } catch (error) {
+    console.error("bulkArchiveProductsAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to archive products",
+    };
+  }
+}
+
+/**
+ * Bulk delete products (only those without order history)
+ */
+export async function bulkDeleteProductsAction(ids: string[]): Promise<
+  ActionResult<{
+    deletedCount: number;
+    blockedCount: number;
+    blockedIds: string[];
+  }>
+> {
+  try {
+    await requireAdmin();
+
+    const result = await ProductService.bulkDeleteProducts(ids);
+
+    revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
+    revalidatePath("/products");
+
+    return {
+      success: true,
+      data: {
+        deletedCount: result.deletedCount,
+        blockedCount: result.blockedCount,
+        blockedIds: result.blockedIds,
+      },
+    };
+  } catch (error) {
+    console.error("bulkDeleteProductsAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete products",
     };
   }
 }
@@ -229,6 +353,60 @@ export async function updateStockAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update stock",
+    };
+  }
+}
+
+/**
+ * Rebalance stock for multiple products
+ */
+export async function rebalanceStockAction(
+  items: ProductService.StockRebalanceItem[],
+): Promise<ActionResult<ProductService.StockRebalanceResult>> {
+  try {
+    await requireAdmin();
+
+    const result = await ProductService.rebalanceStock(items);
+
+    revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
+
+    return {
+      success: result.success,
+      data: result,
+      error: result.errors.join(", ") || undefined,
+    };
+  } catch (error) {
+    console.error("rebalanceStockAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to rebalance stock",
+    };
+  }
+}
+
+/**
+ * Get products for rebalance view
+ */
+export async function getProductsForRebalanceAction(): Promise<
+  ActionResult<
+    Awaited<ReturnType<typeof ProductService.getProductsForRebalance>>
+  >
+> {
+  try {
+    await requireAdmin();
+
+    const products = await ProductService.getProductsForRebalance();
+    return { success: true, data: products };
+  } catch (error) {
+    console.error("getProductsForRebalanceAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch products for rebalance",
     };
   }
 }

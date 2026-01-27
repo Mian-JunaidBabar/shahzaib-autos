@@ -53,6 +53,14 @@ model AdminProfile {
 // PRODUCT & INVENTORY
 // ============================================
 
+// Product status for stock automation
+enum ProductStatus {
+  ACTIVE
+  OUT_OF_STOCK
+  DRAFT
+  ARCHIVED
+}
+
 model Badge {
   id        String   @id @default(uuid())
   name      String   @unique // e.g., "BESTSELLER", "TRENDING", "NEW"
@@ -68,16 +76,22 @@ model Badge {
 }
 
 model Product {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   name        String
-  slug        String   @unique
-  description String?  @db.Text
-  price       Int      // Price in cents
+  slug        String        @unique
+  sku         String        @unique // Stock Keeping Unit - critical for auto parts
+  description String?       @db.Text
+  price       Int           // Selling price in cents
+  salePrice   Int?          @map("sale_price") // Discounted price in cents (optional)
+  costPrice   Int?          @map("cost_price") // Cost price for margin tracking (optional)
+  barcode     String?       // Optional barcode for scanning
   category    String?
-  badgeId     String?  @map("badge_id")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  badgeId     String?       @map("badge_id")
+  status      ProductStatus @default(ACTIVE)
+  isActive    Boolean       @default(true) @map("is_active")
+  isArchived  Boolean       @default(false) @map("is_archived") // Soft delete flag
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
   badge       Badge?   @relation(fields: [badgeId], references: [id])
   images      ProductImage[]

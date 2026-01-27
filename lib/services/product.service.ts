@@ -1,11 +1,13 @@
-import { Prisma } from "@prisma/client";
+import { deleteImagesFromCloudinary } from "@/lib/cloudinary";
+import { Prisma, ProductStatus } from "@prisma/client";
 /**
  * Product Service
  *
  * Business logic for product management:
  * - CRUD operations with soft-delete
- * - Image management
- * - Inventory tracking
+ * - Image management with Cloudinary sync
+ * - Inventory tracking with stock automation
+ * - Safe delete with referential integrity checks
  */
 import { prisma } from "@/lib/prisma";
 
@@ -19,9 +21,12 @@ export type CreateProductInput = {
   slug?: string; // Optional - auto-generated from name if not provided
   description?: string | null;
   price: number; // In cents
+  salePrice?: number | null; // Discounted price in cents
+  costPrice?: number | null; // Cost price for margin tracking
   category?: string | null;
   badgeId?: string | null;
   isActive?: boolean;
+  status?: ProductStatus;
   stock?: number; // Alias for initialStock
   initialStock?: number;
   lowStockThreshold?: number; // Alias for lowStockAt
@@ -31,12 +36,17 @@ export type CreateProductInput = {
 export type UpdateProductInput = Partial<CreateProductInput> & {
   id?: string;
   isActive?: boolean;
+  isArchived?: boolean;
+  // For image sync - array of publicIds to keep
+  keepImagePublicIds?: string[];
 };
 
 export type ProductFilters = {
   search?: string;
   category?: string;
   isActive?: boolean;
+  isArchived?: boolean;
+  status?: ProductStatus;
   lowStock?: boolean;
 };
 
@@ -52,9 +62,9 @@ export type PaginationOptions = {
  */
 export async function getProducts(
   filters: ProductFilters = {},
-  pagination: PaginationOptions = {}
+  pagination: PaginationOptions = {},
 ) {
-  const { search, category, isActive, lowStock } = filters;
+  const { search, category, isActive, isArchived, status, lowStock } = filters;
   const {
     page = 1,
     limit = 20,
@@ -63,6 +73,13 @@ export async function getProducts(
   } = pagination;
 
   const where: Prisma.ProductWhereInput = {};
+
+  // By default, exclude archived products unless explicitly requested
+  if (typeof isArchived === "boolean") {
+    where.isArchived = isArchived;
+  } else {
+    where.isArchived = false;
+  }
 
   if (search) {
     where.OR = [
@@ -78,6 +95,10 @@ export async function getProducts(
 
   if (typeof isActive === "boolean") {
     where.isActive = isActive;
+  }
+
+  if (status) {
+    where.status = status;
   }
 
   // Low stock filter - requires subquery
@@ -121,7 +142,7 @@ export async function getProducts(
  * Get a single product by ID or slug
  */
 export async function getProduct(
-  idOrSlug: string
+  idOrSlug: string,
 ): Promise<ProductWithImages | null> {
   return prisma.product.findFirst({
     where: {
@@ -136,10 +157,28 @@ export async function getProduct(
 }
 
 /**
+ * Determine product status based on stock level
+ */
+function determineStatusFromStock(
+  quantity: number,
+  currentStatus?: ProductStatus,
+): ProductStatus {
+  if (quantity <= 0) {
+    return ProductStatus.OUT_OF_STOCK;
+  }
+  // If stock > 0 and was OUT_OF_STOCK, switch to ACTIVE
+  if (currentStatus === ProductStatus.OUT_OF_STOCK) {
+    return ProductStatus.ACTIVE;
+  }
+  // Keep current status if set, otherwise ACTIVE
+  return currentStatus || ProductStatus.ACTIVE;
+}
+
+/**
  * Create a new product with inventory
  */
 export async function createProduct(
-  input: CreateProductInput
+  input: CreateProductInput,
 ): Promise<ProductWithImages> {
   const {
     initialStock,
@@ -147,12 +186,18 @@ export async function createProduct(
     lowStockAt,
     lowStockThreshold,
     slug,
+    salePrice,
+    costPrice,
+    status,
     ...productData
   } = input;
 
   // Use stock or initialStock (validation uses stock, service historically used initialStock)
   const quantity = stock ?? initialStock ?? 0;
   const lowStockLevel = lowStockThreshold ?? lowStockAt ?? 10;
+
+  // Auto-determine status based on stock
+  const productStatus = determineStatusFromStock(quantity, status);
 
   // Auto-generate slug from name if not provided
   const productSlug =
@@ -166,6 +211,9 @@ export async function createProduct(
     data: {
       ...productData,
       slug: productSlug,
+      salePrice: salePrice ?? null,
+      costPrice: costPrice ?? null,
+      status: productStatus,
       inventory: {
         create: {
           quantity,
@@ -182,11 +230,11 @@ export async function createProduct(
 }
 
 /**
- * Update a product
+ * Update a product with image sync and stock automation
  */
 export async function updateProduct(
   id: string,
-  input: UpdateProductInput
+  input: UpdateProductInput,
 ): Promise<ProductWithImages> {
   const {
     initialStock,
@@ -194,6 +242,11 @@ export async function updateProduct(
     lowStockAt,
     lowStockThreshold,
     id: _inputId, // Exclude id from update data
+    keepImagePublicIds,
+    salePrice,
+    costPrice,
+    status,
+    isArchived,
     ...productData
   } = input;
 
@@ -201,10 +254,59 @@ export async function updateProduct(
   const quantity = stock ?? initialStock;
   const lowStockLevel = lowStockThreshold ?? lowStockAt;
 
+  // Handle image sync - delete removed images from Cloudinary
+  if (keepImagePublicIds !== undefined) {
+    const existingImages = await prisma.productImage.findMany({
+      where: { productId: id },
+      select: { id: true, publicId: true },
+    });
+
+    const imagesToDelete = existingImages.filter(
+      (img) => !keepImagePublicIds.includes(img.publicId),
+    );
+
+    if (imagesToDelete.length > 0) {
+      // Delete from Cloudinary
+      const publicIdsToDelete = imagesToDelete.map((img) => img.publicId);
+      await deleteImagesFromCloudinary(publicIdsToDelete);
+
+      // Delete from database
+      await prisma.productImage.deleteMany({
+        where: {
+          id: { in: imagesToDelete.map((img) => img.id) },
+        },
+      });
+    }
+  }
+
+  // Get current product to check status
+  const currentProduct = await prisma.product.findUnique({
+    where: { id },
+    include: { inventory: true },
+  });
+
+  // Determine new status based on stock automation
+  let newStatus = status;
+  if (quantity !== undefined && currentProduct) {
+    newStatus = determineStatusFromStock(
+      quantity,
+      status ?? currentProduct.status,
+    );
+  }
+
+  // Build update data
+  const updateData: Prisma.ProductUpdateInput = {
+    ...productData,
+    ...(salePrice !== undefined && { salePrice }),
+    ...(costPrice !== undefined && { costPrice }),
+    ...(newStatus !== undefined && { status: newStatus }),
+    ...(isArchived !== undefined && { isArchived }),
+  };
+
   // Update product
   const product = await prisma.product.update({
     where: { id },
-    data: productData,
+    data: updateData,
     include: {
       images: { orderBy: { sortOrder: "asc" } },
       inventory: true,
@@ -235,7 +337,7 @@ export async function updateProduct(
  * Soft delete a product (set isActive = false)
  */
 export async function deactivateProduct(
-  id: string
+  id: string,
 ): Promise<ProductWithImages> {
   return prisma.product.update({
     where: { id },
@@ -249,10 +351,180 @@ export async function deactivateProduct(
 }
 
 /**
- * Hard delete a product (use with caution)
+ * Archive a product (soft delete - keeps data but hides from active views)
  */
-export async function deleteProduct(id: string): Promise<void> {
+export async function archiveProduct(id: string): Promise<ProductWithImages> {
+  return prisma.product.update({
+    where: { id },
+    data: {
+      isArchived: true,
+      status: ProductStatus.ARCHIVED,
+      isActive: false,
+    },
+    include: {
+      images: true,
+      inventory: true,
+      badge: true,
+    },
+  });
+}
+
+/**
+ * Unarchive a product
+ */
+export async function unarchiveProduct(id: string): Promise<ProductWithImages> {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: { inventory: true },
+  });
+
+  // Determine status based on stock
+  const quantity = product?.inventory?.quantity ?? 0;
+  const newStatus = determineStatusFromStock(quantity);
+
+  return prisma.product.update({
+    where: { id },
+    data: {
+      isArchived: false,
+      status: newStatus,
+      isActive: true,
+    },
+    include: {
+      images: true,
+      inventory: true,
+      badge: true,
+    },
+  });
+}
+
+export type DeleteProductResult = {
+  success: boolean;
+  deleted?: boolean;
+  reason?: string;
+  orderCount?: number;
+};
+
+/**
+ * Check if a product can be safely deleted (no order history)
+ */
+export async function canDeleteProduct(id: string): Promise<{
+  canDelete: boolean;
+  orderCount: number;
+}> {
+  const orderCount = await prisma.orderItem.count({
+    where: { productId: id },
+  });
+
+  return {
+    canDelete: orderCount === 0,
+    orderCount,
+  };
+}
+
+/**
+ * Hard delete a product with referential integrity check
+ * Will fail if product has order history - must archive instead
+ */
+export async function deleteProduct(id: string): Promise<DeleteProductResult> {
+  // Step 1: Check for order history
+  const { canDelete, orderCount } = await canDeleteProduct(id);
+
+  if (!canDelete) {
+    return {
+      success: false,
+      deleted: false,
+      reason: `Cannot delete product with ${orderCount} order(s). Archive it instead.`,
+      orderCount,
+    };
+  }
+
+  // Step 2: Fetch product images for Cloudinary cleanup
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: { images: true },
+  });
+
+  if (!product) {
+    return {
+      success: false,
+      deleted: false,
+      reason: "Product not found",
+    };
+  }
+
+  // Step 3: Delete images from Cloudinary
+  if (product.images.length > 0) {
+    const publicIds = product.images.map((img) => img.publicId);
+    const cloudinaryResult = await deleteImagesFromCloudinary(publicIds);
+
+    if (!cloudinaryResult.success) {
+      console.warn(
+        "Some images failed to delete from Cloudinary:",
+        cloudinaryResult.errors,
+      );
+      // Continue with database deletion even if Cloudinary fails
+    }
+  }
+
+  // Step 4: Delete from database (cascades to images and inventory)
   await prisma.product.delete({ where: { id } });
+
+  return {
+    success: true,
+    deleted: true,
+  };
+}
+
+/**
+ * Bulk archive products
+ */
+export async function bulkArchiveProducts(
+  ids: string[],
+): Promise<{ success: boolean; count: number }> {
+  const result = await prisma.product.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      isArchived: true,
+      status: ProductStatus.ARCHIVED,
+      isActive: false,
+    },
+  });
+
+  return {
+    success: true,
+    count: result.count,
+  };
+}
+
+/**
+ * Bulk delete products (only those without order history)
+ */
+export async function bulkDeleteProducts(ids: string[]): Promise<{
+  success: boolean;
+  deletedCount: number;
+  blockedCount: number;
+  blockedIds: string[];
+}> {
+  const results = {
+    deletedCount: 0,
+    blockedCount: 0,
+    blockedIds: [] as string[],
+  };
+
+  for (const id of ids) {
+    const deleteResult = await deleteProduct(id);
+    if (deleteResult.deleted) {
+      results.deletedCount++;
+    } else {
+      results.blockedCount++;
+      results.blockedIds.push(id);
+    }
+  }
+
+  return {
+    success: true,
+    ...results,
+  };
 }
 
 /**
@@ -300,25 +572,139 @@ export async function getLowStockProducts() {
 export async function updateStock(
   productId: string,
   quantity: number,
-  operation: "set" | "increment" | "decrement" = "set"
+  operation: "set" | "increment" | "decrement" = "set",
 ): Promise<void> {
+  let newQuantity: number;
+
   if (operation === "set") {
     await prisma.inventory.upsert({
       where: { productId },
       update: { quantity },
       create: { productId, quantity },
     });
+    newQuantity = quantity;
   } else if (operation === "increment") {
-    await prisma.inventory.update({
+    const result = await prisma.inventory.update({
       where: { productId },
       data: { quantity: { increment: quantity } },
     });
+    newQuantity = result.quantity;
   } else if (operation === "decrement") {
-    await prisma.inventory.update({
+    const result = await prisma.inventory.update({
       where: { productId },
       data: { quantity: { decrement: quantity } },
     });
+    newQuantity = result.quantity;
+  } else {
+    return;
   }
+
+  // Auto-update product status based on new stock level
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { status: true },
+  });
+
+  if (product) {
+    const newStatus = determineStatusFromStock(newQuantity, product.status);
+    if (newStatus !== product.status) {
+      await prisma.product.update({
+        where: { id: productId },
+        data: { status: newStatus },
+      });
+    }
+  }
+}
+
+export type StockRebalanceItem = {
+  id: string;
+  newStock: number;
+};
+
+export type StockRebalanceResult = {
+  success: boolean;
+  updatedCount: number;
+  errors: string[];
+};
+
+/**
+ * Bulk update stock for multiple products (rebalance)
+ * Automatically updates product status based on new stock levels
+ */
+export async function rebalanceStock(
+  items: StockRebalanceItem[],
+): Promise<StockRebalanceResult> {
+  const errors: string[] = [];
+  let updatedCount = 0;
+
+  for (const item of items) {
+    try {
+      // Update inventory
+      await prisma.inventory.upsert({
+        where: { productId: item.id },
+        update: { quantity: item.newStock },
+        create: {
+          productId: item.id,
+          quantity: item.newStock,
+          lowStockAt: 10,
+        },
+      });
+
+      // Get current product status
+      const product = await prisma.product.findUnique({
+        where: { id: item.id },
+        select: { status: true, isArchived: true },
+      });
+
+      // Only auto-update status for non-archived products
+      if (product && !product.isArchived) {
+        const newStatus = determineStatusFromStock(
+          item.newStock,
+          product.status,
+        );
+        if (newStatus !== product.status) {
+          await prisma.product.update({
+            where: { id: item.id },
+            data: { status: newStatus },
+          });
+        }
+      }
+
+      updatedCount++;
+    } catch (error) {
+      errors.push(
+        `Product ${item.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    updatedCount,
+    errors,
+  };
+}
+
+/**
+ * Get all products for rebalance view (lightweight)
+ */
+export async function getProductsForRebalance() {
+  return prisma.product.findMany({
+    where: { isArchived: false },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      status: true,
+      inventory: {
+        select: {
+          quantity: true,
+          lowStockAt: true,
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
 }
 
 /**
