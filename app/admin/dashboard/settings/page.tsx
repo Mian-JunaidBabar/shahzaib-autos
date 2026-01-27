@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Key } from "lucide-react";
 import { ColorPicker } from "@/components/ui/color-picker";
 import {
   createBadgeAction,
@@ -9,6 +9,10 @@ import {
   getBadgesAction,
   updateBadgeAction,
 } from "@/app/actions/badgeActions";
+import { getCurrentProfileAction } from "@/app/actions/profileActions";
+import { ProfileAvatarUpload } from "@/components/admin/profile-avatar-upload";
+import { ProfileForm } from "@/components/admin/profile-form";
+import { ChangePasswordModal } from "@/components/admin/change-password-modal";
 
 interface SettingsSection {
   id: string;
@@ -18,6 +22,12 @@ interface SettingsSection {
 }
 
 const settingsSections: SettingsSection[] = [
+  {
+    id: "profile",
+    title: "Admin Profile",
+    description: "Manage your profile, avatar, and password",
+    icon: "person",
+  },
   {
     id: "business",
     title: "Business Information",
@@ -63,22 +73,31 @@ const settingsSections: SettingsSection[] = [
   },
 ];
 
+type BadgeType = {
+  id: string;
+  name: string;
+  color: string;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+type ProfileType = {
+  id: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+};
+
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState("business");
-  const [badges, setBadges] = useState<
-    Array<{
-      id: string;
-      name: string;
-      color: string;
-      isActive: boolean;
-      sortOrder: number;
-    }>
-  >([]);
+  const [activeSection, setActiveSection] = useState("profile");
+  const [badges, setBadges] = useState<BadgeType[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<string | null>(null);
   const [editColor, setEditColor] = useState("#3B82F6");
   const [newBadgeName, setNewBadgeName] = useState("");
   const [newBadgeColor, setNewBadgeColor] = useState("#3B82F6");
   const [isPending, startTransition] = useTransition();
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [profile, setProfile] = useState<ProfileType | null>(null);
 
   const loadBadges = async () => {
     const result = await getBadgesAction();
@@ -87,8 +106,16 @@ export default function SettingsPage() {
     }
   };
 
+  const loadProfile = async () => {
+    const result = await getCurrentProfileAction();
+    if (result.success && result.data) {
+      setProfile(result.data);
+    }
+  };
+
   useEffect(() => {
     loadBadges();
+    loadProfile();
   }, []);
 
   const handleSelectBadge = (badgeId: string) => {
@@ -144,6 +171,87 @@ export default function SettingsPage() {
         }
       }
     });
+  };
+
+  const renderProfileSettings = () => {
+    if (!profile) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading profile...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground mb-6">
+            Admin Profile
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Avatar Section */}
+          <div className="lg:col-span-1">
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h3 className="text-lg font-medium text-foreground mb-4">
+                Profile Picture
+              </h3>
+              <ProfileAvatarUpload
+                currentAvatarUrl={profile.avatarUrl}
+                onUploadSuccess={(url) => {
+                  setProfile({ ...profile, avatarUrl: url });
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Profile Info Section */}
+          <div className="lg:col-span-2">
+            <div className="bg-card rounded-lg border border-border p-6 space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-foreground mb-4">
+                  Profile Information
+                </h3>
+                <ProfileForm
+                  initialData={{
+                    fullName: profile.fullName,
+                    email: profile.email,
+                  }}
+                  onSaveSuccess={loadProfile}
+                />
+              </div>
+
+              {/* Change Password */}
+              <div className="pt-6 border-t border-border">
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  Password
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Update your password to keep your account secure.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+                >
+                  <Key className="w-4 h-4" />
+                  Change Password
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Change Password Modal */}
+        <ChangePasswordModal
+          isOpen={isPasswordModalOpen}
+          onClose={() => setIsPasswordModalOpen(false)}
+        />
+      </div>
+    );
   };
 
   const renderBusinessSettings = () => (
@@ -785,6 +893,8 @@ export default function SettingsPage() {
 
   const renderSectionContent = () => {
     switch (activeSection) {
+      case "profile":
+        return renderProfileSettings();
       case "business":
         return renderBusinessSettings();
       case "services":
@@ -800,7 +910,7 @@ export default function SettingsPage() {
       case "badges":
         return renderBadgeSettings();
       default:
-        return renderBusinessSettings();
+        return renderProfileSettings();
     }
   };
 

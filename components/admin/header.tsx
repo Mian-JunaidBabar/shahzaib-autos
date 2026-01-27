@@ -97,17 +97,6 @@ export default function AdminHeader() {
           </span>
         </button>
 
-        {/* Notifications */}
-        <button
-          className="relative p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
-          aria-label="Notifications"
-        >
-          <span className="material-symbols-outlined text-[22px]">
-            notifications
-          </span>
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive border-2 border-background"></span>
-        </button>
-
         {/* User Menu */}
         <div className="relative group">
           <button className="flex items-center gap-2 p-2 rounded-full hover:bg-muted transition-colors">

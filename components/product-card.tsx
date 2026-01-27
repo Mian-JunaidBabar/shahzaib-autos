@@ -13,11 +13,14 @@ export interface Product {
   price: number;
   description: string;
   image: string;
-  badge?: {
-    id: number;
-    name: string;
-    color: string;
-  };
+  badge?:
+    | string
+    | {
+        id: number;
+        name: string;
+        color: string;
+      };
+  badgeColor?: string; // For legacy string badges
   category: string;
   slug: string;
 }
@@ -58,9 +61,16 @@ export default function ProductCard({ product }: ProductCardProps) {
         {product.badge && (
           <div
             className="absolute top-3 right-3 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm"
-            style={{ backgroundColor: product.badge.color }}
+            style={{
+              backgroundColor:
+                typeof product.badge === "object"
+                  ? product.badge.color
+                  : product.badgeColor || "#3B82F6",
+            }}
           >
-            {product.badge.name}
+            {typeof product.badge === "object"
+              ? product.badge.name
+              : product.badge}
           </div>
         )}
       </Link>

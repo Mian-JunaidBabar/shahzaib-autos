@@ -30,6 +30,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -147,6 +148,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchSession();
   };
 
+  // Refresh user data (force re-fetch from Supabase)
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const {
+        data: { user: supabaseUser },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error("User refresh error:", error);
+        return;
+      }
+
+      setUser(mapSupabaseUser(supabaseUser));
+    } catch (error) {
+      console.error("User refresh failed:", error);
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
@@ -158,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         refreshSession,
+        refreshUser,
       }}
     >
       {children}

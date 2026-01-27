@@ -24,7 +24,29 @@ model Admin {
   supabaseUserId  String   @unique @map("supabase_user_id") // Supabase auth.users.id
   createdAt       DateTime @default(now()) @map("created_at")
 
+  profile AdminProfile?
+
   @@map("admins")
+}
+
+// ============================================
+// ADMIN PROFILE (Non-auth metadata)
+// ============================================
+// Stores profile information for admin users.
+// DO NOT store passwords, emails, or auth credentials.
+// Identity comes from Supabase Auth.
+
+model AdminProfile {
+  id           String   @id // Same as admin.supabaseUserId
+  adminId      String   @unique @map("admin_id")
+  fullName     String?  @map("full_name")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("admin_profiles")
 }
 
 // ============================================
