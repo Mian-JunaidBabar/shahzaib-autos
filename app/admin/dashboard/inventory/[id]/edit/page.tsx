@@ -3,13 +3,14 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { Save, ArrowLeft } from "lucide-react";
+import { Save, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BadgeSelector } from "@/components/ui/badge-selector";
+import { ProductImageManager } from "@/components/admin/product-image-manager";
 import {
   getProductAction,
   updateProductAction,
@@ -88,12 +89,14 @@ export default function EditProductPage() {
 
   const handleChange = (field: keyof typeof form, value: string | boolean) => {
     setForm((prev) => {
-      if (field === "slug" && typeof value === "string") {
-        return { ...prev, slug: normalizeSlug(value) };
+      // Auto-generate slug when name changes
+      if (field === "name" && typeof value === "string") {
+        return { ...prev, name: value, slug: normalizeSlug(value) };
       }
 
-      if (field === "name" && typeof value === "string" && !prev.slug) {
-        return { ...prev, name: value, slug: normalizeSlug(value) };
+      // Allow manual slug editing
+      if (field === "slug" && typeof value === "string") {
+        return { ...prev, slug: normalizeSlug(value) };
       }
 
       return { ...prev, [field]: value };
@@ -260,6 +263,21 @@ export default function EditProductPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Product Images */}
+      {params?.id && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Product Images
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProductImageManager productId={params.id} maxFiles={10} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

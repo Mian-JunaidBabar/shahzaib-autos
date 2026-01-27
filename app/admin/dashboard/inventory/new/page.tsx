@@ -3,15 +3,27 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, ArrowLeft } from "lucide-react";
+import {
+  Plus,
+  ArrowLeft,
+  Image as ImageIcon,
+  Upload,
+  X,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { BadgeSelector } from "@/components/ui/badge-selector";
+import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import { createProductAction } from "@/app/actions/productActions";
 import { getActiveBadgesAction } from "@/app/actions/badgeActions";
+import { saveProductImage } from "@/app/actions/imageActions";
 import { toast } from "sonner";
 
 interface Badge {
@@ -21,11 +33,24 @@ interface Badge {
   isActive: boolean;
 }
 
+interface PreUploadedImage {
+  id: string;
+  url: string;
+  publicId: string;
+  isLoading?: boolean;
+}
+
 export default function NewProductPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [badges, setBadges] = useState<Badge[]>([]);
   const [isLoadingBadges, setIsLoadingBadges] = useState(true);
+  const [preUploadedImages, setPreUploadedImages] = useState<
+    PreUploadedImage[]
+  >([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -60,12 +85,14 @@ export default function NewProductPage() {
 
   const handleChange = (field: keyof typeof form, value: string | boolean) => {
     setForm((prev) => {
-      if (field === "slug" && typeof value === "string") {
-        return { ...prev, slug: normalizeSlug(value) };
+      // Auto-generate slug when name changes
+      if (field === "name" && typeof value === "string") {
+        return { ...prev, name: value, slug: normalizeSlug(value) };
       }
 
-      if (field === "name" && typeof value === "string" && !prev.slug) {
-        return { ...prev, name: value, slug: normalizeSlug(value) };
+      // Allow manual slug editing
+      if (field === "slug" && typeof value === "string") {
+        return { ...prev, slug: normalizeSlug(value) };
       }
 
       return { ...prev, [field]: value };
@@ -91,12 +118,124 @@ export default function NewProductPage() {
       });
 
       if (result.success && result.data) {
-        toast.success("Product created");
+        // Save pre-uploaded images to database
+        if (preUploadedImages.length > 0) {
+          let successCount = 0;
+          for (let i = 0; i < preUploadedImages.length; i++) {
+            const img = preUploadedImages[i];
+            const imageResult = await saveProductImage({
+              productId: result.data.id,
+              secureUrl: img.url,
+              publicId: img.publicId,
+              isPrimary: i === 0, // First image is primary
+              sortOrder: i,
+            });
+            if (imageResult.success) {
+              successCount++;
+            }
+          }
+
+          if (successCount > 0) {
+            toast.success(`Product created with ${successCount} image(s)`);
+          } else {
+            toast.success("Product created (but images failed to save)");
+          }
+        } else {
+          toast.success("Product created");
+        }
+
         router.push(`/admin/dashboard/inventory/${result.data.id}`);
       } else {
         toast.error(result.error || "Failed to create product");
       }
     });
+  };
+
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files) return;
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        setUploadError("Only image files are allowed");
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setUploadError("File size must be less than 5MB");
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    if (preUploadedImages.length + validFiles.length > 10) {
+      setUploadError("Maximum 10 images allowed");
+      return;
+    }
+
+    setIsUploadingImages(true);
+    setUploadError(null);
+
+    for (const file of validFiles) {
+      try {
+        const preview = URL.createObjectURL(file);
+        const tempId = `temp-${Date.now()}-${Math.random()}`;
+
+        // Add loading state
+        setPreUploadedImages((prev) => [
+          ...prev,
+          { id: tempId, url: preview, publicId: "", isLoading: true },
+        ]);
+
+        // Upload to Cloudinary
+        const uploadResponse = await uploadImageToCloudinary(file);
+
+        // Replace preview with actual URL using temp ID
+        setPreUploadedImages((prev) =>
+          prev.map((img) =>
+            img.id === tempId
+              ? {
+                  id: tempId,
+                  url: uploadResponse.secure_url,
+                  publicId: uploadResponse.public_id,
+                  isLoading: false,
+                }
+              : img,
+          ),
+        );
+      } catch (error) {
+        console.error("Upload error:", error);
+        setUploadError(
+          error instanceof Error ? error.message : "Upload failed",
+        );
+        // Remove failed image
+        setPreUploadedImages((prev) => prev.filter((img) => !img.isLoading));
+      }
+    }
+
+    setIsUploadingImages(false);
+    setSuccessMessage(`Uploaded ${validFiles.length} image(s)`);
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const imageId = preUploadedImages[index].id;
+    setPreUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("ring-2", "ring-blue-400");
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove("ring-2", "ring-blue-400");
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("ring-2", "ring-blue-400");
+    handleFileSelect(e.dataTransfer.files);
   };
 
   return (
@@ -223,6 +362,126 @@ export default function NewProductPage() {
               onChange={(e) => handleChange("isActive", e.target.checked)}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Product Images */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Product Images
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Upload Area */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className="relative rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center transition-colors dark:border-gray-600 dark:bg-gray-900"
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) => handleFileSelect(e.target.files)}
+              disabled={isUploadingImages || preUploadedImages.length >= 10}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+
+            <div className="flex flex-col items-center space-y-2">
+              {isUploadingImages ? (
+                <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+              ) : (
+                <Upload className="h-10 w-10 text-gray-400" />
+              )}
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {isUploadingImages
+                  ? "Uploading..."
+                  : "Drop images here or click to upload"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {preUploadedImages.length}/10 images • Max 5MB per image
+              </p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          {uploadError && (
+            <div className="flex items-center space-x-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
+              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <span className="text-sm text-red-700 dark:text-red-300">
+                {uploadError}
+              </span>
+              <button
+                onClick={() => setUploadError(null)}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="flex items-center space-x-2 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <span className="text-sm text-green-700 dark:text-green-300">
+                {successMessage}
+              </span>
+            </div>
+          )}
+
+          {/* Image Grid */}
+          {preUploadedImages.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {preUploadedImages.map((image, index) => (
+                <div
+                  key={index}
+                  className="group relative aspect-square overflow-hidden rounded-lg border-2 border-transparent bg-gray-100 transition-all hover:border-gray-300 dark:bg-gray-800"
+                >
+                  {/* Image */}
+                  <img
+                    src={image.url}
+                    alt={`Upload ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+
+                  {/* Primary Badge */}
+                  {index === 0 && preUploadedImages.length > 0 && (
+                    <Badge className="absolute left-1 top-1 bg-blue-500 text-white hover:bg-blue-600">
+                      Primary
+                    </Badge>
+                  )}
+
+                  {/* Loading Overlay */}
+                  {image.isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    </div>
+                  )}
+
+                  {/* Delete Button */}
+                  {!image.isLoading && (
+                    <button
+                      onClick={() => handleRemoveImage(index)}
+                      disabled={isUploadingImages}
+                      className="absolute right-2 top-2 hidden rounded-full bg-red-500 p-1.5 text-white transition-all hover:bg-red-600 disabled:opacity-50 group-hover:block"
+                      aria-label="Delete image"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {preUploadedImages.length === 0 && !isUploadingImages && (
+            <p className="text-center text-sm text-muted-foreground">
+              No images uploaded yet. Upload images above (optional).
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -32,7 +32,16 @@ export async function uploadImageToCloudinary(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to upload image to Cloudinary");
+    let errorMessage = "Failed to upload image to Cloudinary";
+    try {
+      const errorData = await response.json();
+      if (errorData.error?.message) {
+        errorMessage = `Cloudinary Error: ${errorData.error.message}`;
+      }
+    } catch {
+      // If response isn't JSON, use default error message
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();

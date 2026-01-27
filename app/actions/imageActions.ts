@@ -80,9 +80,7 @@ export async function getProductImages(
   try {
     const images = await prisma.productImage.findMany({
       where: productId ? { productId } : undefined,
-      orderBy: {
-        uploadedAt: "desc",
-      },
+      orderBy: [{ sortOrder: "asc" }, { uploadedAt: "desc" }],
     });
 
     return {
@@ -102,6 +100,63 @@ export async function getProductImages(
     return {
       success: false,
       error: "Failed to fetch product images",
+    };
+  }
+}
+
+/**
+ * Set an image as the primary image for a product
+ * This will unset any existing primary image
+ */
+export async function setPrimaryImage(
+  imageId: string,
+  productId: string,
+): Promise<ActionResult<void>> {
+  try {
+    // Unset all existing primary images for this product
+    await prisma.productImage.updateMany({
+      where: { productId, isPrimary: true },
+      data: { isPrimary: false },
+    });
+
+    // Set the new primary image
+    await prisma.productImage.update({
+      where: { id: imageId },
+      data: { isPrimary: true },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting primary image:", error);
+    return {
+      success: false,
+      error: "Failed to set primary image",
+    };
+  }
+}
+
+/**
+ * Update the sort order of product images
+ */
+export async function updateImageOrder(
+  imageOrders: { id: string; sortOrder: number }[],
+): Promise<ActionResult<void>> {
+  try {
+    await prisma.$transaction(
+      imageOrders.map(({ id, sortOrder }) =>
+        prisma.productImage.update({
+          where: { id },
+          data: { sortOrder },
+        }),
+      ),
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating image order:", error);
+    return {
+      success: false,
+      error: "Failed to update image order",
     };
   }
 }
