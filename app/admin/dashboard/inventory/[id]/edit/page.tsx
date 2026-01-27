@@ -77,8 +77,27 @@ export default function EditProductPage() {
     load();
   }, [params?.id, router]);
 
+  const normalizeSlug = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
   const handleChange = (field: keyof typeof form, value: string | boolean) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      if (field === "slug" && typeof value === "string") {
+        return { ...prev, slug: normalizeSlug(value) };
+      }
+
+      if (field === "name" && typeof value === "string" && !prev.slug) {
+        return { ...prev, name: value, slug: normalizeSlug(value) };
+      }
+
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleSubmit = () => {

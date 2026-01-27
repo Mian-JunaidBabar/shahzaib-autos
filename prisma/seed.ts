@@ -35,12 +35,12 @@ async function main() {
   // ============ Admin User Notice ============
   console.log("ℹ️  Admin users are managed via Supabase Auth.");
   console.log(
-    "   1. Create a user in Supabase Dashboard > Authentication > Users"
+    "   1. Create a user in Supabase Dashboard > Authentication > Users",
   );
   console.log("   2. Copy the user's UUID from Supabase");
   console.log("   3. Add them to the admins table:");
   console.log(
-    "      INSERT INTO admins (supabase_user_id) VALUES ('supabase-uuid-here');\n"
+    "      INSERT INTO admins (supabase_user_id) VALUES ('supabase-uuid-here');\n",
   );
 
   // ============ Create Sample Products (Optional) ============
@@ -50,9 +50,9 @@ async function main() {
     console.log("Creating sample products...");
 
     const seedBadges = [
-      { name: "BESTSELLER", color: "bg-emerald-500" },
-      { name: "TRENDING", color: "bg-amber-500" },
-      { name: "HOT", color: "bg-red-500" },
+      { name: "BESTSELLER", color: "#10B981" }, // emerald-500
+      { name: "TRENDING", color: "#F59E0B" }, // amber-500
+      { name: "HOT", color: "#EF4444" }, // red-500
     ];
 
     const badgeMap = new Map<string, string>();

@@ -33,7 +33,10 @@ export function BadgeSelector({
       {/* Selected badge display */}
       {selectedBadge && (
         <div className="flex items-center gap-2 p-3 rounded-lg border border-input bg-accent">
-          <div className={cn("w-4 h-4 rounded", selectedBadge.color)}></div>
+          <div
+            className="w-4 h-4 rounded"
+            style={{ backgroundColor: selectedBadge.color }}
+          ></div>
           <span className="text-sm font-medium flex-1">
             {selectedBadge.name}
           </span>
@@ -67,10 +70,13 @@ export function BadgeSelector({
                 value === badge.id
                   ? "border-foreground bg-accent"
                   : "border-transparent hover:bg-accent/50",
-                !badge.isActive && "opacity-50 cursor-not-allowed"
+                !badge.isActive && "opacity-50 cursor-not-allowed",
               )}
             >
-              <div className={cn("w-4 h-4 rounded", badge.color)}></div>
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: badge.color }}
+              ></div>
               <span className="text-xs font-medium truncate">{badge.name}</span>
             </button>
           ))

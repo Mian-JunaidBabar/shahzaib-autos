@@ -136,10 +136,10 @@ export default function InventoryPage() {
         (p) =>
           p.inventory &&
           p.inventory.quantity > 0 &&
-          p.inventory.quantity <= p.inventory.lowStockAt
+          p.inventory.quantity <= p.inventory.lowStockAt,
       ).length;
       const outOfStockCount = result.data.products.filter(
-        (p) => p.inventory && p.inventory.quantity === 0
+        (p) => p.inventory && p.inventory.quantity === 0,
       ).length;
 
       setStats({
@@ -172,11 +172,11 @@ export default function InventoryPage() {
       if (result.success) {
         setProducts((prev) =>
           prev.map((p) =>
-            p.id === id ? { ...p, isActive: !currentActive } : p
-          )
+            p.id === id ? { ...p, isActive: !currentActive } : p,
+          ),
         );
         toast.success(
-          currentActive ? "Product deactivated" : "Product activated"
+          currentActive ? "Product deactivated" : "Product activated",
         );
       } else {
         toast.error(result.error || "Failed to update status");
@@ -372,7 +372,12 @@ export default function InventoryPage() {
                             {product.badge && (
                               <Badge
                                 variant="outline"
-                                className={`text-xs ${product.badge.color}`}
+                                className="text-xs"
+                                style={{
+                                  backgroundColor: product.badge.color,
+                                  color: "white",
+                                  borderColor: product.badge.color,
+                                }}
                               >
                                 {product.badge.name}
                               </Badge>

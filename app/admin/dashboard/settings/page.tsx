@@ -81,7 +81,7 @@ export default function SettingsPage() {
     >
   >({});
   const [newBadgeName, setNewBadgeName] = useState("");
-  const [newBadgeColor, setNewBadgeColor] = useState("bg-blue-500");
+  const [newBadgeColor, setNewBadgeColor] = useState("#3B82F6");
   const [isPending, startTransition] = useTransition();
 
   const loadBadges = async () => {
@@ -111,7 +111,7 @@ export default function SettingsPage() {
   const handleBadgeEditChange = (
     id: string,
     field: "name" | "color" | "isActive" | "sortOrder",
-    value: string | boolean | number
+    value: string | boolean | number,
   ) => {
     setBadgeEdits((prev) => ({
       ...prev,
@@ -132,7 +132,7 @@ export default function SettingsPage() {
       if (result.success) {
         await loadBadges();
         setNewBadgeName("");
-        setNewBadgeColor("bg-blue-500");
+        setNewBadgeColor("#3B82F6");
       }
     });
   };
@@ -678,7 +678,7 @@ export default function SettingsPage() {
                   </div>
 
                   <ColorPicker
-                    value={badgeEdits[badge.id]?.color || "bg-blue-500"}
+                    value={badgeEdits[badge.id]?.color || "#3B82F6"}
                     onChange={(color) =>
                       handleBadgeEditChange(badge.id, "color", color)
                     }
@@ -694,7 +694,7 @@ export default function SettingsPage() {
                           handleBadgeEditChange(
                             badge.id,
                             "isActive",
-                            e.target.checked
+                            e.target.checked,
                           )
                         }
                       />

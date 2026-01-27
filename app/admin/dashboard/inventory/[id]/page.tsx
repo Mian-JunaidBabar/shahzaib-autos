@@ -103,7 +103,13 @@ export default async function ProductDetailPage({
                 {stockBadge.label}
               </Badge>
               {product.badge && (
-                <Badge className={product.badge.color || ""}>
+                <Badge
+                  style={{
+                    backgroundColor: product.badge.color,
+                    color: "white",
+                    borderColor: product.badge.color,
+                  }}
+                >
                   {product.badge.name}
                 </Badge>
               )}

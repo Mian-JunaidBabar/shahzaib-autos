@@ -11,6 +11,7 @@
  */
 import { z } from "zod";
 
+
 // ============ Common Schemas ============
 
 export const phoneSchema = z
@@ -74,24 +75,34 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 // ============ Product Schemas ============
 
-// Helper function to generate slug from name
-const generateSlug = (name: string): string => {
-  return name
+// Helper function to generate/normalize slug
+const normalizeSlug = (value: string): string => {
+  return value
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 };
+
+const generateSlug = (name: string): string => normalizeSlug(name);
 
 // Base product schema
 const productBaseSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(200),
-  slug: z
-    .string()
-    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
-    .optional()
-    .nullable(),
+  slug: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const normalized = normalizeSlug(value);
+      return normalized.length > 0 ? normalized : undefined;
+    },
+    z
+      .string()
+      .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
+      .optional()
+      .nullable()
+  ),
   description: z.string().optional().nullable(),
   price: z.coerce
     .number()
@@ -119,11 +130,18 @@ export const productUpdateSchema = z.object({
     .min(2, "Name must be at least 2 characters")
     .max(200)
     .optional(),
-  slug: z
-    .string()
-    .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
-    .optional()
-    .nullable(),
+  slug: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const normalized = normalizeSlug(value);
+      return normalized.length > 0 ? normalized : undefined;
+    },
+    z
+      .string()
+      .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
+      .optional()
+      .nullable()
+  ),
   description: z.string().optional().nullable(),
   price: z.coerce
     .number()

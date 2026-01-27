@@ -5,18 +5,18 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_COLORS = [
-  "bg-red-500",
-  "bg-orange-500",
-  "bg-yellow-500",
-  "bg-green-500",
-  "bg-blue-500",
-  "bg-indigo-500",
-  "bg-purple-500",
-  "bg-pink-500",
-  "bg-gray-500",
-  "bg-slate-500",
-  "bg-cyan-500",
-  "bg-teal-500",
+  "#EF4444", // red
+  "#F97316", // orange
+  "#EAB308", // yellow
+  "#22C55E", // green
+  "#3B82F6", // blue
+  "#6366F1", // indigo
+  "#A855F7", // purple
+  "#EC4899", // pink
+  "#6B7280", // gray
+  "#64748B", // slate
+  "#06B6D4", // cyan
+  "#14B8A6", // teal
 ];
 
 interface ColorPickerProps {
@@ -24,6 +24,7 @@ interface ColorPickerProps {
   onChange: (value: string) => void;
   label?: string;
   allowCustom?: boolean;
+  allowRemove?: boolean;
 }
 
 export function ColorPicker({
@@ -31,13 +32,41 @@ export function ColorPicker({
   onChange,
   label = "Badge Color",
   allowCustom = true,
+  allowRemove = true,
 }: ColorPickerProps) {
   const [isDragging, setIsDragging] = React.useState(false);
   const [customColors, setCustomColors] = React.useState<string[]>([]);
+  const [removedColors, setRemovedColors] = React.useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = React.useState(false);
   const [customInput, setCustomInput] = React.useState("");
 
-  const allColors = [...DEFAULT_COLORS, ...customColors];
+  // Load persisted colors from localStorage on mount
+  React.useEffect(() => {
+    const savedCustomColors = localStorage.getItem("colorPickerCustomColors");
+    const savedRemovedColors = localStorage.getItem("colorPickerRemovedColors");
+
+    if (savedCustomColors) {
+      try {
+        setCustomColors(JSON.parse(savedCustomColors));
+      } catch (e) {
+        console.error("Failed to load custom colors", e);
+      }
+    }
+
+    if (savedRemovedColors) {
+      try {
+        setRemovedColors(JSON.parse(savedRemovedColors));
+      } catch (e) {
+        console.error("Failed to load removed colors", e);
+      }
+    }
+  }, []);
+
+  // Filter out removed default colors and combine with custom colors
+  const availableDefaultColors = DEFAULT_COLORS.filter(
+    (color) => !removedColors.includes(color),
+  );
+  const allColors = [...availableDefaultColors, ...customColors];
 
   const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
     setIsDragging(true);
@@ -62,21 +91,55 @@ export function ColorPicker({
   };
 
   const handleAddCustomColor = () => {
-    if (customInput && customInput.startsWith("bg-")) {
-      if (!customColors.includes(customInput)) {
-        setCustomColors([...customColors, customInput]);
+    // Validate hex color format
+    const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    if (customInput && hexPattern.test(customInput)) {
+      const normalizedColor = customInput.toUpperCase();
+      if (
+        !customColors.includes(normalizedColor) &&
+        !DEFAULT_COLORS.includes(normalizedColor)
+      ) {
+        const updatedCustomColors = [...customColors, normalizedColor];
+        setCustomColors(updatedCustomColors);
+        localStorage.setItem(
+          "colorPickerCustomColors",
+          JSON.stringify(updatedCustomColors),
+        );
       }
-      onChange(customInput);
+      onChange(normalizedColor);
       setCustomInput("");
       setShowCustomInput(false);
     }
   };
 
-  const handleRemoveCustomColor = (color: string) => {
-    setCustomColors(customColors.filter((c) => c !== color));
+  const handleRemoveColor = (color: string) => {
+    // Check if it's a custom color
+    if (customColors.includes(color)) {
+      const updatedCustomColors = customColors.filter((c) => c !== color);
+      setCustomColors(updatedCustomColors);
+      localStorage.setItem(
+        "colorPickerCustomColors",
+        JSON.stringify(updatedCustomColors),
+      );
+    } else if (DEFAULT_COLORS.includes(color)) {
+      // If it's a default color, add to removed list
+      const updatedRemovedColors = [...removedColors, color];
+      setRemovedColors(updatedRemovedColors);
+      localStorage.setItem(
+        "colorPickerRemovedColors",
+        JSON.stringify(updatedRemovedColors),
+      );
+    }
+
+    // Clear selection if the removed color was selected
     if (value === color) {
       onChange("");
     }
+  };
+
+  const handleRestoreDefaultColors = () => {
+    setRemovedColors([]);
+    localStorage.removeItem("colorPickerRemovedColors");
   };
 
   return (
@@ -96,12 +159,12 @@ export function ColorPicker({
               }}
               onClick={() => onChange(color)}
               onDragEnd={handleDragEnd}
+              style={{ backgroundColor: color }}
               className={cn(
                 "relative w-10 h-10 rounded-lg transition-all border-2 cursor-move hover:scale-110 active:scale-95",
-                color,
                 value === color
                   ? "border-foreground ring-2 ring-offset-2 ring-foreground scale-110"
-                  : "border-transparent hover:border-foreground/50"
+                  : "border-transparent hover:border-foreground/50",
               )}
               title={color}
             >
@@ -112,12 +175,13 @@ export function ColorPicker({
               )}
             </button>
 
-            {/* Remove button for custom colors */}
-            {customColors.includes(color) && (
+            {/* Remove button - show for all colors when allowRemove is true */}
+            {allowRemove && (
               <button
                 type="button"
-                onClick={() => handleRemoveCustomColor(color)}
-                className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => handleRemoveColor(color)}
+                className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:scale-110"
+                title={`Remove ${color}`}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -141,7 +205,10 @@ export function ColorPicker({
       {/* Selected color preview */}
       {value && (
         <div className="flex items-center gap-2 p-2 rounded-lg bg-muted">
-          <div className={cn("w-8 h-8 rounded-md shadow-sm", value)}></div>
+          <div
+            className="w-8 h-8 rounded-md shadow-sm"
+            style={{ backgroundColor: value }}
+          ></div>
           <span className="text-xs font-mono text-muted-foreground">
             {value}
           </span>
@@ -150,33 +217,58 @@ export function ColorPicker({
 
       {/* Custom color input */}
       {showCustomInput && allowCustom && (
-        <div className="flex gap-2 p-2 rounded-lg border border-dashed border-foreground/20">
-          <input
-            type="text"
-            value={customInput}
-            onChange={(e) => setCustomInput(e.target.value)}
-            placeholder="e.g., bg-emerald-500"
-            className="text-xs px-2 py-1 rounded border border-input bg-background"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleAddCustomColor();
-              } else if (e.key === "Escape") {
-                setShowCustomInput(false);
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleAddCustomColor}
-            className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Add
-          </button>
+        <div className="flex flex-col gap-2 p-3 rounded-lg border border-dashed border-foreground/20">
+          <div className="flex gap-2">
+            <input
+              type="color"
+              value={customInput || "#000000"}
+              onChange={(e) => setCustomInput(e.target.value.toUpperCase())}
+              className="w-12 h-10 rounded border border-input bg-background cursor-pointer"
+            />
+            <input
+              type="text"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              placeholder="#000000"
+              className="flex-1 text-sm px-3 py-2 rounded border border-input bg-background"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAddCustomColor();
+                } else if (e.key === "Escape") {
+                  setShowCustomInput(false);
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleAddCustomColor}
+              className="text-sm px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Add
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Use the color picker or enter a hex code (e.g., #FF5733)
+          </p>
         </div>
       )}
 
+      {/* Restore default colors button */}
+      {removedColors.length > 0 && (
+        <button
+          type="button"
+          onClick={handleRestoreDefaultColors}
+          className="text-xs text-primary hover:text-primary/80 underline underline-offset-2"
+        >
+          Restore {removedColors.length} removed default color
+          {removedColors.length > 1 ? "s" : ""}
+        </button>
+      )}
+
       <p className="text-xs text-muted-foreground">
-        Drag colors to select, or click to choose
+        {allowRemove
+          ? "Drag colors to select, click to choose, or hover and click X to remove"
+          : "Drag colors to select, or click to choose"}
       </p>
     </div>
   );
