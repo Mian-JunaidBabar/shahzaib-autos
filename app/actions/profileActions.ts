@@ -9,7 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as ProfileService from "@/lib/services/profile.service";
-import cloudinary from "@/lib/cloudinary";
+import { createSupabaseServerClient } from "@/lib/auth";
 
 export type ActionResult<T = void> = {
   success: boolean;
@@ -78,43 +78,61 @@ export async function uploadAvatarAction(
 ): Promise<ActionResult<{ avatarUrl: string }>> {
   try {
     const session = await requireAdmin();
+    const supabase = await createSupabaseServerClient();
 
     const file = formData.get("avatar") as File;
     if (!file) {
       return { success: false, error: "No file provided" };
     }
 
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp", "image/avif"];
+    if (!allowedTypes.includes(file.type)) {
+      return { success: false, error: "File must be JPEG, PNG, WebP, or AVIF" };
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return { success: false, error: "File size must be less than 5MB" };
+    }
+
+    // Generate unique filename
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload to Cloudinary
-    const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: "admin-avatars",
-            resource_type: "image",
-            transformation: [
-              { width: 200, height: 200, crop: "fill", gravity: "face" },
-            ],
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          },
-        )
-        .end(buffer);
-    });
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("admin-profile")
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      return { success: false, error: "Failed to upload file" };
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from("admin-profile")
+      .getPublicUrl(filePath);
+
+    const avatarUrl = urlData.publicUrl;
 
     // Update profile with new avatar URL
     await ProfileService.updateAdminProfile(session.user.id, {
-      avatarUrl: result.secure_url,
+      avatarUrl,
     });
 
     revalidatePath("/admin/dashboard");
 
-    return { success: true, data: { avatarUrl: result.secure_url } };
+    return { success: true, data: { avatarUrl } };
   } catch (error) {
     console.error("uploadAvatarAction error:", error);
     return {

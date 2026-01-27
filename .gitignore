@@ -42,3 +42,5 @@ next-env.d.ts
 
 /extras/
 /lib/generated/prisma
+
+/scripts

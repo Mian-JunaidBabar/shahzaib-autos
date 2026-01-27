@@ -4,18 +4,25 @@ import { Pool } from "pg";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Allow self-signed certs in local/dev to avoid TLS errors when the proxy injects a cert
-if (process.env.NODE_ENV !== "production") {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-}
+// In development, use libpq compatibility mode with weak SSL to work with Supabase self-signed certs
+// In production, use strict SSL verification
+const rawConnectionString = process.env.DATABASE_URL;
+const connectionString =
+  rawConnectionString && process.env.NODE_ENV !== "production"
+    ? rawConnectionString.includes("?")
+      ? rawConnectionString + "&uselibpqcompat=true&sslmode=require"
+      : rawConnectionString + "?uselibpqcompat=true&sslmode=require"
+    : rawConnectionString;
 
-const connectionString = process.env.DATABASE_URL;
 const pool = connectionString
   ? new Pool({
       connectionString,
-      ssl: {
-        rejectUnauthorized: false, // Accept Supabase self-signed certificates
-      },
+      // Bypass self-signed cert check in development only
+      // Production will use strict verification (true)
+      ssl:
+        process.env.NODE_ENV !== "production"
+          ? { rejectUnauthorized: false }
+          : true,
     })
   : undefined;
 
