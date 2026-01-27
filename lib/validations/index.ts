@@ -95,6 +95,13 @@ export const productStatusSchema = z.enum([
   "ARCHIVED",
 ]);
 
+// SKU validation - alphanumeric with dashes, required and unique
+export const skuSchema = z
+  .string()
+  .min(3, "SKU must be at least 3 characters")
+  .max(50, "SKU must not exceed 50 characters")
+  .regex(/^[A-Z0-9\-]+$/i, "SKU must be alphanumeric (dashes allowed)");
+
 // Base product schema
 const productBaseSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(200),
@@ -110,6 +117,7 @@ const productBaseSchema = z.object({
       .optional()
       .nullable(),
   ),
+  sku: skuSchema, // Required for auto parts identification
   description: z.string().optional().nullable(),
   price: z.coerce
     .number()
@@ -117,6 +125,7 @@ const productBaseSchema = z.object({
     .min(0, "Price must be non-negative (in cents)"),
   salePrice: z.coerce.number().int().min(0).optional().nullable(),
   costPrice: z.coerce.number().int().min(0).optional().nullable(),
+  barcode: z.string().max(100).optional().nullable(),
   category: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().default(true),
@@ -151,6 +160,7 @@ export const productUpdateSchema = z.object({
       .optional()
       .nullable(),
   ),
+  sku: skuSchema.optional(), // Optional on update
   description: z.string().optional().nullable(),
   price: z.coerce
     .number()
@@ -159,6 +169,7 @@ export const productUpdateSchema = z.object({
     .optional(),
   salePrice: z.coerce.number().int().min(0).optional().nullable(),
   costPrice: z.coerce.number().int().min(0).optional().nullable(),
+  barcode: z.string().max(100).optional().nullable(),
   category: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().optional(),

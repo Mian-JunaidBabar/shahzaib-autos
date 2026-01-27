@@ -98,10 +98,12 @@ export interface ProductDTO {
   id: string;
   name: string;
   slug: string;
+  sku: string;
   description?: string | null;
   price: number;
   salePrice?: number | null;
   costPrice?: number | null;
+  barcode?: string | null;
   category?: string | null;
   badgeId?: string | null;
   badge?: {
@@ -148,10 +150,12 @@ export interface InventoryDTO {
 export interface CreateProductInput {
   name: string;
   slug?: string;
+  sku: string; // Required - unique identifier for the product
   description?: string | null;
   price: number;
   salePrice?: number | null;
   costPrice?: number | null;
+  barcode?: string | null;
   category?: string | null;
   badgeId?: string | null;
   isActive?: boolean;
@@ -207,13 +211,6 @@ export interface ProductRebalanceDTO {
     quantity: number;
     lowStockAt: number;
   } | null;
-}
-
-/**
- * Product update input
- */
-export interface UpdateProductInput extends Partial<CreateProductInput> {
-  id: string;
 }
 
 /**

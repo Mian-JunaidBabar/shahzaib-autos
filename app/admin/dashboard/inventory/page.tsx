@@ -17,6 +17,7 @@ import {
   Archive,
   TrendingUp,
   Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,15 +42,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   getProductsAction,
   toggleProductActiveAction,
+  deleteProductAction,
 } from "@/app/actions/productActions";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Product = {
   id: string;
   name: string;
   slug: string;
+  sku: string;
   description: string | null;
   price: number;
+  salePrice: number | null;
+  costPrice: number | null;
+  barcode: string | null;
   category: string | null;
   badgeId: string | null;
   isActive: boolean;
@@ -104,6 +117,9 @@ export default function InventoryPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isPending, startTransition] = useTransition();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -126,7 +142,7 @@ export default function InventoryPage() {
     });
 
     if (result.success && result.data) {
-      setProducts(result.data.products as Product[]);
+      setProducts(result.data.products as unknown as Product[]);
       setTotalPages(result.data.pagination.totalPages);
       setTotalCount(result.data.pagination.total);
 
@@ -182,6 +198,72 @@ export default function InventoryPage() {
         toast.error(result.error || "Failed to update status");
       }
     });
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    startTransition(async () => {
+      const result = await deleteProductAction(id);
+
+      if (result.success) {
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setSelectedIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(id);
+          return newSet;
+        });
+        toast.success("Product deleted successfully");
+      } else {
+        toast.error(result.error || "Failed to delete product");
+      }
+    });
+    setDeleteConfirmId(null);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+
+    setIsBulkDeleting(true);
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const id of Array.from(selectedIds)) {
+      const result = await deleteProductAction(id);
+      if (result.success) {
+        successCount++;
+      } else {
+        failureCount++;
+      }
+    }
+
+    setProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+    setSelectedIds(new Set());
+    setIsBulkDeleting(false);
+
+    if (failureCount === 0) {
+      toast.success(`${successCount} product(s) deleted successfully`);
+    } else {
+      toast.error(
+        `Deleted ${successCount} product(s). ${failureCount} failed (may have active orders).`,
+      );
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === products.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(products.map((p) => p.id)));
+    }
+  };
+
+  const toggleSelectProduct = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
   };
 
   const formatPrice = (price: number) => {
@@ -325,11 +407,40 @@ export default function InventoryPage() {
       {/* Products Table */}
       <Card>
         <CardContent className="p-0">
+          {selectedIds.size > 0 && (
+            <div className="border-b bg-blue-50 p-4 flex justify-between items-center dark:bg-blue-950">
+              <span className="text-sm font-medium">
+                {selectedIds.size} product(s) selected
+              </span>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleBulkDelete()}
+                disabled={isBulkDeleting || isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected
+              </Button>
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <input
+                    type="checkbox"
+                    checked={
+                      products.length > 0 &&
+                      selectedIds.size === products.length
+                    }
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300 cursor-pointer"
+                  />
+                </TableHead>
+                <TableHead className="w-16">Image</TableHead>
                 <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead className="hidden md:table-cell">SKU</TableHead>
+                <TableHead className="hidden lg:table-cell">Category</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Status</TableHead>
@@ -339,7 +450,7 @@ export default function InventoryPage() {
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <Package className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                     <p className="text-muted-foreground">No products found</p>
                   </TableCell>
@@ -353,39 +464,64 @@ export default function InventoryPage() {
                     product.images[0];
 
                   return (
-                    <TableRow key={product.id}>
+                    <TableRow
+                      key={product.id}
+                      className={
+                        selectedIds.has(product.id)
+                          ? "bg-blue-50 dark:bg-blue-950"
+                          : ""
+                      }
+                    >
+                      {/* Checkbox Column */}
                       <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                            {primaryImage ? (
-                              <img
-                                src={primaryImage.secureUrl}
-                                alt={product.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            {product.badge && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs"
-                                style={{
-                                  backgroundColor: product.badge.color,
-                                  color: "white",
-                                  borderColor: product.badge.color,
-                                }}
-                              >
-                                {product.badge.name}
-                              </Badge>
-                            )}
-                          </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(product.id)}
+                          onChange={() => toggleSelectProduct(product.id)}
+                          className="rounded border-gray-300 cursor-pointer"
+                        />
+                      </TableCell>
+                      {/* Image Column */}
+                      <TableCell>
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                          {primaryImage ? (
+                            <img
+                              src={primaryImage.secureUrl}
+                              alt={product.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                          )}
                         </div>
                       </TableCell>
+                      {/* Product Name Column */}
                       <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium">{product.name}</p>
+                          {product.badge && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs w-fit"
+                              style={{
+                                backgroundColor: product.badge.color,
+                                color: "white",
+                                borderColor: product.badge.color,
+                              }}
+                            >
+                              {product.badge.name}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      {/* SKU Column - hidden on mobile */}
+                      <TableCell className="hidden md:table-cell">
+                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                          {product.sku}
+                        </code>
+                      </TableCell>
+                      {/* Category Column - hidden on small screens */}
+                      <TableCell className="hidden lg:table-cell">
                         {product.category ? (
                           <Badge variant="outline">
                             <Tag className="h-3 w-3 mr-1" />
@@ -395,12 +531,23 @@ export default function InventoryPage() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
+                      {/* Price Column with sale price support */}
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {formatPrice(product.price)}
-                          </span>
+                        <div className="flex flex-col">
+                          {product.salePrice ? (
+                            <>
+                              <span className="font-medium text-green-600">
+                                {formatPrice(product.salePrice)}
+                              </span>
+                              <span className="text-xs text-muted-foreground line-through">
+                                {formatPrice(product.price)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="font-medium">
+                              {formatPrice(product.price)}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -449,6 +596,14 @@ export default function InventoryPage() {
                               <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteConfirmId(product.id)}
+                            disabled={isPending}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -486,6 +641,41 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmId(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Product?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this product? This action cannot
+              be undone. If this product has active orders, deletion will be
+              blocked.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteConfirmId) {
+                  handleDeleteProduct(deleteConfirmId);
+                }
+              }}
+              disabled={isPending}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

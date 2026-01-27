@@ -19,10 +19,12 @@ export type ProductWithImages = Prisma.ProductGetPayload<{
 export type CreateProductInput = {
   name: string;
   slug?: string; // Optional - auto-generated from name if not provided
+  sku: string; // Required - unique product identifier
   description?: string | null;
   price: number; // In cents
   salePrice?: number | null; // Discounted price in cents
   costPrice?: number | null; // Cost price for margin tracking
+  barcode?: string | null; // Optional barcode for scanning
   category?: string | null;
   badgeId?: string | null;
   isActive?: boolean;
@@ -86,6 +88,8 @@ export async function getProducts(
       { name: { contains: search, mode: "insensitive" } },
       { description: { contains: search, mode: "insensitive" } },
       { slug: { contains: search, mode: "insensitive" } },
+      { sku: { contains: search, mode: "insensitive" } },
+      { barcode: { contains: search, mode: "insensitive" } },
     ];
   }
 

@@ -7,6 +7,9 @@ import {
   CircleCheck,
   AlertTriangle,
   XCircle,
+  Barcode,
+  Hash,
+  TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProductAction } from "@/app/actions/productActions";
@@ -118,11 +121,41 @@ export default async function ProductDetailPage({
               <Package className="h-5 w-5 text-primary" />
               {product.name}
             </CardTitle>
-            <p className="text-muted-foreground">Slug: {product.slug}</p>
+            {/* SKU and Barcode prominently displayed */}
+            <div className="flex flex-wrap items-center gap-3 mt-1">
+              <div className="flex items-center gap-1.5 text-sm">
+                <Hash className="h-4 w-4 text-muted-foreground" />
+                <code className="bg-muted px-2 py-0.5 rounded font-mono text-xs">
+                  {product.sku}
+                </code>
+              </div>
+              {product.barcode && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Barcode className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    {product.barcode}
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Slug: {product.slug}
+            </p>
           </div>
           <div className="text-right space-y-2 min-w-45">
-            <p className="text-sm text-muted-foreground">Price</p>
-            <p className="text-3xl font-bold">{formatPrice(product.price)}</p>
+            <p className="text-sm text-muted-foreground">Selling Price</p>
+            {product.salePrice ? (
+              <>
+                <p className="text-3xl font-bold text-green-600">
+                  {formatPrice(product.salePrice)}
+                </p>
+                <p className="text-sm text-muted-foreground line-through">
+                  {formatPrice(product.price)}
+                </p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold">{formatPrice(product.price)}</p>
+            )}
             <p className="text-sm text-muted-foreground">
               Category: {product.category || "-"}
             </p>
@@ -138,20 +171,55 @@ export default async function ProductDetailPage({
 
           <Separator />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Financial Information */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="border rounded-lg p-4 space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <DollarSign className="h-4 w-4" /> Price
+                <DollarSign className="h-4 w-4" /> Selling Price
               </div>
               <p className="text-xl font-semibold">
-                {formatPrice(product.price)}
+                {formatPrice(product.salePrice || product.price)}
               </p>
+              {product.salePrice && (
+                <p className="text-sm text-muted-foreground line-through">
+                  Original: {formatPrice(product.price)}
+                </p>
+              )}
             </div>
             <div className="border rounded-lg p-4 space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Tag className="h-4 w-4" /> Category
+                <DollarSign className="h-4 w-4" /> Cost Price
               </div>
-              <p className="text-xl font-semibold">{product.category || "—"}</p>
+              <p className="text-xl font-semibold text-muted-foreground">
+                {product.costPrice ? formatPrice(product.costPrice) : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground">Internal only</p>
+            </div>
+            <div className="border rounded-lg p-4 space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <TrendingUp className="h-4 w-4" /> Profit
+              </div>
+              {product.costPrice ? (
+                <>
+                  <p className="text-xl font-semibold text-green-600">
+                    {formatPrice(
+                      (product.salePrice || product.price) - product.costPrice,
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Margin:{" "}
+                    {Math.round(
+                      (((product.salePrice || product.price) -
+                        product.costPrice) /
+                        (product.salePrice || product.price)) *
+                        100,
+                    )}
+                    %
+                  </p>
+                </>
+              ) : (
+                <p className="text-xl font-semibold text-muted-foreground">—</p>
+              )}
             </div>
             <div className="border rounded-lg p-4 space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -165,6 +233,17 @@ export default async function ProductDetailPage({
                   Low stock at {product.inventory.lowStockAt}
                 </p>
               )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Category */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Category:</span>
+              <span className="font-medium">{product.category || "—"}</span>
             </div>
           </div>
 

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BadgeSelector } from "@/components/ui/badge-selector";
 import { ProductImageManager } from "@/components/admin/product-image-manager";
 import {
@@ -34,14 +35,29 @@ export default function EditProductPage() {
   const [form, setForm] = useState({
     name: "",
     slug: "",
+    sku: "",
     description: "",
     price: "",
+    salePrice: "",
+    costPrice: "",
+    barcode: "",
     category: "",
     badgeId: "",
     stock: "",
     lowStockThreshold: "",
     isActive: true,
   });
+
+  // Calculate margin percentage
+  const calculateMargin = () => {
+    const price = parseFloat(form.salePrice || form.price) || 0;
+    const cost = parseFloat(form.costPrice) || 0;
+    if (price <= 0 || cost <= 0) return null;
+    const marginValue = ((price - cost) / price) * 100;
+    return marginValue.toFixed(1);
+  };
+
+  const margin = calculateMargin();
 
   useEffect(() => {
     const load = async () => {
@@ -64,8 +80,12 @@ export default function EditProductPage() {
       setForm({
         name: p.name || "",
         slug: p.slug || "",
+        sku: p.sku || "",
         description: p.description || "",
         price: ((p.price || 0) / 100).toString(),
+        salePrice: p.salePrice ? (p.salePrice / 100).toString() : "",
+        costPrice: p.costPrice ? (p.costPrice / 100).toString() : "",
+        barcode: p.barcode || "",
         category: p.category || "",
         badgeId: p.badgeId || "",
         stock: (p.inventory?.quantity ?? 0).toString(),
@@ -107,6 +127,12 @@ export default function EditProductPage() {
     if (!params?.id) return;
     startTransition(async () => {
       const price = Math.round(Number(form.price || 0) * 100);
+      const salePrice = form.salePrice
+        ? Math.round(Number(form.salePrice || 0) * 100)
+        : undefined;
+      const costPrice = form.costPrice
+        ? Math.round(Number(form.costPrice || 0) * 100)
+        : undefined;
       const stock = Number(form.stock || 0);
       const lowStockThreshold = Number(form.lowStockThreshold || 0);
 
@@ -114,8 +140,12 @@ export default function EditProductPage() {
         id: params.id,
         name: form.name,
         slug: form.slug || undefined,
+        sku: form.sku,
         description: form.description || undefined,
         price,
+        salePrice,
+        costPrice,
+        barcode: form.barcode || undefined,
         category: form.category || undefined,
         badgeId: form.badgeId || undefined,
         stock,
@@ -183,12 +213,13 @@ export default function EditProductPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Price (PKR)</Label>
+              <Label>SKU</Label>
               <Input
-                type="number"
-                min="0"
-                value={form.price}
-                onChange={(e) => handleChange("price", e.target.value)}
+                value={form.sku}
+                onChange={(e) =>
+                  handleChange("sku", e.target.value.toUpperCase())
+                }
+                placeholder="ABC-1234"
               />
             </div>
             <div className="space-y-2">
@@ -201,14 +232,64 @@ export default function EditProductPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Selling Price (PKR)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.price}
+                onChange={(e) => handleChange("price", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Sale Price (optional)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.salePrice}
+                onChange={(e) => handleChange("salePrice", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Cost Price (internal)
+                {margin && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Margin: {margin}%
+                  </span>
+                )}
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.costPrice}
+                onChange={(e) => handleChange("costPrice", e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea
-              value={form.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Short description of the product"
-              rows={4}
-            />
+            <Tabs defaultValue="edit">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="edit">Edit</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+              <TabsContent value="edit">
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  placeholder="Short description of the product"
+                  rows={4}
+                />
+              </TabsContent>
+              <TabsContent value="preview">
+                <div className="min-h-[120px] rounded-md border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
+                  {form.description || "No description"}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {badges.length > 0 && (
@@ -245,6 +326,14 @@ export default function EditProductPage() {
               onChange={(e) =>
                 handleChange("lowStockThreshold", e.target.value)
               }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Barcode (optional)</Label>
+            <Input
+              value={form.barcode}
+              onChange={(e) => handleChange("barcode", e.target.value)}
+              placeholder="Scan or type barcode"
             />
           </div>
           <div className="space-y-2 flex items-center justify-between border rounded-md px-3 py-2">

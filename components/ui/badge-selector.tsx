@@ -1,8 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Badge {
   id: string;
@@ -27,66 +32,42 @@ export function BadgeSelector({
   const selectedBadge = badges.find((b) => b.id === value);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <label className="text-sm font-medium">{label}</label>
-
-      {/* Selected badge display */}
+      <Select
+        value={value || "none"}
+        onValueChange={(val) => onChange(val === "none" ? undefined : val)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select a badge (optional)" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">None (Clear selection)</SelectItem>
+          {badges.map((badge) => (
+            <SelectItem
+              key={badge.id}
+              value={badge.id}
+              disabled={!badge.isActive}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: badge.color }}
+                ></div>
+                <span>{badge.name}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {selectedBadge && (
-        <div className="flex items-center gap-2 p-3 rounded-lg border border-input bg-accent">
+        <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-muted/40">
           <div
-            className="w-4 h-4 rounded"
+            className="w-3 h-3 rounded"
             style={{ backgroundColor: selectedBadge.color }}
           ></div>
-          <span className="text-sm font-medium flex-1">
-            {selectedBadge.name}
-          </span>
-          <button
-            type="button"
-            onClick={() => onChange(undefined)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <span className="text-xs font-medium">{selectedBadge.name}</span>
         </div>
-      )}
-
-      {/* Badge grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-        {badges.length === 0 ? (
-          <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
-            No badges available
-          </div>
-        ) : (
-          badges.map((badge) => (
-            <button
-              key={badge.id}
-              type="button"
-              onClick={() =>
-                onChange(value === badge.id ? undefined : badge.id)
-              }
-              disabled={!badge.isActive}
-              className={cn(
-                "flex items-center gap-2 p-2 rounded-lg border-2 transition-all hover:border-foreground/50",
-                value === badge.id
-                  ? "border-foreground bg-accent"
-                  : "border-transparent hover:bg-accent/50",
-                !badge.isActive && "opacity-50 cursor-not-allowed",
-              )}
-            >
-              <div
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: badge.color }}
-              ></div>
-              <span className="text-xs font-medium truncate">{badge.name}</span>
-            </button>
-          ))
-        )}
-      </div>
-
-      {!selectedBadge && (
-        <p className="text-xs text-muted-foreground">
-          Select a badge or leave empty
-        </p>
       )}
     </div>
   );

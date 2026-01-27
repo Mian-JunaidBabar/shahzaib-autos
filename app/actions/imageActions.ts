@@ -48,7 +48,7 @@ export async function saveProductImage(
 }
 
 export async function deleteProductImage(
-  imageId: string,
+  imageId: string | null | undefined,
   publicId: string,
 ): Promise<ActionResult<void>> {
   try {
@@ -57,12 +57,14 @@ export async function deleteProductImage(
       invalidate: true,
     });
 
-    // Delete from database
-    await prisma.productImage.delete({
-      where: {
-        id: imageId,
-      },
-    });
+    // Delete from database when we have a persisted image
+    if (imageId) {
+      await prisma.productImage.delete({
+        where: {
+          id: imageId,
+        },
+      });
+    }
 
     return { success: true };
   } catch (error) {

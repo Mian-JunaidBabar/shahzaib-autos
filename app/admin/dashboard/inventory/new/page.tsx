@@ -18,12 +18,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { BadgeSelector } from "@/components/ui/badge-selector";
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import { createProductAction } from "@/app/actions/productActions";
 import { getActiveBadgesAction } from "@/app/actions/badgeActions";
-import { saveProductImage } from "@/app/actions/imageActions";
+import {
+  saveProductImage,
+  deleteProductImage,
+} from "@/app/actions/imageActions";
 import { toast } from "sonner";
 
 interface Badge {
@@ -54,14 +58,25 @@ export default function NewProductPage() {
   const [form, setForm] = useState({
     name: "",
     slug: "",
+    sku: "",
     description: "",
     price: "",
+    salePrice: "",
+    costPrice: "",
+    barcode: "",
     category: "",
     badgeId: "",
     stock: "0",
     lowStockThreshold: "10",
     isActive: true,
   });
+
+  const margin = (() => {
+    const selling = parseFloat(form.salePrice || form.price) || 0;
+    const cost = parseFloat(form.costPrice) || 0;
+    if (selling <= 0 || cost <= 0) return null;
+    return (((selling - cost) / selling) * 100).toFixed(1);
+  })();
 
   useEffect(() => {
     const loadBadges = async () => {
@@ -102,14 +117,24 @@ export default function NewProductPage() {
   const handleSubmit = () => {
     startTransition(async () => {
       const price = Math.round(Number(form.price || 0) * 100);
+      const salePrice = form.salePrice
+        ? Math.round(Number(form.salePrice || 0) * 100)
+        : undefined;
+      const costPrice = form.costPrice
+        ? Math.round(Number(form.costPrice || 0) * 100)
+        : undefined;
       const stock = Number(form.stock || 0);
       const lowStockThreshold = Number(form.lowStockThreshold || 0);
 
       const result = await createProductAction({
         name: form.name,
         slug: form.slug || undefined,
+        sku: form.sku,
         description: form.description || undefined,
         price,
+        salePrice,
+        costPrice,
+        barcode: form.barcode || undefined,
         category: form.category || undefined,
         badgeId: form.badgeId || undefined,
         stock,
@@ -218,9 +243,24 @@ export default function NewProductPage() {
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  const handleRemoveImage = (index: number) => {
-    const imageId = preUploadedImages[index].id;
-    setPreUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveImage = async (index: number) => {
+    const image = preUploadedImages[index];
+    if (image.isLoading) return;
+
+    try {
+      // Delete from Cloudinary via server action
+      if (image.publicId) {
+        await deleteProductImage(undefined, image.publicId);
+      }
+
+      // Remove from UI state
+      setPreUploadedImages((prev) => prev.filter((_, i) => i !== index));
+      setSuccessMessage("Image removed");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      console.error("Delete error:", error);
+      setUploadError("Failed to delete image");
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -283,13 +323,13 @@ export default function NewProductPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Price (PKR)</Label>
+              <Label>SKU</Label>
               <Input
-                type="number"
-                min="0"
-                value={form.price}
-                onChange={(e) => handleChange("price", e.target.value)}
-                placeholder="1200000"
+                value={form.sku}
+                onChange={(e) =>
+                  handleChange("sku", e.target.value.toUpperCase())
+                }
+                placeholder="ABC-1234"
               />
             </div>
             <div className="space-y-2">
@@ -302,14 +342,67 @@ export default function NewProductPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Selling Price (PKR)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.price}
+                onChange={(e) => handleChange("price", e.target.value)}
+                placeholder="1200000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Sale Price (optional)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.salePrice}
+                onChange={(e) => handleChange("salePrice", e.target.value)}
+                placeholder="1000000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Cost Price (internal)
+                {margin && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    Margin: {margin}%
+                  </span>
+                )}
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.costPrice}
+                onChange={(e) => handleChange("costPrice", e.target.value)}
+                placeholder="800000"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea
-              value={form.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Short description of the product"
-              rows={4}
-            />
+            <Tabs defaultValue="edit">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="edit">Edit</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+              <TabsContent value="edit">
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  placeholder="Short description of the product"
+                  rows={4}
+                />
+              </TabsContent>
+              <TabsContent value="preview">
+                <div className="min-h-30 rounded-md border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
+                  {form.description || "No description"}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {!isLoadingBadges && (
@@ -346,6 +439,14 @@ export default function NewProductPage() {
               onChange={(e) =>
                 handleChange("lowStockThreshold", e.target.value)
               }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Barcode (optional)</Label>
+            <Input
+              value={form.barcode}
+              onChange={(e) => handleChange("barcode", e.target.value)}
+              placeholder="Scan or type barcode"
             />
           </div>
           <div className="space-y-2 flex items-center justify-between border rounded-md px-3 py-2">
