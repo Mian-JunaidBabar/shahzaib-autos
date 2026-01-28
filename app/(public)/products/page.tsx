@@ -1,6 +1,9 @@
-import Link from "next/link";
-import { Suspense } from "react";
-import { Search } from "lucide-react";
+import {
+  getStorefrontProducts,
+  getAllCategories,
+  getPriceRange,
+  type SortOption,
+} from "@/lib/services/storefront.service";
 import {
   ProductCard,
   ProductFilters,
@@ -9,13 +12,10 @@ import {
   SortSelect,
   Pagination,
 } from "@/components/store";
-import {
-  getStorefrontProducts,
-  getAllCategories,
-  getPriceRange,
-  type SortOption,
-} from "@/lib/services/storefront.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Search } from "lucide-react";
+import { Suspense } from "react";
+import Link from "next/link";
 
 // Mark this page as dynamic to prevent static generation during build
 export const dynamic = "force-dynamic";
@@ -121,7 +121,6 @@ export default function ProductsPage({
 }: {
   searchParams: SearchParams;
 }) {
-
   return (
     <>
       {/* Header Section */}
@@ -159,7 +158,7 @@ export default function ProductsPage({
             <SearchBar />
           </Suspense>
 
-          <Suspense fallback={<Skeleton className="h-10 w-[180px]" />}>
+          <Suspense fallback={<Skeleton className="h-10 w-45" />}>
             <SortSelect />
           </Suspense>
         </div>
