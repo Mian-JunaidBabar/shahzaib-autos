@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -55,11 +55,8 @@ const serviceSchema = z.object({
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
 
-interface UploadedImage {
-  url: string;
-  publicId: string;
-  isLoading?: boolean;
-}
+// Image can be either a File (new upload) or string (existing URL)
+type ImageValue = File | { url: string; publicId: string };
 
 interface Service {
   id: string;
@@ -82,16 +79,14 @@ interface ServiceFormProps {
 export function ServiceForm({ initialData }: ServiceFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(
+  const [image, setImage] = useState<ImageValue | null>(
     initialData?.imageUrl
-      ? {
-          url: initialData.imageUrl,
-          publicId: initialData.imagePublicId || "",
-          isLoading: false,
-        }
+      ? { url: initialData.imageUrl, publicId: initialData.imagePublicId || "" }
       : null,
   );
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    initialData?.imageUrl || null,
+  );
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Features management
@@ -122,8 +117,17 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
   const duration = watch("duration");
   const location = watch("location");
 
-  const handleImageUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  const handleImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
@@ -139,36 +143,24 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
         return;
       }
 
-      setIsUploadingImage(true);
       setUploadError(null);
 
-      try {
-        const preview = URL.createObjectURL(file);
-        setUploadedImage({ url: preview, publicId: "", isLoading: true });
-
-        const uploadResponse = await uploadImageToCloudinary(file);
-
-        setUploadedImage({
-          url: uploadResponse.secure_url,
-          publicId: uploadResponse.public_id,
-          isLoading: false,
-        });
-
-        URL.revokeObjectURL(preview);
-      } catch (error) {
-        console.error("Upload error:", error);
-        setUploadError("Failed to upload image");
-        setUploadedImage(null);
-      } finally {
-        setIsUploadingImage(false);
-      }
+      // Create local preview
+      const preview = URL.createObjectURL(file);
+      setImage(file);
+      setImagePreview(preview);
     },
     [],
   );
 
   const removeImage = useCallback(() => {
-    setUploadedImage(null);
-  }, []);
+    // Cleanup preview URL if it's a blob
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImage(null);
+    setImagePreview(null);
+  }, [imagePreview]);
 
   const addFeature = () => {
     if (newFeature.trim() && !features.includes(newFeature.trim())) {
@@ -183,32 +175,57 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
 
   const onSubmit = (data: ServiceFormData) => {
     startTransition(async () => {
-      const payload = {
-        title: data.title,
-        slug: undefined, // Auto-generated from title
-        description: data.description || undefined,
-        price: data.price,
-        duration: data.duration,
-        location: data.location,
-        features,
-        imageUrl: uploadedImage?.url || undefined,
-        imagePublicId: uploadedImage?.publicId || undefined,
-        isActive: data.isActive,
-      };
+      try {
+        let imageUrl: string | undefined;
+        let imagePublicId: string | undefined;
 
-      const result = initialData
-        ? await updateServiceAction({ id: initialData.id, ...payload })
-        : await createServiceAction(payload);
+        // Upload image if it's a new file
+        if (image instanceof File) {
+          toast.info("Uploading image...");
+          const uploadResponse = await uploadImageToCloudinary(image);
+          imageUrl = uploadResponse.secure_url;
+          imagePublicId = uploadResponse.public_id;
 
-      if (result.success) {
-        toast.success(
-          initialData
-            ? "Service updated successfully"
-            : "Service created successfully",
-        );
-        router.push("/admin/dashboard/services");
-      } else {
-        toast.error(result.error || "An error occurred");
+          // Cleanup preview URL
+          if (imagePreview && imagePreview.startsWith("blob:")) {
+            URL.revokeObjectURL(imagePreview);
+          }
+        } else if (image && typeof image === "object") {
+          // Use existing image
+          imageUrl = image.url;
+          imagePublicId = image.publicId;
+        }
+
+        const payload = {
+          title: data.title,
+          slug: undefined, // Auto-generated from title
+          description: data.description || undefined,
+          price: data.price,
+          duration: data.duration,
+          location: data.location,
+          features,
+          imageUrl,
+          imagePublicId,
+          isActive: data.isActive,
+        };
+
+        const result = initialData
+          ? await updateServiceAction({ id: initialData.id, ...payload })
+          : await createServiceAction(payload);
+
+        if (result.success) {
+          toast.success(
+            initialData
+              ? "Service updated successfully"
+              : "Service created successfully",
+          );
+          router.push("/admin/dashboard/services");
+        } else {
+          toast.error(result.error || "An error occurred");
+        }
+      } catch (error) {
+        console.error("Submit error:", error);
+        toast.error("Failed to save service");
       }
     });
   };
@@ -235,11 +252,11 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
               : "Add a new service offering"}
           </p>
         </div>
-        <Button type="submit" disabled={isPending || isUploadingImage}>
+        <Button type="submit" disabled={isPending}>
           {isPending ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
+              {image instanceof File ? "Uploading..." : "Saving..."}
             </>
           ) : (
             <>
@@ -355,7 +372,6 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
                       id="price"
                       type="number"
                       min="0"
-                      step="100"
                       {...register("price", { valueAsNumber: true })}
                       placeholder="5000"
                       className="pl-10"
@@ -377,7 +393,6 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
                       id="duration"
                       type="number"
                       min="1"
-                      step="15"
                       {...register("duration", { valueAsNumber: true })}
                       placeholder="60"
                       className="pl-10"
@@ -462,26 +477,20 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
               <CardTitle>Service Image</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {uploadedImage ? (
+              {imagePreview ? (
                 <div className="relative aspect-square rounded-lg overflow-hidden border">
                   <Image
-                    src={uploadedImage.url}
+                    src={imagePreview}
                     alt="Service preview"
                     fill
                     className="object-cover"
                   />
-                  {uploadedImage.isLoading && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 text-white animate-spin" />
-                    </div>
-                  )}
                   <Button
                     variant="destructive"
                     size="icon"
                     type="button"
                     className="absolute top-2 right-2"
                     onClick={removeImage}
-                    disabled={uploadedImage.isLoading}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -490,17 +499,16 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
                 <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                   <Upload className="h-10 w-10 text-muted-foreground mb-2" />
                   <span className="text-sm text-muted-foreground">
-                    Click to upload image
+                    Click to select image
                   </span>
                   <span className="text-xs text-muted-foreground mt-1">
-                    Max 5MB, JPG/PNG
+                    Max 5MB, JPG/PNG • Uploads on submit
                   </span>
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={handleImageUpload}
-                    disabled={isUploadingImage}
+                    onChange={handleImageSelect}
                   />
                 </label>
               )}
@@ -512,10 +520,17 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
                 </div>
               )}
 
-              {uploadedImage && !uploadedImage.isLoading && (
+              {image instanceof File && (
+                <div className="flex items-center gap-2 text-blue-500 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  Ready to upload on submit
+                </div>
+              )}
+
+              {image && typeof image === "object" && "url" in image && (
                 <div className="flex items-center gap-2 text-green-500 text-sm">
                   <CheckCircle className="h-4 w-4" />
-                  Image ready
+                  Image uploaded
                 </div>
               )}
             </CardContent>

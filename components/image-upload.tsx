@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Upload, X, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
-import {
-  saveProductImage,
-  deleteProductImage,
-} from "@/app/actions/imageActions";
+import { useState, useEffect } from "react";
+import { Upload, X, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import Image from "next/image";
 
 export interface UploadedImage {
   id: string;
@@ -16,266 +12,158 @@ export interface UploadedImage {
 }
 
 interface ImageUploadProps {
-  productId?: string; // Required for saving to database
+  productId?: string;
   onImagesUpload?: (images: UploadedImage[]) => void;
   maxFiles?: number;
 }
 
 interface ImageState {
-  url: string;
-  publicId: string;
-  id?: string;
-  isLoading?: boolean;
+  file: File;
+  preview: string;
 }
 
+/**
+ * ImageUpload Component - Local Preview Only
+ *
+ * This component handles file selection and creates local previews using URL.createObjectURL.
+ * Actual upload to Cloudinary happens in the parent form's onSubmit handler.
+ * This prevents orphaned images in cloud storage if users cancel the form.
+ */
 export function ImageUpload({
   productId,
   onImagesUpload,
   maxFiles = 5,
 }: ImageUploadProps) {
   const [images, setImages] = useState<ImageState[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleFileSelect = useCallback(
-    async (files: FileList | null) => {
-      if (!files) return;
-
-      const validFiles = Array.from(files).filter((file) => {
-        // Validate file type
-        if (!file.type.startsWith("image/")) {
-          setUploadError("Only image files are allowed");
-          return false;
-        }
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          setUploadError("File size must be less than 5MB");
-          return false;
-        }
-        return true;
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      images.forEach((img) => {
+        URL.revokeObjectURL(img.preview);
       });
+    };
+  }, [images]);
 
-      if (validFiles.length === 0) return;
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
 
-      // Check max files limit
-      if (images.length + validFiles.length > maxFiles) {
-        setUploadError(`Maximum ${maxFiles} images allowed`);
-        return;
+    const validFiles = Array.from(files).filter((file) => {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setUploadError("Only image files are allowed");
+        return false;
       }
-
-      setIsUploading(true);
-      setUploadError(null);
-      const uploadedImages: ImageState[] = [];
-
-      for (const file of validFiles) {
-        try {
-          // Create preview immediately
-          const preview = URL.createObjectURL(file);
-          const tempImage: ImageState = {
-            url: preview,
-            publicId: "",
-            isLoading: true,
-          };
-          setImages((prev) => [...prev, tempImage]);
-
-          // Upload to Cloudinary
-          const uploadResponse = await uploadImageToCloudinary(file);
-
-          // Save to database if productId is provided
-          let savedImageId: string | undefined;
-          if (productId) {
-            const result = await saveProductImage({
-              productId,
-              secureUrl: uploadResponse.secure_url,
-              publicId: uploadResponse.public_id,
-            });
-            if (result.success && result.data) {
-              savedImageId = result.data.id;
-            }
-          }
-
-          uploadedImages.push({
-            url: uploadResponse.secure_url,
-            publicId: uploadResponse.public_id,
-            id: savedImageId || "",
-          });
-
-          // Update the image state with actual data
-          setImages((prev) =>
-            prev.map((img) =>
-              img.url === preview
-                ? {
-                    url: uploadResponse.secure_url,
-                    publicId: uploadResponse.public_id,
-                    id: savedImageId,
-                    isLoading: false,
-                  }
-                : img,
-            ),
-          );
-        } catch (error) {
-          console.error("Upload error:", error);
-          setUploadError(
-            error instanceof Error ? error.message : "Upload failed",
-          );
-          // Remove failed image from state
-          setImages((prev) => prev.slice(0, -1));
-        }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setUploadError("File size must be less than 5MB");
+        return false;
       }
+      return true;
+    });
 
-      setIsUploading(false);
+    if (validFiles.length === 0) return;
 
-      if (uploadedImages.length > 0) {
-        setSuccessMessage(
-          `Successfully uploaded ${uploadedImages.length} image(s)`,
-        );
-        setTimeout(() => setSuccessMessage(null), 3000);
-
-        if (onImagesUpload) {
-          onImagesUpload(
-            uploadedImages.map((img) => ({
-              id: img.id || "",
-              secureUrl: img.url,
-              publicId: img.publicId,
-              uploadedAt: new Date().toISOString(),
-            })),
-          );
-        }
-      }
-    },
-    [images.length, maxFiles, onImagesUpload],
-  );
-
-  const handleRemoveImage = async (index: number) => {
-    const image = images[index];
-
-    try {
-      // Delete from database
-      if (image.id) {
-        await deleteProductImage(image.id, image.publicId);
-      }
-
-      // Remove from UI
-      setImages((prev) => prev.filter((_, i) => i !== index));
-      setSuccessMessage("Image deleted successfully");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error("Delete error:", error);
-      setUploadError("Failed to delete image");
+    // Check max files limit
+    if (images.length + validFiles.length > maxFiles) {
+      setUploadError(`Maximum ${maxFiles} images allowed`);
+      return;
     }
+
+    setUploadError(null);
+
+    // Create local previews only
+    const newImages = validFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setImages((prev) => [...prev, ...newImages]);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].preview);
+      updated.splice(index, 1);
+      return updated;
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.currentTarget.classList.add("ring-2", "ring-blue-400");
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.currentTarget.classList.remove("ring-2", "ring-blue-400");
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove("ring-2", "ring-blue-400");
+    e.stopPropagation();
     handleFileSelect(e.dataTransfer.files);
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
-    <div className="w-full space-y-6">
-      {/* Upload Area */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+    <div className="space-y-4">
+      {/* File Input Area */}
+      <label
         onDrop={handleDrop}
-        className="relative rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center transition-colors dark:border-gray-600 dark:bg-gray-900"
+        onDragOver={handleDragOver}
+        className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
       >
+        <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+        <span className="text-sm text-muted-foreground">
+          Click to upload or drag and drop
+        </span>
+        <span className="text-xs text-muted-foreground mt-1">
+          Max 5MB, JPG/PNG
+        </span>
         <input
           type="file"
-          multiple
           accept="image/*"
+          multiple
+          className="hidden"
           onChange={(e) => handleFileSelect(e.target.files)}
-          disabled={isUploading || images.length >= maxFiles}
-          className="absolute inset-0 cursor-pointer opacity-0"
         />
+      </label>
 
-        <div className="flex flex-col items-center space-y-2">
-          {isUploading ? (
-            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
-          ) : (
-            <Upload className="h-12 w-12 text-gray-400" />
-          )}
-          <p className="text-lg font-medium text-gray-900 dark:text-white">
-            {isUploading
-              ? "Uploading..."
-              : "Drag and drop images here, or click to select"}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {images.length}/{maxFiles} images uploaded • Max 5MB per image
-          </p>
-        </div>
-      </div>
-
-      {/* Messages */}
+      {/* Error Message */}
       {uploadError && (
-        <div className="flex items-center space-x-2 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
-          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-          <span className="text-sm text-red-700 dark:text-red-300">
-            {uploadError}
-          </span>
+        <div className="flex items-center gap-2 text-red-500 text-sm p-3 bg-red-50 rounded">
+          <AlertCircle className="h-4 w-4" />
+          {uploadError}
         </div>
       )}
 
-      {successMessage && (
-        <div className="flex items-center space-x-2 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950">
-          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-          <span className="text-sm text-green-700 dark:text-green-300">
-            {successMessage}
-          </span>
-        </div>
-      )}
-
-      {/* Image Gallery */}
+      {/* Image Previews Grid */}
       {images.length > 0 && (
-        <div>
-          <h3 className="mb-4 text-sm font-medium text-gray-900 dark:text-white">
-            Uploaded Images ({images.length})
-          </h3>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {images.map((image, index) => (
-              <div
-                key={index}
-                className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
-              >
-                {/* Image */}
-                <img
-                  src={image.url}
-                  alt={`Uploaded ${index + 1}`}
-                  className="h-full w-full object-cover"
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {images.map((img, index) => (
+            <div key={index} className="relative group">
+              <div className="relative aspect-square rounded-lg overflow-hidden border">
+                <Image
+                  src={img.preview}
+                  alt={`Preview ${index + 1}`}
+                  fill
+                  className="object-cover"
                 />
-
-                {/* Loading Overlay */}
-                {image.isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                    <Loader2 className="h-6 w-6 animate-spin text-white" />
-                  </div>
-                )}
-
-                {/* Delete Button */}
-                {!image.isLoading && (
-                  <button
-                    onClick={() => handleRemoveImage(index)}
-                    disabled={isUploading}
-                    className="absolute right-2 top-2 hidden rounded-full bg-red-500 p-1.5 text-white transition-all hover:bg-red-600 disabled:opacity-50 group-hover:block"
-                    aria-label="Delete image"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
               </div>
-            ))}
-          </div>
+              <button
+                type="button"
+                onClick={() => handleRemoveImage(index)}
+                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
         </div>
+      )}
+
+      {/* File Count */}
+      {images.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {images.length}/{maxFiles} images selected (will upload on save)
+        </p>
       )}
     </div>
   );

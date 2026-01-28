@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 
+
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
