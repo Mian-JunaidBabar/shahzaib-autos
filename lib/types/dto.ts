@@ -635,6 +635,48 @@ export interface LowStockAlertInput {
 }
 
 // ============================================
+// SERVICE DTOs
+// ============================================
+
+/**
+ * Service for display
+ */
+export interface ServiceDTO {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string | null;
+  price: number;
+  duration: number; // In minutes
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Service creation input
+ */
+export interface CreateServiceInput {
+  title: string;
+  slug?: string; // Auto-generated from title if not provided
+  description?: string | null;
+  price: number; // In rupees
+  duration: number; // In minutes
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
+  isActive?: boolean;
+}
+
+/**
+ * Service update input
+ */
+export interface UpdateServiceInput extends Partial<CreateServiceInput> {
+  id: string;
+}
+
+// ============================================
 // TYPE GUARDS
 // ============================================
 

@@ -436,6 +436,104 @@ export type CustomerCreateInput = z.infer<typeof customerCreateSchema>;
 export type CustomerUpdateInput = z.infer<typeof customerUpdateSchema>;
 export type CustomerFilterInput = z.infer<typeof customerFilterSchema>;
 
+// ============ Service Schemas ============
+
+// Helper for slug normalization
+const normalizeServiceSlug = (value: string): string => {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+};
+
+const generateServiceSlug = (title: string): string =>
+  normalizeServiceSlug(title);
+
+// Base service schema
+const serviceBaseSchema = z.object({
+  title: z.string().min(2, "Title must be at least 2 characters").max(200),
+  slug: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const normalized = normalizeServiceSlug(value);
+      return normalized.length > 0 ? normalized : undefined;
+    },
+    z
+      .string()
+      .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
+      .optional()
+      .nullable(),
+  ),
+  description: z.string().optional().nullable(),
+  price: z.coerce.number().positive("Price must be a positive number"),
+  duration: z.coerce
+    .number()
+    .int()
+    .positive("Duration must be a positive integer (in minutes)"),
+  imageUrl: z.string().url().optional().nullable(),
+  imagePublicId: z.string().optional().nullable(),
+  isActive: z.boolean().default(true),
+});
+
+// Create schema with slug auto-generation
+export const serviceCreateSchema = serviceBaseSchema.transform((data) => ({
+  ...data,
+  slug: data.slug || generateServiceSlug(data.title),
+}));
+
+// Update schema - make all fields optional and add ID
+export const serviceUpdateSchema = z.object({
+  id: z.string().cuid(),
+  title: z
+    .string()
+    .min(2, "Title must be at least 2 characters")
+    .max(200)
+    .optional(),
+  slug: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const normalized = normalizeServiceSlug(value);
+      return normalized.length > 0 ? normalized : undefined;
+    },
+    z
+      .string()
+      .regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens only")
+      .optional()
+      .nullable(),
+  ),
+  description: z.string().optional().nullable(),
+  price: z.coerce
+    .number()
+    .positive("Price must be a positive number")
+    .optional(),
+  duration: z.coerce
+    .number()
+    .int()
+    .positive("Duration must be a positive integer (in minutes)")
+    .optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  imagePublicId: z.string().optional().nullable(),
+  isActive: z.boolean().optional(),
+});
+
+export const serviceFilterSchema = z.object({
+  search: z.string().optional(),
+  isActive: z.coerce.boolean().optional(),
+  sortBy: z
+    .enum(["title", "price", "duration", "createdAt"])
+    .optional()
+    .default("createdAt"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  ...paginationSchema.shape,
+});
+
+export type ServiceCreateInput = z.infer<typeof serviceCreateSchema>;
+export type ServiceUpdateInput = z.infer<typeof serviceUpdateSchema>;
+export type ServiceFilterInput = z.infer<typeof serviceFilterSchema>;
+
 // ============ Bulk Upload Schemas ============
 
 export const bulkProductSchema = z.object({
