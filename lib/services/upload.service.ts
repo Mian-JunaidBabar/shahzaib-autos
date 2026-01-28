@@ -9,7 +9,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import { prisma } from "@/lib/prisma";
 
-
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -98,19 +97,19 @@ export async function uploadImage(
   if (productId) {
     // If isPrimary, unset other primary images first
     if (isPrimary) {
-      await prisma.productImage.updateMany({
+      await prisma.image.updateMany({
         where: { productId, isPrimary: true },
         data: { isPrimary: false },
       });
     }
 
     // Get current max sort order
-    const maxSort = await prisma.productImage.aggregate({
+    const maxSort = await prisma.image.aggregate({
       where: { productId },
       _max: { sortOrder: true },
     });
 
-    await prisma.productImage.create({
+    await prisma.image.create({
       data: {
         productId,
         publicId: result.public_id,
@@ -158,7 +157,7 @@ export async function deleteImage(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId);
 
   // Also delete from database if exists
-  await prisma.productImage.deleteMany({
+  await prisma.image.deleteMany({
     where: { publicId },
   });
 }
@@ -179,7 +178,7 @@ export async function updateImageOrder(
 ): Promise<void> {
   await prisma.$transaction(
     imageIds.map((id, index) =>
-      prisma.productImage.update({
+      prisma.image.update({
         where: { id },
         data: { sortOrder: index },
       }),
@@ -196,12 +195,12 @@ export async function setPrimaryImage(
 ): Promise<void> {
   await prisma.$transaction([
     // Unset all primary
-    prisma.productImage.updateMany({
+    prisma.image.updateMany({
       where: { productId, isPrimary: true },
       data: { isPrimary: false },
     }),
     // Set new primary
-    prisma.productImage.update({
+    prisma.image.update({
       where: { id: imageId },
       data: { isPrimary: true },
     }),
@@ -212,7 +211,7 @@ export async function setPrimaryImage(
  * Get product images
  */
 export async function getProductImages(productId: string) {
-  return prisma.productImage.findMany({
+  return prisma.image.findMany({
     where: { productId },
     orderBy: { sortOrder: "asc" },
   });

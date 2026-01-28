@@ -1,17 +1,20 @@
 import { deleteImage, extractPublicId } from "@/lib/cloudinary";
-import { Prisma } from "@prisma/client";
+import { Prisma, Image } from "@prisma/client";
 /**
  * Service Service
  *
  * Business logic for service management:
  * - CRUD operations for offered services
- * - Image management with Cloudinary cleanup
+ * - Image management with Cloudinary cleanup (Unified Image model)
+ * - Supports multiple images per service
  * - Public/Active service queries
  */
 import { prisma } from "@/lib/prisma";
 
 // Types
-export type ServiceWithDetails = Prisma.ServiceGetPayload<{}>;
+export type ServiceWithImages = Prisma.ServiceGetPayload<{
+  include: { images: true };
+}>;
 
 export type CreateServiceInput = {
   title: string;
@@ -19,13 +22,17 @@ export type CreateServiceInput = {
   description?: string | null;
   price: number;
   duration: number;
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
+  location?: "WORKSHOP" | "HOME" | "BOTH";
+  features?: string[];
   isActive?: boolean;
+  // Image data for unified Image model
+  images?: Array<{ publicId: string; secureUrl: string }>;
 };
 
 export type UpdateServiceInput = Partial<CreateServiceInput> & {
   id?: string;
+  // For image sync - array of publicIds to keep
+  keepImagePublicIds?: string[];
 };
 
 export type ServiceFilters = {
@@ -92,6 +99,9 @@ export async function getServices(
   const [services, total] = await Promise.all([
     prisma.service.findMany({
       where,
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+      },
       orderBy,
       skip: (page - 1) * limit,
       take: limit,
@@ -117,6 +127,9 @@ export async function getServices(
 export async function getActiveServices() {
   const services = await prisma.service.findMany({
     where: { isActive: true },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -126,25 +139,37 @@ export async function getActiveServices() {
 /**
  * Get single service by ID
  */
-export async function getService(id: string) {
+export async function getService(
+  id: string,
+): Promise<ServiceWithImages | null> {
   return prisma.service.findUnique({
     where: { id },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+    },
   });
 }
 
 /**
  * Get single service by slug
  */
-export async function getServiceBySlug(slug: string) {
+export async function getServiceBySlug(
+  slug: string,
+): Promise<ServiceWithImages | null> {
   return prisma.service.findUnique({
     where: { slug },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+    },
   });
 }
 
 /**
- * Create a new service
+ * Create a new service with optional images
  */
-export async function createService(input: CreateServiceInput) {
+export async function createService(
+  input: CreateServiceInput,
+): Promise<ServiceWithImages> {
   const slug = input.slug || generateSlug(input.title);
 
   // Check for duplicate slug
@@ -163,19 +188,38 @@ export async function createService(input: CreateServiceInput) {
       description: input.description,
       price: input.price,
       duration: input.duration,
-      imageUrl: input.imageUrl,
-      imagePublicId: input.imagePublicId,
+      location: input.location ?? "BOTH",
+      features: input.features ?? [],
       isActive: input.isActive ?? true,
+      // Create images using nested write
+      images: input.images?.length
+        ? {
+            create: input.images.map((img, index) => ({
+              publicId: img.publicId,
+              secureUrl: img.secureUrl,
+              isPrimary: index === 0, // First image is primary
+              sortOrder: index,
+            })),
+          }
+        : undefined,
+    },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
     },
   });
 }
 
 /**
- * Update an existing service
+ * Update an existing service with Fetch-Then-Clean image strategy
  */
-export async function updateService(id: string, input: UpdateServiceInput) {
+export async function updateService(
+  id: string,
+  input: UpdateServiceInput,
+): Promise<ServiceWithImages> {
+  // Step 1: Fetch service with current images
   const existing = await prisma.service.findUnique({
     where: { id },
+    include: { images: true },
   });
 
   if (!existing) {
@@ -196,29 +240,56 @@ export async function updateService(id: string, input: UpdateServiceInput) {
     }
   }
 
-  // If image is being removed or changed, delete the old one from Cloudinary.
-  // (Soft-fail deletion: never blocks the DB update.)
-  const isImageUrlProvided = input.imageUrl !== undefined;
-  const isImagePublicIdProvided = input.imagePublicId !== undefined;
+  // Step 2: Handle image sync using Fetch-Then-Clean (Diff Strategy)
+  if (input.keepImagePublicIds !== undefined) {
+    const imagesToDelete = existing.images.filter(
+      (img) => !input.keepImagePublicIds!.includes(img.publicId),
+    );
 
-  const oldUrl = existing.imageUrl ?? null;
-  const newUrl = isImageUrlProvided ? (input.imageUrl ?? null) : oldUrl;
+    if (imagesToDelete.length > 0) {
+      // Step 3: Delete from Cloudinary (soft-fail)
+      const deletePromises = imagesToDelete
+        .map((img) => img.publicId ?? extractPublicId(img.secureUrl))
+        .filter((publicId): publicId is string => Boolean(publicId))
+        .map((publicId) => deleteImage(publicId));
 
-  const oldPublicId =
-    existing.imagePublicId ?? (oldUrl ? extractPublicId(oldUrl) : null);
+      await Promise.allSettled(deletePromises);
 
-  const newPublicId =
-    (isImagePublicIdProvided ? input.imagePublicId : undefined) ??
-    (newUrl ? extractPublicId(newUrl) : null);
-
-  const imageChanged =
-    (isImageUrlProvided && newUrl !== oldUrl) ||
-    (isImagePublicIdProvided && newPublicId !== oldPublicId);
-
-  if (imageChanged && oldPublicId) {
-    await Promise.allSettled([deleteImage(oldPublicId)]);
+      // Step 4: Delete from database
+      await prisma.image.deleteMany({
+        where: {
+          id: { in: imagesToDelete.map((img) => img.id) },
+        },
+      });
+    }
   }
 
+  // Step 5: Create new images if provided
+  if (input.images?.length) {
+    const existingPublicIds = existing.images.map((img) => img.publicId);
+    const newImages = input.images.filter(
+      (img) => !existingPublicIds.includes(img.publicId),
+    );
+
+    if (newImages.length > 0) {
+      const currentMaxOrder = existing.images.reduce(
+        (max, img) => Math.max(max, img.sortOrder),
+        -1,
+      );
+
+      await prisma.image.createMany({
+        data: newImages.map((img, index) => ({
+          serviceId: id,
+          publicId: img.publicId,
+          secureUrl: img.secureUrl,
+          isPrimary: existing.images.length === 0 && index === 0,
+          sortOrder: currentMaxOrder + 1 + index,
+        })),
+      });
+    }
+  }
+
+  // Step 6: Update service fields
   return prisma.service.update({
     where: { id },
     data: {
@@ -229,40 +300,44 @@ export async function updateService(id: string, input: UpdateServiceInput) {
       }),
       ...(input.price !== undefined && { price: input.price }),
       ...(input.duration !== undefined && { duration: input.duration }),
-      ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
-      ...(input.imagePublicId !== undefined && {
-        imagePublicId: input.imagePublicId,
-      }),
+      ...(input.location !== undefined && { location: input.location }),
+      ...(input.features !== undefined && { features: input.features }),
       ...(input.isActive !== undefined && { isActive: input.isActive }),
+    },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
     },
   });
 }
 
 /**
- * Delete a service
- * IMPORTANT: Deletes image from Cloudinary before removing DB record
+ * Delete a service with Fetch-Then-Clean for Cloudinary cleanup
+ * IMPORTANT: Deletes ALL images from Cloudinary before removing DB record
  */
 export async function deleteService(
   id: string,
 ): Promise<{ success: boolean; error?: string }> {
+  // Step 1: Fetch service with images
   const service = await prisma.service.findUnique({
     where: { id },
+    include: { images: true },
   });
 
   if (!service) {
     return { success: false, error: "Service not found" };
   }
 
-  // Step 1/2: Delete image from Cloudinary (soft-fail)
-  const publicId =
-    service.imagePublicId ??
-    (service.imageUrl ? extractPublicId(service.imageUrl) : null);
+  // Step 2: Delete ALL images from Cloudinary (soft-fail with Promise.allSettled)
+  if (service.images.length > 0) {
+    const deletePromises = service.images
+      .map((img) => img.publicId ?? extractPublicId(img.secureUrl))
+      .filter((publicId): publicId is string => Boolean(publicId))
+      .map((publicId) => deleteImage(publicId));
 
-  if (publicId) {
-    await Promise.allSettled([deleteImage(publicId)]);
+    await Promise.allSettled(deletePromises);
   }
 
-  // Delete from database
+  // Step 3: Delete from database (Prisma cascades to Image rows via onDelete: Cascade)
   await prisma.service.delete({
     where: { id },
   });

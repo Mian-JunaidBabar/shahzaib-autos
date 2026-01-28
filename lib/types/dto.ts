@@ -10,21 +10,8 @@
  * NOTE: Authentication is handled EXCLUSIVELY by Supabase Auth.
  * User/Role types are defined locally, not from Prisma.
  */
-import type {
-  Product,
-  ProductImage,
-  Inventory,
-  Order,
-  OrderItem,
-  Booking,
-  Lead,
-  Customer,
-  OrderStatus,
-  BookingStatus,
-  LeadStatus,
-  LeadSource,
-  Admin,
-} from "@prisma/client";
+import type { Product, Image, Inventory, Order, OrderItem, Booking, Lead, Customer, OrderStatus, BookingStatus, LeadStatus, LeadSource, Admin, } from "@prisma/client";
+
 
 // ============================================
 // COMMON TYPES
@@ -117,21 +104,29 @@ export interface ProductDTO {
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
-  images: ProductImageDTO[];
+  images: ImageDTO[];
   inventory?: InventoryDTO | null;
 }
 
 /**
- * Product image for display
+ * Unified Image DTO (for both Products and Services)
  */
-export interface ProductImageDTO {
+export interface ImageDTO {
   id: string;
   secureUrl: string;
   publicId: string;
   isPrimary: boolean;
   sortOrder: number;
-  uploadedAt: string;
+  createdAt: string;
+  productId?: string | null;
+  serviceId?: string | null;
 }
+
+/**
+ * Legacy alias for backward compatibility
+ * @deprecated Use ImageDTO instead
+ */
+export type ProductImageDTO = ImageDTO;
 
 /**
  * Inventory information
@@ -247,6 +242,22 @@ export interface CloudinaryUploadResult {
 /**
  * Create product image input
  */
+/**
+ * Create image input (unified for products and services)
+ */
+export interface CreateImageInput {
+  publicId: string;
+  secureUrl: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+  productId?: string;
+  serviceId?: string;
+}
+
+/**
+ * Legacy alias for backward compatibility
+ * @deprecated Use CreateImageInput instead
+ */
 export interface CreateProductImageInput {
   productId: string;
   secureUrl: string;
@@ -256,16 +267,17 @@ export interface CreateProductImageInput {
 }
 
 /**
- * Saved image response
+ * Saved image response (unified)
  */
 export interface SavedImageDTO {
   id: string;
-  productId: string;
-  secureUrl: string;
   publicId: string;
+  secureUrl: string;
   isPrimary: boolean;
   sortOrder: number;
-  uploadedAt: string;
+  createdAt: string;
+  productId?: string | null;
+  serviceId?: string | null;
 }
 
 // ============================================
@@ -639,7 +651,7 @@ export interface LowStockAlertInput {
 // ============================================
 
 /**
- * Service for display
+ * Service for display (with unified Image relation)
  */
 export interface ServiceDTO {
   id: string;
@@ -648,8 +660,9 @@ export interface ServiceDTO {
   description?: string | null;
   price: number;
   duration: number; // In minutes
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
+  location?: "WORKSHOP" | "HOME" | "BOTH";
+  features?: string[];
+  images: ImageDTO[]; // Unified Image model
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -664,8 +677,9 @@ export interface CreateServiceInput {
   description?: string | null;
   price: number; // In rupees
   duration: number; // In minutes
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
+  location?: "WORKSHOP" | "HOME" | "BOTH";
+  features?: string[];
+  images?: Array<{ publicId: string; secureUrl: string }>; // Unified Image model
   isActive?: boolean;
 }
 
@@ -674,6 +688,7 @@ export interface CreateServiceInput {
  */
 export interface UpdateServiceInput extends Partial<CreateServiceInput> {
   id: string;
+  keepImagePublicIds?: string[]; // Images to keep (diff strategy)
 }
 
 // ============================================
@@ -701,7 +716,7 @@ export type { OrderStatus, BookingStatus, LeadStatus, LeadSource };
 // Re-export for convenience
 export type {
   Product,
-  ProductImage,
+  Image,
   Inventory,
   Order,
   OrderItem,

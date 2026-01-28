@@ -94,25 +94,35 @@ model Product {
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   badge       Badge?   @relation(fields: [badgeId], references: [id])
-  images      ProductImage[]
+  images      Image[]       // Unified Image relation
   inventory   Inventory?
   orderItems  OrderItem[]
 
   @@map("products")
 }
 
-model ProductImage {
-  id         String   @id @default(uuid())
-  productId  String   @map("product_id")
-  secureUrl  String   @map("secure_url")
-  publicId   String   @map("public_id") @unique
-  isPrimary  Boolean  @default(false) @map("is_primary")
-  sortOrder  Int      @default(0) @map("sort_order")
-  uploadedAt DateTime @default(now()) @map("uploaded_at")
+// ============================================
+// UNIFIED IMAGE MODEL
+// ============================================
+// Polymorphic image table for Products and Services.
+// Cloudinary public_id stored for guaranteed cleanup.
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+model Image {
+  id        String   @id @default(cuid())
+  publicId  String   @unique @map("public_id") // Cloudinary public_id for deletion
+  secureUrl String   @map("secure_url")        // Cloudinary secure URL
+  isPrimary Boolean  @default(false) @map("is_primary")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("product_images")
+  // Polymorphic relations (one of these will be set)
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  serviceId String?  @map("service_id")
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("images")
 }
 
 model Inventory {
@@ -291,11 +301,11 @@ model Service {
   duration    Int             // Duration in minutes
   location    ServiceLocation @default(BOTH) // Where service is provided
   features    String[]        @default([]) // What's included (e.g., warranty, parts)
-  imageUrl    String?         @map("image_url")
-  imagePublicId String?       @map("image_public_id") // Cloudinary public_id for deletion
   isActive    Boolean         @default(true) @map("is_active")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  images Image[] // Unified Image relation (supports multiple images)
 
   @@map("services")
 }

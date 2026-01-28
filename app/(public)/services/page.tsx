@@ -80,9 +80,9 @@ export default async function ServicesPage() {
               >
                 {/* Image */}
                 <div className="relative aspect-video overflow-hidden bg-muted">
-                  {service.imageUrl ? (
+                  {service.images && service.images.length > 0 ? (
                     <Image
-                      src={service.imageUrl}
+                      src={service.images[0].secureUrl}
                       alt={service.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"

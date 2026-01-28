@@ -19,6 +19,7 @@ import {
   CheckSquare,
   Plus,
   Trash2,
+  Star,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,8 +56,18 @@ const serviceSchema = z.object({
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
 
-// Image can be either a File (new upload) or string (existing URL)
-type ImageValue = File | { url: string; publicId: string };
+// Image state for managing uploads
+interface ImageState {
+  id: string; // Temp or actual ID
+  secureUrl: string; // Current URL (blob or actual)
+  publicId: string;
+  isPrimary: boolean;
+  sortOrder: number;
+  createdAt: string;
+  isLoading?: boolean;
+  isNew?: boolean;
+  file?: File; // For new uploads
+}
 
 interface Service {
   id: string;
@@ -67,8 +78,14 @@ interface Service {
   duration: number;
   location?: "WORKSHOP" | "HOME" | "BOTH";
   features?: string[];
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
+  images?: Array<{
+    id: string;
+    secureUrl: string;
+    publicId: string;
+    isPrimary: boolean;
+    sortOrder: number;
+    createdAt: string;
+  }>;
   isActive: boolean;
 }
 
@@ -79,13 +96,14 @@ interface ServiceFormProps {
 export function ServiceForm({ initialData }: ServiceFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [image, setImage] = useState<ImageValue | null>(
-    initialData?.imageUrl
-      ? { url: initialData.imageUrl, publicId: initialData.imagePublicId || "" }
-      : null,
-  );
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    initialData?.imageUrl || null,
+
+  // Image management
+  const [images, setImages] = useState<ImageState[]>(
+    initialData?.images?.map((img) => ({
+      ...img,
+      isLoading: false,
+      isNew: false,
+    })) || [],
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -117,50 +135,85 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
   const duration = watch("duration");
   const location = watch("location");
 
-  // Cleanup preview URL on unmount
+  // Cleanup preview URLs on unmount
   useEffect(() => {
     return () => {
-      if (imagePreview && imagePreview.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      images.forEach((img) => {
+        if (img.secureUrl && img.secureUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(img.secureUrl);
+        }
+      });
     };
-  }, [imagePreview]);
+  }, []);
 
   const handleImageSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+      const files = e.target.files;
+      if (!files) return;
 
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        setUploadError("Only image files are allowed");
-        return;
+      const newImages: ImageState[] = [];
+
+      for (const file of Array.from(files)) {
+        // Validate file type
+        if (!file.type.startsWith("image/")) {
+          setUploadError("Only image files are allowed");
+          continue;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          setUploadError("File size must be less than 5MB");
+          continue;
+        }
+
+        const preview = URL.createObjectURL(file);
+        const tempId = `temp-${Date.now()}-${Math.random()}`;
+
+        newImages.push({
+          id: tempId,
+          secureUrl: preview,
+          publicId: "",
+          isPrimary: images.length === 0 && newImages.length === 0,
+          sortOrder: images.length + newImages.length,
+          createdAt: new Date().toISOString(),
+          isLoading: false,
+          isNew: true,
+          file,
+        });
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setUploadError("File size must be less than 5MB");
-        return;
+      if (newImages.length > 0) {
+        setUploadError(null);
+        setImages((prev) => [...prev, ...newImages]);
       }
-
-      setUploadError(null);
-
-      // Create local preview
-      const preview = URL.createObjectURL(file);
-      setImage(file);
-      setImagePreview(preview);
     },
-    [],
+    [images.length],
   );
 
-  const removeImage = useCallback(() => {
-    // Cleanup preview URL if it's a blob
-    if (imagePreview && imagePreview.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreview);
-    }
-    setImage(null);
-    setImagePreview(null);
-  }, [imagePreview]);
+  const removeImage = (id: string) => {
+    setImages((prev) => {
+      const updated = prev.filter((img) => img.id !== id);
+      // Cleanup blob URL if it exists
+      const removed = prev.find((img) => img.id === id);
+      if (removed && removed.secureUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(removed.secureUrl);
+      }
+      // Reset primary if removed was primary
+      if (removed?.isPrimary && updated.length > 0) {
+        updated[0].isPrimary = true;
+      }
+      return updated;
+    });
+  };
+
+  const setPrimaryImage = (id: string) => {
+    setImages((prev) =>
+      prev.map((img) => ({
+        ...img,
+        isPrimary: img.id === id,
+      })),
+    );
+  };
 
   const addFeature = () => {
     if (newFeature.trim() && !features.includes(newFeature.trim())) {
@@ -176,25 +229,53 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
   const onSubmit = (data: ServiceFormData) => {
     startTransition(async () => {
       try {
-        let imageUrl: string | undefined;
-        let imagePublicId: string | undefined;
-
-        // Upload image if it's a new file
-        if (image instanceof File) {
-          toast.info("Uploading image...");
-          const uploadResponse = await uploadImageToCloudinary(image);
-          imageUrl = uploadResponse.secure_url;
-          imagePublicId = uploadResponse.public_id;
-
-          // Cleanup preview URL
-          if (imagePreview && imagePreview.startsWith("blob:")) {
-            URL.revokeObjectURL(imagePreview);
-          }
-        } else if (image && typeof image === "object") {
-          // Use existing image
-          imageUrl = image.url;
-          imagePublicId = image.publicId;
+        // Validate that we have at least one image
+        if (images.length === 0) {
+          toast.error("Please add at least one image");
+          return;
         }
+
+        // Upload new images first
+        const uploadedImages: Array<{ publicId: string; secureUrl: string }> =
+          [];
+        const imagesToUpload = images.filter((img) => img.isNew && img.file);
+
+        for (const imgState of imagesToUpload) {
+          if (!imgState.file) continue;
+
+          try {
+            toast.info(
+              `Uploading image ${imagesToUpload.indexOf(imgState) + 1}/${imagesToUpload.length}...`,
+            );
+            const uploadResponse = await uploadImageToCloudinary(imgState.file);
+            uploadedImages.push({
+              publicId: uploadResponse.public_id,
+              secureUrl: uploadResponse.secure_url,
+            });
+          } catch (error) {
+            console.error("Image upload error:", error);
+            toast.error("Failed to upload image");
+            return;
+          }
+        }
+
+        // Combine uploaded images with existing ones
+        const allImages = images.map((img, idx) => {
+          if (img.isNew && img.file) {
+            const uploaded = uploadedImages.find(
+              (u) =>
+                images.indexOf(images.find((x) => x.file === img.file)!) ===
+                idx,
+            );
+            return (
+              uploaded || { publicId: img.publicId, secureUrl: img.secureUrl }
+            );
+          }
+          return {
+            publicId: img.publicId,
+            secureUrl: img.secureUrl,
+          };
+        });
 
         const payload = {
           title: data.title,
@@ -204,13 +285,18 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
           duration: data.duration,
           location: data.location,
           features,
-          imageUrl,
-          imagePublicId,
+          images: allImages,
           isActive: data.isActive,
         };
 
         const result = initialData
-          ? await updateServiceAction({ id: initialData.id, ...payload })
+          ? await updateServiceAction({
+              id: initialData.id,
+              ...payload,
+              keepImagePublicIds: images
+                .filter((img) => !img.isNew)
+                .map((img) => img.publicId),
+            })
           : await createServiceAction(payload);
 
         if (result.success) {
@@ -256,7 +342,9 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
           {isPending ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {image instanceof File ? "Uploading..." : "Saving..."}
+              {images.some((img) => img.isNew && img.file)
+                ? "Uploading..."
+                : "Saving..."}
             </>
           ) : (
             <>
@@ -470,49 +558,35 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
           </Card>
         </div>
 
-        {/* Right Column - Image */}
+        {/* Right Column - Images */}
         <div className="md:col-span-1">
           <Card className="sticky top-6">
             <CardHeader>
-              <CardTitle>Service Image</CardTitle>
+              <CardTitle>Service Images</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                {images.length} image{images.length !== 1 ? "s" : ""} selected
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {imagePreview ? (
-                <div className="relative aspect-square rounded-lg overflow-hidden border">
-                  <Image
-                    src={imagePreview}
-                    alt="Service preview"
-                    fill
-                    className="object-cover"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    type="button"
-                    className="absolute top-2 right-2"
-                    onClick={removeImage}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Upload className="h-10 w-10 text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">
-                    Click to select image
-                  </span>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    Max 5MB, JPG/PNG • Uploads on submit
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageSelect}
-                  />
-                </label>
-              )}
+              {/* Upload Area */}
+              <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+                <span className="text-sm text-muted-foreground">
+                  Click to add images
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Max 5MB, JPG/PNG • Multiple allowed
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+              </label>
 
+              {/* Error Message */}
               {uploadError && (
                 <div className="flex items-center gap-2 text-red-500 text-sm">
                   <AlertCircle className="h-4 w-4" />
@@ -520,17 +594,68 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
                 </div>
               )}
 
-              {image instanceof File && (
-                <div className="flex items-center gap-2 text-blue-500 text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  Ready to upload on submit
+              {/* Images List */}
+              {images.length > 0 && (
+                <div className="space-y-2">
+                  {images.map((img, idx) => (
+                    <div
+                      key={img.id}
+                      className="flex items-center gap-2 p-2 bg-muted rounded-md"
+                    >
+                      {/* Thumbnail */}
+                      <div className="relative w-12 h-12 rounded overflow-hidden flex-shrink-0">
+                        <Image
+                          src={img.secureUrl}
+                          alt={`Service image ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
+                      {/* Image Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">
+                          Image {idx + 1}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {img.isNew ? "Ready to upload" : "Saved"}
+                        </p>
+                      </div>
+
+                      {/* Primary Button */}
+                      <Button
+                        type="button"
+                        variant={img.isPrimary ? "default" : "ghost"}
+                        size="icon"
+                        className="h-8 w-8 flex-shrink-0"
+                        onClick={() => setPrimaryImage(img.id)}
+                        title={
+                          img.isPrimary ? "Primary image" : "Set as primary"
+                        }
+                      >
+                        <Star className="h-4 w-4" />
+                      </Button>
+
+                      {/* Delete Button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 flex-shrink-0 text-red-500 hover:text-red-700"
+                        onClick={() => removeImage(img.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {image && typeof image === "object" && "url" in image && (
-                <div className="flex items-center gap-2 text-green-500 text-sm">
-                  <CheckCircle className="h-4 w-4" />
-                  Image uploaded
+              {/* Status Messages */}
+              {images.some((img) => img.isNew && img.file) && (
+                <div className="flex items-center gap-2 text-blue-500 text-xs">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>New images will be uploaded on submit</span>
                 </div>
               )}
             </CardContent>

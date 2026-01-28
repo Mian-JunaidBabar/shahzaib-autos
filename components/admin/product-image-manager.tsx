@@ -27,7 +27,7 @@ export interface ProductImage {
   publicId: string;
   isPrimary: boolean;
   sortOrder: number;
-  uploadedAt: string;
+  createdAt: string;
 }
 
 interface ProductImageManagerProps {
@@ -118,7 +118,7 @@ export function ProductImageManager({
             publicId: "",
             isPrimary: false,
             sortOrder: images.length,
-            uploadedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
             isLoading: true,
             isNew: true,
           };
@@ -148,7 +148,7 @@ export function ProductImageManager({
                       publicId: result.data!.publicId,
                       isPrimary: result.data!.isPrimary,
                       sortOrder: result.data!.sortOrder,
-                      uploadedAt: result.data!.uploadedAt,
+                      createdAt: result.data!.createdAt,
                       isLoading: false,
                       isNew: false,
                     }

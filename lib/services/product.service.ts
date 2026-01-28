@@ -1,11 +1,11 @@
 import { deleteImage, extractPublicId } from "@/lib/cloudinary";
-import { Prisma, ProductStatus } from "@prisma/client";
+import { Prisma, ProductStatus, Image } from "@prisma/client";
 /**
  * Product Service
  *
  * Business logic for product management:
  * - CRUD operations with soft-delete
- * - Image management with Cloudinary sync
+ * - Image management with Cloudinary sync (Unified Image model)
  * - Inventory tracking with stock automation
  * - Safe delete with referential integrity checks
  */
@@ -258,20 +258,21 @@ export async function updateProduct(
   const quantity = stock ?? initialStock;
   const lowStockLevel = lowStockThreshold ?? lowStockAt;
 
-  // Handle image sync - delete removed images from Cloudinary (Diff Strategy)
+  // Handle image sync - delete removed images from Cloudinary (Fetch-Then-Clean Strategy)
   if (keepImagePublicIds !== undefined) {
-    const existingImages = await prisma.productImage.findMany({
+    // Step 1: Fetch current images from database
+    const existingImages = await prisma.image.findMany({
       where: { productId: id },
       select: { id: true, publicId: true, secureUrl: true },
     });
 
-    // Diff Strategy: Identify removed images (Old List - New List)
+    // Step 2: Diff - Identify images to delete (oldList - newList)
     const imagesToDelete = existingImages.filter(
       (img) => !keepImagePublicIds.includes(img.publicId),
     );
 
     if (imagesToDelete.length > 0) {
-      // Delete from Cloudinary in parallel (soft-fail via deleteImage)
+      // Step 3: Cleanup - Delete from Cloudinary (soft-fail)
       const deletePromises = imagesToDelete
         .map((img) => img.publicId ?? extractPublicId(img.secureUrl))
         .filter((publicId): publicId is string => Boolean(publicId))
@@ -279,8 +280,8 @@ export async function updateProduct(
 
       await Promise.allSettled(deletePromises);
 
-      // Delete from database
-      await prisma.productImage.deleteMany({
+      // Step 4: Delete from database
+      await prisma.image.deleteMany({
         where: {
           id: { in: imagesToDelete.map((img) => img.id) },
         },
@@ -433,6 +434,7 @@ export async function canDeleteProduct(id: string): Promise<{
 /**
  * Hard delete a product with referential integrity check
  * Will fail if product has order history - must archive instead
+ * Uses Fetch-Then-Clean strategy for Cloudinary cleanup
  */
 export async function deleteProduct(id: string): Promise<DeleteProductResult> {
   // Step 1: Check for order history
@@ -447,7 +449,7 @@ export async function deleteProduct(id: string): Promise<DeleteProductResult> {
     };
   }
 
-  // Step 2: Fetch product images for Cloudinary cleanup
+  // Step 2: Fetch product with images for Cloudinary cleanup
   const product = await prisma.product.findUnique({
     where: { id },
     include: { images: true },
@@ -461,7 +463,7 @@ export async function deleteProduct(id: string): Promise<DeleteProductResult> {
     };
   }
 
-  // Step 3: Delete images from Cloudinary in parallel using Promise.allSettled
+  // Step 3: Delete ALL images from Cloudinary (soft-fail with Promise.allSettled)
   if (product.images.length > 0) {
     const deletePromises = product.images
       .map((img) => img.publicId ?? extractPublicId(img.secureUrl))
@@ -471,7 +473,7 @@ export async function deleteProduct(id: string): Promise<DeleteProductResult> {
     await Promise.allSettled(deletePromises);
   }
 
-  // Step 4: Delete from database (cascades to images and inventory)
+  // Step 4: Delete from database (Prisma cascades to Image rows via onDelete: Cascade)
   await prisma.product.delete({ where: { id } });
 
   return {

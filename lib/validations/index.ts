@@ -478,8 +478,18 @@ const serviceBaseSchema = z.object({
     .min(1, "Duration must be at least 1 minute"),
   location: serviceLocationEnum.default("BOTH"),
   features: z.array(z.string()).default([]),
-  imageUrl: z.string().url().optional().nullable(),
-  imagePublicId: z.string().optional().nullable(),
+  // Unified Image model - array of images
+  images: z
+    .array(
+      z.object({
+        publicId: z.string(),
+        secureUrl: z.string().url(),
+      }),
+    )
+    .optional()
+    .default([]),
+  // For update operations - which images to keep (diff strategy)
+  keepImagePublicIds: z.array(z.string()).optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -518,8 +528,17 @@ export const serviceUpdateSchema = z.object({
     .optional(),
   location: serviceLocationEnum.optional(),
   features: z.array(z.string()).optional(),
-  imageUrl: z.string().url().optional().nullable(),
-  imagePublicId: z.string().optional().nullable(),
+  // Unified Image model - array of images to add
+  images: z
+    .array(
+      z.object({
+        publicId: z.string(),
+        secureUrl: z.string().url(),
+      }),
+    )
+    .optional(),
+  // For update operations - which images to keep (diff strategy)
+  keepImagePublicIds: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
 });
 
