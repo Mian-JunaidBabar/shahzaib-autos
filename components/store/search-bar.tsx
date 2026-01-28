@@ -43,7 +43,7 @@ export function SearchBar() {
       }
       timeoutRef.current = setTimeout(() => {
         updateSearch(query);
-      }, 300);
+      }, 500);
     },
     [updateSearch],
   );

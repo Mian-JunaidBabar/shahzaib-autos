@@ -1,8 +1,8 @@
 import "./globals.css";
 
+import { Toaster } from "@/components/ui/sonner";
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
-
 
 const inter = Inter({
   variable: "--font-inter",
@@ -32,7 +32,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${inter.variable} antialiased`}>{children}</body>
+      <body className={`${inter.variable} antialiased`}>
+        {children}
+        <Toaster richColors position="top-right" />
+      </body>
     </html>
   );
 }

@@ -6,6 +6,7 @@ import {
   useState,
   useCallback,
   ReactNode,
+  useEffect,
 } from "react";
 import { CartItem } from "@/lib/whatsapp";
 
@@ -21,36 +22,86 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+const CART_STORAGE_KEY = "shahzaib_autos_cart";
+
+// Helper functions for localStorage
+const loadCartFromStorage = (): CartItem[] => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error("Error loading cart from localStorage:", error);
+    return [];
+  }
+};
+
+const saveCartToStorage = (items: CartItem[]) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch (error) {
+    console.error("Error saving cart to localStorage:", error);
+  }
+};
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  // Initialize with empty array to prevent hydration mismatch
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  const addItem = useCallback((item: Omit<CartItem, "quantity">) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
-        );
-      }
-      return [...prev, { ...item, quantity: 1 }];
-    });
+  // Load cart from localStorage on mount (client-side only)
+  useEffect(() => {
+    const storedCart = loadCartFromStorage();
+    setItems(storedCart);
+    setIsHydrated(true);
   }, []);
+
+  // Save cart to localStorage whenever items change (but not on initial hydration)
+  useEffect(() => {
+    if (isHydrated) {
+      saveCartToStorage(items);
+    }
+  }, [items, isHydrated]);
+
+  const addItem = useCallback(
+    (item: Omit<CartItem, "quantity">) => {
+      setItems((prev) => {
+        const existing = prev.find((i) => i.id === item.id);
+        if (existing) {
+          const updated = prev.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
+          );
+          return updated;
+        }
+        const newItems = [...prev, { ...item, quantity: 1 }];
+        return newItems;
+      });
+    },
+    [isHydrated],
+  );
 
   // Alias for addItem that accepts full CartItem (with quantity)
-  const addToCart = useCallback((item: CartItem) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.id === item.id
-            ? { ...i, quantity: i.quantity + (item.quantity || 1) }
-            : i,
-        );
-      }
-      return [...prev, { ...item, quantity: item.quantity || 1 }];
-    });
-  }, []);
+  const addToCart = useCallback(
+    (item: CartItem) => {
+      setItems((prev) => {
+        const existing = prev.find((i) => i.id === item.id);
+        if (existing) {
+          const updated = prev.map((i) =>
+            i.id === item.id
+              ? { ...i, quantity: i.quantity + (item.quantity || 1) }
+              : i,
+          );
+          return updated;
+        }
+        const newItems = [...prev, { ...item, quantity: item.quantity || 1 }];
+        return newItems;
+      });
+    },
+    [isHydrated],
+  );
 
   const removeItem = useCallback((id: string | number) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
