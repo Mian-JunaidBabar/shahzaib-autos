@@ -258,21 +258,40 @@ export async function updateProduct(
   const quantity = stock ?? initialStock;
   const lowStockLevel = lowStockThreshold ?? lowStockAt;
 
-  // Handle image sync - delete removed images from Cloudinary
+  // Handle image sync - delete removed images from Cloudinary (Diff Strategy)
   if (keepImagePublicIds !== undefined) {
     const existingImages = await prisma.productImage.findMany({
       where: { productId: id },
-      select: { id: true, publicId: true },
+      select: { id: true, publicId: true, secureUrl: true },
     });
 
+    // Diff Strategy: Identify removed images (Old List - New List)
     const imagesToDelete = existingImages.filter(
       (img) => !keepImagePublicIds.includes(img.publicId),
     );
 
     if (imagesToDelete.length > 0) {
-      // Delete from Cloudinary
-      const publicIdsToDelete = imagesToDelete.map((img) => img.publicId);
-      await deleteImagesFromCloudinary(publicIdsToDelete);
+      // Delete from Cloudinary in parallel using Promise.allSettled
+      const deletePromises = imagesToDelete.map((img) =>
+        deleteImagesFromCloudinary([img.publicId]),
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+
+      // Log any failures (soft-fail approach - prefer logging over crashing)
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          console.error(
+            `Failed to delete image ${imagesToDelete[index].publicId}:`,
+            result.reason,
+          );
+        } else if (!result.value.success) {
+          console.warn(
+            `Cloudinary deletion warning for ${imagesToDelete[index].publicId}:`,
+            result.value.errors,
+          );
+        }
+      });
 
       // Delete from database
       await prisma.productImage.deleteMany({
@@ -456,18 +475,28 @@ export async function deleteProduct(id: string): Promise<DeleteProductResult> {
     };
   }
 
-  // Step 3: Delete images from Cloudinary
+  // Step 3: Delete images from Cloudinary in parallel using Promise.allSettled
   if (product.images.length > 0) {
-    const publicIds = product.images.map((img) => img.publicId);
-    const cloudinaryResult = await deleteImagesFromCloudinary(publicIds);
+    const deletePromises = product.images.map((img) =>
+      deleteImagesFromCloudinary([img.publicId]),
+    );
 
-    if (!cloudinaryResult.success) {
-      console.warn(
-        "Some images failed to delete from Cloudinary:",
-        cloudinaryResult.errors,
-      );
-      // Continue with database deletion even if Cloudinary fails
-    }
+    const results = await Promise.allSettled(deletePromises);
+
+    // Log any failures but don't block deletion (soft-fail approach)
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(
+          `Failed to delete image ${product.images[index].publicId}:`,
+          result.reason,
+        );
+      } else if (!result.value.success) {
+        console.warn(
+          `Cloudinary deletion failed for ${product.images[index].publicId}:`,
+          result.value.errors,
+        );
+      }
+    });
   }
 
   // Step 4: Delete from database (cascades to images and inventory)

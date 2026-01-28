@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, Image as ImageIcon } from "lucide-react";
@@ -32,6 +32,8 @@ export default function EditProductPage() {
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [currentImages, setCurrentImages] = useState<string[]>([]); // Track image publicIds
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -125,6 +127,7 @@ export default function EditProductPage() {
 
   const handleSubmit = () => {
     if (!params?.id) return;
+    setSubmitError(null); // Clear previous errors
     startTransition(async () => {
       const price = Math.round(Number(form.price || 0) * 100);
       const salePrice = form.salePrice
@@ -151,16 +154,32 @@ export default function EditProductPage() {
         stock,
         lowStockThreshold,
         isActive: form.isActive,
+        keepImagePublicIds: currentImages, // Pass the current image list
       });
 
       if (result.success) {
         toast.success("Product updated");
         router.push(`/admin/dashboard/inventory/${params.id}`);
       } else {
-        toast.error(result.error || "Failed to update product");
+        // Parse validation errors if they exist
+        let errorMessage = result.error || "Failed to update product";
+        try {
+          const parsed = JSON.parse(errorMessage);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Extract the first validation error message
+            errorMessage = parsed[0].message || errorMessage;
+          }
+        } catch {
+          // Not JSON, use as-is
+        }
+        setSubmitError(errorMessage);
       }
     });
   };
+
+  const handleImagesChange = useCallback((images: { publicId: string }[]) => {
+    setCurrentImages(images.map((img) => img.publicId));
+  }, []);
 
   if (isLoading) {
     return (
@@ -176,6 +195,9 @@ export default function EditProductPage() {
           <p className="text-muted-foreground">
             Update product details and stock.
           </p>
+          {submitError && (
+            <p className="text-sm text-destructive mt-2">{submitError}</p>
+          )}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
@@ -285,7 +307,7 @@ export default function EditProductPage() {
                 />
               </TabsContent>
               <TabsContent value="preview">
-                <div className="min-h-[120px] rounded-md border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
+                <div className="min-h-30 rounded-md border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
                   {form.description || "No description"}
                 </div>
               </TabsContent>
@@ -363,7 +385,11 @@ export default function EditProductPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ProductImageManager productId={params.id} maxFiles={10} />
+            <ProductImageManager
+              productId={params.id}
+              maxFiles={10}
+              onImagesChange={handleImagesChange}
+            />
           </CardContent>
         </Card>
       )}

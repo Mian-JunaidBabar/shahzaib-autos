@@ -55,6 +55,7 @@ export default function NewProductPage() {
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -115,6 +116,7 @@ export default function NewProductPage() {
   };
 
   const handleSubmit = () => {
+    setSubmitError(null); // Clear previous errors
     startTransition(async () => {
       const price = Math.round(Number(form.price || 0) * 100);
       const salePrice = form.salePrice
@@ -171,7 +173,18 @@ export default function NewProductPage() {
 
         router.push(`/admin/dashboard/inventory/${result.data.id}`);
       } else {
-        toast.error(result.error || "Failed to create product");
+        // Parse validation errors if they exist
+        let errorMessage = result.error || "Failed to create product";
+        try {
+          const parsed = JSON.parse(errorMessage);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Extract the first validation error message
+            errorMessage = parsed[0].message || errorMessage;
+          }
+        } catch {
+          // Not JSON, use as-is
+        }
+        setSubmitError(errorMessage);
       }
     });
   };
@@ -286,6 +299,9 @@ export default function NewProductPage() {
           <p className="text-muted-foreground">
             Create a new product and set initial stock levels.
           </p>
+          {submitError && (
+            <p className="text-sm text-destructive mt-2">{submitError}</p>
+          )}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
