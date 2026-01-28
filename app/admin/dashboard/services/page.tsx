@@ -7,12 +7,12 @@ import {
   Wrench,
   Plus,
   Search,
-  Eye,
   Edit,
   Trash2,
   Clock,
   CheckCircle,
   XCircle,
+  Pencil,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,6 @@ import {
 import {
   getServicesAction,
   deleteServiceAction,
-  toggleServiceActiveAction,
 } from "@/app/actions/serviceActions";
 import { toast } from "sonner";
 
@@ -165,18 +164,6 @@ export default function ServicesPage() {
     fetchServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter, searchQuery]);
-
-  const handleToggleActive = async (id: string) => {
-    startTransition(async () => {
-      const result = await toggleServiceActiveAction(id);
-      if (result.success) {
-        toast.success("Service status updated");
-        fetchServices();
-      } else {
-        toast.error(result.error || "Failed to update status");
-      }
-    });
-  };
 
   const handleDelete = async (id: string) => {
     startTransition(async () => {
@@ -356,32 +343,26 @@ export default function ServicesPage() {
                     <TableCell>
                       <Badge
                         variant={service.isActive ? "default" : "secondary"}
-                        className="cursor-pointer"
-                        onClick={() => handleToggleActive(service.id)}
                       >
                         {service.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/services?preview=${service.slug}`}>
-                          <Button variant="ghost" size="icon" title="Preview">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Link href={`/admin/dashboard/services/${service.id}`}>
+                        <Link
+                          href={`/admin/dashboard/services/${service.id}/edit`}
+                        >
                           <Button variant="ghost" size="icon" title="Edit">
-                            <Edit className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
                         </Link>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setDeleteConfirmId(service.id)}
                           title="Delete"
-                          className="text-red-500 hover:text-red-700"
+                          onClick={() => setDeleteConfirmId(service.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
