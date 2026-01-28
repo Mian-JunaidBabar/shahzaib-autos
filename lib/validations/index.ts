@@ -452,6 +452,9 @@ const normalizeServiceSlug = (value: string): string => {
 const generateServiceSlug = (title: string): string =>
   normalizeServiceSlug(title);
 
+// Service location enum
+export const serviceLocationEnum = z.enum(["WORKSHOP", "HOME", "BOTH"]);
+
 // Base service schema
 const serviceBaseSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters").max(200),
@@ -468,11 +471,13 @@ const serviceBaseSchema = z.object({
       .nullable(),
   ),
   description: z.string().optional().nullable(),
-  price: z.coerce.number().positive("Price must be a positive number"),
+  price: z.coerce.number().min(0, "Price must be a positive number"),
   duration: z.coerce
     .number()
     .int()
-    .positive("Duration must be a positive integer (in minutes)"),
+    .min(1, "Duration must be at least 1 minute"),
+  location: serviceLocationEnum.default("BOTH"),
+  features: z.array(z.string()).default([]),
   imageUrl: z.string().url().optional().nullable(),
   imagePublicId: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
@@ -505,15 +510,14 @@ export const serviceUpdateSchema = z.object({
       .nullable(),
   ),
   description: z.string().optional().nullable(),
-  price: z.coerce
-    .number()
-    .positive("Price must be a positive number")
-    .optional(),
+  price: z.coerce.number().min(0, "Price must be a positive number").optional(),
   duration: z.coerce
     .number()
     .int()
-    .positive("Duration must be a positive integer (in minutes)")
+    .min(1, "Duration must be at least 1 minute")
     .optional(),
+  location: serviceLocationEnum.optional(),
+  features: z.array(z.string()).optional(),
   imageUrl: z.string().url().optional().nullable(),
   imagePublicId: z.string().optional().nullable(),
   isActive: z.boolean().optional(),

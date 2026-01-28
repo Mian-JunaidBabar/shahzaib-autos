@@ -275,18 +275,27 @@ model Customer {
 // SERVICES (Offered Services)
 // ============================================
 
+// Service location types
+enum ServiceLocation {
+  WORKSHOP
+  HOME
+  BOTH
+}
+
 model Service {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   title       String
-  slug        String   @unique
-  description String?  @db.Text
-  price       Float    // Price in rupees
-  duration    Int      // Duration in minutes
-  imageUrl    String?  @map("image_url")
-  imagePublicId String? @map("image_public_id") // Cloudinary public_id for deletion
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  slug        String          @unique
+  description String?         @db.Text
+  price       Float           // Price in rupees
+  duration    Int             // Duration in minutes
+  location    ServiceLocation @default(BOTH) // Where service is provided
+  features    String[]        @default([]) // What's included (e.g., warranty, parts)
+  imageUrl    String?         @map("image_url")
+  imagePublicId String?       @map("image_public_id") // Cloudinary public_id for deletion
+  isActive    Boolean         @default(true) @map("is_active")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
 
   @@map("services")
 }
