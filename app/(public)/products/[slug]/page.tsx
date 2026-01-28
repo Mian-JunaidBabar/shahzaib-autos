@@ -1,256 +1,241 @@
-"use client";
-
-import Image from "next/image";
-import Link from "next/link";
-import { useState, use } from "react";
-import { useCart } from "@/context/cart-context";
-import { getProductBySlug } from "@/data/products";
-import { formatPrice, generateWhatsAppUrl } from "@/lib/whatsapp";
 import {
   ShoppingCart,
-  Check,
   MessageCircle,
   Calendar,
   Truck,
   Shield,
   Headphones,
   ChevronLeft,
+  Package,
 } from "lucide-react";
+import {
+  getStorefrontProduct,
+  getRelatedProducts,
+} from "@/lib/services/storefront.service";
+import { Separator } from "@/components/ui/separator";
+import { generateWhatsAppUrl } from "@/lib/whatsapp";
+import { ProductCard } from "@/components/store";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { notFound } from "next/navigation";
+import { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 
-// Extended product details
-const productExtras: Record<
-  string,
-  { features: string[]; specs: { label: string; value: string }[] }
-> = {
-  "7d-custom-mats": {
-    features: [
-      "Premium quality leather finish",
-      "Custom-cut for your exact car model",
-      "Multi-layer waterproof protection",
-      "Anti-slip bottom layer",
-    ],
-    specs: [
-      { label: "Material", value: "Premium PU Leather + XPE" },
-      { label: "Layers", value: "7-layer construction" },
-      { label: "Waterproof", value: "Yes, full coverage" },
-      { label: "Warranty", value: "1 Year" },
-    ],
-  },
-  "led-projector-kit": {
-    features: [
-      "50,000+ hour lifespan",
-      "6000K pure white output",
-      "Built-in CAN bus decoder",
-      "Plug and play installation",
-    ],
-    specs: [
-      { label: "Lumens", value: "12,000 per pair" },
-      { label: "Color Temp", value: "6000K Pure White" },
-      { label: "Wattage", value: "55W per bulb" },
-      { label: "Warranty", value: "2 Years" },
-    ],
-  },
+import { AddToCartButton } from "./add-to-cart-button";
+import { ImageGallery } from "./image-gallery";
+
+type Props = {
+  params: Promise<{ slug: string }>;
 };
 
-export default function ProductDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = use(params);
-  const product = getProductBySlug(slug);
-  const { addItem, items } = useCart();
-  const [justAdded, setJustAdded] = useState(false);
-
-  const extras = productExtras[slug] || {
-    features: ["Professional installation available", "Quality guaranteed"],
-    specs: [{ label: "Warranty", value: "1 Year" }],
-  };
-
-  const isInCart = product
-    ? items.some((item) => item.id === product.id)
-    : false;
-
-  const handleAddToCart = () => {
-    if (!product) return;
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-    });
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 1500);
-  };
+// Generate dynamic metadata for SEO
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getStorefrontProduct(slug);
 
   if (!product) {
-    return (
-      <section className="px-4 md:px-8 lg:px-40 py-20 min-h-[60vh] flex flex-col items-center justify-center">
-        <ShoppingCart className="h-16 w-16 text-text-subtle mb-4" />
-        <h1 className="text-2xl font-bold text-text-primary mb-2">
-          Product Not Found
-        </h1>
-        <p className="text-text-muted mb-6">
-          The product you&apos;re looking for doesn&apos;t exist.
-        </p>
-        <Link
-          href="/products"
-          className="px-6 py-2 rounded-md bg-primary hover:opacity-90 text-white font-medium transition-colors"
-        >
-          Browse Products
-        </Link>
-      </section>
-    );
+    return {
+      title: "Product Not Found | Shahzaib Autos",
+    };
   }
 
-  const whatsappMessage = `Hi! I'm interested in: ${product.name} (${formatPrice(product.price)})`;
+  const displayPrice = (product.salePrice ?? product.price) / 100;
+  const primaryImage = product.images[0]?.secureUrl ?? "/placeholder.jpg";
+
+  return {
+    title: `${product.name} | Shahzaib Autos`,
+    description:
+      product.description ||
+      `Shop ${product.name} at Shahzaib Autos. Premium quality car accessories.`,
+    openGraph: {
+      title: product.name,
+      description:
+        product.description || `Shop ${product.name} at Shahzaib Autos.`,
+      images: [{ url: primaryImage, alt: product.name }],
+      type: "website",
+    },
+    other: {
+      "product:price:amount": displayPrice.toString(),
+      "product:price:currency": "PKR",
+    },
+  };
+}
+
+function formatPrice(cents: number): string {
+  return `Rs. ${(cents / 100).toLocaleString("en-PK")}`;
+}
+
+export default async function ProductDetailPage({ params }: Props) {
+  const { slug } = await params;
+  const product = await getStorefrontProduct(slug);
+
+  if (!product) {
+    notFound();
+  }
+
+  // Fetch related products
+  const relatedProducts = await getRelatedProducts(
+    product.id,
+    product.category,
+    4,
+  );
+
+  const primaryImage = product.images[0]?.secureUrl ?? "/placeholder.jpg";
+  const hasDiscount =
+    product.salePrice !== null && product.salePrice < product.price;
+  const displayPrice = product.salePrice ?? product.price;
+  const discountPercent = hasDiscount
+    ? Math.round(((product.price - product.salePrice!) / product.price) * 100)
+    : 0;
+
+  const isInStock = product.inventory && product.inventory.quantity > 0;
+  const stockQuantity = product.inventory?.quantity ?? 0;
+
+  const whatsappMessage = `Hi! I'm interested in: ${product.name} (${formatPrice(displayPrice)})`;
   const whatsappUrl = generateWhatsAppUrl(whatsappMessage);
 
   return (
     <>
       {/* Breadcrumb */}
-      <section className="border-b border-border bg-section-bg pt-6 pb-6 transition-colors duration-300">
-        <div className="px-4 md:px-8 lg:px-40">
+      <section className="border-b bg-muted/30 pt-6 pb-6">
+        <div className="container px-4 md:px-8 lg:px-16 max-w-7xl mx-auto">
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
             <ChevronLeft className="h-4 w-4" />
             Back to Products
           </Link>
-          <nav className="flex items-center text-sm text-text-subtle">
+          <nav className="flex items-center text-sm text-muted-foreground">
             <Link href="/" className="hover:text-primary transition-colors">
               Home
             </Link>
-            <span className="mx-2 text-text-subtle">/</span>
+            <span className="mx-2">/</span>
             <Link
               href="/products"
               className="hover:text-primary transition-colors"
             >
               Products
             </Link>
-            <span className="mx-2 text-text-subtle">/</span>
-            <span className="text-text-primary font-medium">
-              {product.name}
-            </span>
+            <span className="mx-2">/</span>
+            <span className="text-foreground font-medium">{product.name}</span>
           </nav>
         </div>
       </section>
 
       {/* Product Details */}
-      <section className="px-4 md:px-8 lg:px-40 py-12">
+      <section className="container px-4 md:px-8 lg:px-16 max-w-7xl mx-auto py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image */}
-          <div className="aspect-4/3 relative rounded-xl overflow-hidden bg-card border border-border">
-            <Image
-              src={product.image}
-              alt={product.name}
-              fill
-              className="object-cover"
-              priority
-            />
-            {product.badge && (
-              <div
-                className="absolute top-4 right-4 text-white text-xs font-bold px-3 py-1.5 rounded shadow-lg"
-                style={{
-                  backgroundColor:
-                    typeof product.badge === "object"
-                      ? product.badge.color
-                      : "#3B82F6",
-                }}
-              >
-                {typeof product.badge === "object"
-                  ? product.badge.name
-                  : product.badge}
-              </div>
-            )}
-          </div>
+          {/* Image Gallery */}
+          <ImageGallery images={product.images} productName={product.name} />
 
           {/* Product Info */}
           <div className="space-y-6">
+            {/* Category & Badge */}
+            <div className="flex items-center gap-2">
+              {product.category && (
+                <p className="text-sm text-primary font-medium uppercase tracking-wide">
+                  {product.category}
+                </p>
+              )}
+              {product.badge && (
+                <Badge
+                  style={{ backgroundColor: product.badge.color }}
+                  className="text-white"
+                >
+                  {product.badge.name}
+                </Badge>
+              )}
+            </div>
+
+            {/* Name & Description */}
             <div>
-              <p className="text-sm text-primary font-medium uppercase tracking-wide mb-2">
-                {product.category.charAt(0).toUpperCase() +
-                  product.category.slice(1)}
-              </p>
-              <h1 className="text-3xl md:text-4xl font-black text-text-primary mb-3">
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
                 {product.name}
               </h1>
-              <p className="text-text-muted text-lg leading-relaxed">
-                {product.description}
+              {product.description && (
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  {product.description}
+                </p>
+              )}
+            </div>
+
+            {/* SKU */}
+            {product.sku && (
+              <p className="text-sm text-muted-foreground">
+                SKU: {product.sku}
               </p>
-            </div>
+            )}
 
-            <div className="flex items-baseline gap-3 pb-6 border-b border-border">
-              <span className="text-4xl font-black text-text-primary">
-                {formatPrice(product.price)}
+            <Separator />
+
+            {/* Price */}
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-bold">
+                {formatPrice(displayPrice)}
               </span>
+              {hasDiscount && (
+                <>
+                  <span className="text-xl text-muted-foreground line-through">
+                    {formatPrice(product.price)}
+                  </span>
+                  <Badge variant="destructive">-{discountPercent}% OFF</Badge>
+                </>
+              )}
             </div>
 
-            {/* Features */}
-            <div>
-              <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                <Check className="h-5 w-5 text-primary" />
-                Key Features
-              </h3>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {extras.features.map((feature, index) => (
-                  <li
-                    key={index}
-                    className="flex items-start gap-2 text-text-secondary"
-                  >
-                    <Check className="h-4 w-4 text-[#25D366] mt-0.5 shrink-0" />
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Stock Status */}
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              {isInStock ? (
+                <span className="text-sm text-green-600 font-medium">
+                  In Stock ({stockQuantity} available)
+                </span>
+              ) : (
+                <span className="text-sm text-red-600 font-medium">
+                  Out of Stock
+                </span>
+              )}
             </div>
+
+            <Separator />
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <button
-                onClick={handleAddToCart}
-                disabled={justAdded}
-                className={`flex-1 h-14 rounded-lg font-semibold flex items-center justify-center gap-3 transition-all shadow-lg ${
-                  justAdded
-                    ? "bg-green-600 text-white"
-                    : "bg-primary hover:opacity-90 text-white"
-                }`}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <AddToCartButton
+                product={{
+                  id: product.id,
+                  name: product.name,
+                  price: displayPrice / 100,
+                  image: primaryImage,
+                }}
+                disabled={!isInStock}
+              />
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1 h-14 gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white border-0"
+                asChild
               >
-                {justAdded ? (
-                  <>
-                    <Check className="h-5 w-5" />
-                    Added to Cart!
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="h-5 w-5" />
-                    {isInCart ? "Add Another" : "Add to Cart"}
-                  </>
-                )}
-              </button>
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 h-14 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold flex items-center justify-center gap-3 transition-all shadow-lg"
-              >
-                <MessageCircle className="h-5 w-5" />
-                Ask on WhatsApp
-              </a>
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-5 w-5" />
+                  Ask on WhatsApp
+                </a>
+              </Button>
             </div>
 
             {/* Trust Badges */}
             <div className="flex flex-wrap gap-4 pt-4">
-              <div className="flex items-center gap-2 text-text-muted text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Truck className="h-4 w-4" />
                 Free Installation
               </div>
-              <div className="flex items-center gap-2 text-text-muted text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Shield className="h-4 w-4" />
                 Warranty Included
               </div>
-              <div className="flex items-center gap-2 text-text-muted text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Headphones className="h-4 w-4" />
                 24/7 Support
               </div>
@@ -259,50 +244,37 @@ export default function ProductDetailPage({
         </div>
       </section>
 
-      {/* Specifications */}
-      <section className="px-4 md:px-8 lg:px-40 pb-16">
-        <div className="bg-card border border-border rounded-xl p-6 md:p-8 transition-colors duration-300">
-          <h2 className="text-xl font-bold text-text-primary mb-6">
-            Specifications
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {extras.specs.map((spec, index) => (
-              <div
-                key={index}
-                className="flex flex-col p-4 bg-background rounded-lg border border-border"
-              >
-                <span className="text-sm text-text-subtle mb-1">
-                  {spec.label}
-                </span>
-                <span className="text-text-primary font-medium">
-                  {spec.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Book Installation CTA */}
-      <section className="px-4 md:px-8 lg:px-40 pb-16">
-        <div className="bg-linear-to-r from-primary/10 to-card border border-border rounded-xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 transition-colors duration-300">
+      <section className="container px-4 md:px-8 lg:px-16 max-w-7xl mx-auto pb-12">
+        <div className="bg-linear-to-r from-primary/10 to-card border rounded-xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
-            <h2 className="text-2xl font-bold text-text-primary mb-2">
+            <h2 className="text-2xl font-bold mb-2">
               Need Professional Installation?
             </h2>
-            <p className="text-text-muted">
+            <p className="text-muted-foreground">
               Book a home installation appointment with our expert technicians.
             </p>
           </div>
-          <Link
-            href="/booking"
-            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:opacity-90 text-white font-semibold transition-colors whitespace-nowrap"
-          >
-            <Calendar className="h-5 w-5" />
-            Book Installation
-          </Link>
+          <Button size="lg" asChild>
+            <Link href="/booking" className="gap-2">
+              <Calendar className="h-5 w-5" />
+              Book Installation
+            </Link>
+          </Button>
         </div>
       </section>
+
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <section className="container px-4 md:px-8 lg:px-16 max-w-7xl mx-auto pb-16">
+          <h2 className="text-2xl font-bold mb-6">Related Products</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {relatedProducts.map((relatedProduct) => (
+              <ProductCard key={relatedProduct.id} product={relatedProduct} />
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }
