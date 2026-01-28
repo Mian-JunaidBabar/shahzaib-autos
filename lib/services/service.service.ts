@@ -1,4 +1,4 @@
-import { deleteImageFromCloudinary } from "@/lib/cloudinary";
+import { deleteImage, extractPublicId } from "@/lib/cloudinary";
 import { Prisma } from "@prisma/client";
 /**
  * Service Service
@@ -196,13 +196,27 @@ export async function updateService(id: string, input: UpdateServiceInput) {
     }
   }
 
-  // If image is being changed, delete the old one from Cloudinary
-  if (
-    input.imagePublicId !== undefined &&
-    existing.imagePublicId &&
-    input.imagePublicId !== existing.imagePublicId
-  ) {
-    await deleteImageFromCloudinary(existing.imagePublicId);
+  // If image is being removed or changed, delete the old one from Cloudinary.
+  // (Soft-fail deletion: never blocks the DB update.)
+  const isImageUrlProvided = input.imageUrl !== undefined;
+  const isImagePublicIdProvided = input.imagePublicId !== undefined;
+
+  const oldUrl = existing.imageUrl ?? null;
+  const newUrl = isImageUrlProvided ? (input.imageUrl ?? null) : oldUrl;
+
+  const oldPublicId =
+    existing.imagePublicId ?? (oldUrl ? extractPublicId(oldUrl) : null);
+
+  const newPublicId =
+    (isImagePublicIdProvided ? input.imagePublicId : undefined) ??
+    (newUrl ? extractPublicId(newUrl) : null);
+
+  const imageChanged =
+    (isImageUrlProvided && newUrl !== oldUrl) ||
+    (isImagePublicIdProvided && newPublicId !== oldPublicId);
+
+  if (imageChanged && oldPublicId) {
+    await Promise.allSettled([deleteImage(oldPublicId)]);
   }
 
   return prisma.service.update({
@@ -239,18 +253,13 @@ export async function deleteService(
     return { success: false, error: "Service not found" };
   }
 
-  // Delete image from Cloudinary first
-  if (service.imagePublicId) {
-    const cloudinaryResult = await deleteImageFromCloudinary(
-      service.imagePublicId,
-    );
-    if (!cloudinaryResult.success) {
-      console.warn(
-        `Failed to delete Cloudinary image for service ${id}:`,
-        cloudinaryResult.error,
-      );
-      // Continue with deletion even if Cloudinary fails (image might already be deleted)
-    }
+  // Step 1/2: Delete image from Cloudinary (soft-fail)
+  const publicId =
+    service.imagePublicId ??
+    (service.imageUrl ? extractPublicId(service.imageUrl) : null);
+
+  if (publicId) {
+    await Promise.allSettled([deleteImage(publicId)]);
   }
 
   // Delete from database

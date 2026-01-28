@@ -9,7 +9,6 @@ import {
   Image as ImageIcon,
   Upload,
   X,
-  Loader2,
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
@@ -24,10 +23,7 @@ import { BadgeSelector } from "@/components/ui/badge-selector";
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import { createProductAction } from "@/app/actions/productActions";
 import { getActiveBadgesAction } from "@/app/actions/badgeActions";
-import {
-  saveProductImage,
-  deleteProductImage,
-} from "@/app/actions/imageActions";
+import { saveProductImage } from "@/app/actions/imageActions";
 import { toast } from "sonner";
 
 interface Badge {
@@ -37,11 +33,9 @@ interface Badge {
   isActive: boolean;
 }
 
-interface PreUploadedImage {
-  id: string;
-  url: string;
-  publicId: string;
-  isLoading?: boolean;
+interface ImagePreview {
+  file: File;
+  preview: string;
 }
 
 export default function NewProductPage() {
@@ -49,10 +43,7 @@ export default function NewProductPage() {
   const [isPending, startTransition] = useTransition();
   const [badges, setBadges] = useState<Badge[]>([]);
   const [isLoadingBadges, setIsLoadingBadges] = useState(true);
-  const [preUploadedImages, setPreUploadedImages] = useState<
-    PreUploadedImage[]
-  >([]);
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [imageFiles, setImageFiles] = useState<ImagePreview[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -78,6 +69,24 @@ export default function NewProductPage() {
     if (selling <= 0 || cost <= 0) return null;
     return (((selling - cost) / selling) * 100).toFixed(1);
   })();
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      imageFiles.forEach((img) => {
+        URL.revokeObjectURL(img.preview);
+      });
+    };
+  }, [imageFiles]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      imageFiles.forEach((img) => {
+        URL.revokeObjectURL(img.preview);
+      });
+    };
+  }, [imageFiles]);
 
   useEffect(() => {
     const loadBadges = async () => {
@@ -116,7 +125,7 @@ export default function NewProductPage() {
   };
 
   const handleSubmit = () => {
-    setSubmitError(null); // Clear previous errors
+    setSubmitError(null);
     startTransition(async () => {
       const price = Math.round(Number(form.price || 0) * 100);
       const salePrice = form.salePrice
@@ -145,27 +154,35 @@ export default function NewProductPage() {
       });
 
       if (result.success && result.data) {
-        // Save pre-uploaded images to database
-        if (preUploadedImages.length > 0) {
-          let successCount = 0;
-          for (let i = 0; i < preUploadedImages.length; i++) {
-            const img = preUploadedImages[i];
-            const imageResult = await saveProductImage({
-              productId: result.data.id,
-              secureUrl: img.url,
-              publicId: img.publicId,
-              isPrimary: i === 0, // First image is primary
-              sortOrder: i,
-            });
-            if (imageResult.success) {
-              successCount++;
-            }
-          }
+        // Upload images to Cloudinary in parallel, then save to DB
+        if (imageFiles.length > 0) {
+          try {
+            const uploadPromises = imageFiles.map((img) =>
+              uploadImageToCloudinary(img.file),
+            );
+            const uploadResults = await Promise.all(uploadPromises);
 
-          if (successCount > 0) {
-            toast.success(`Product created with ${successCount} image(s)`);
-          } else {
-            toast.success("Product created (but images failed to save)");
+            const savePromises = uploadResults.map((upload, i) =>
+              saveProductImage({
+                productId: result.data!.id,
+                secureUrl: upload.secure_url,
+                publicId: upload.public_id,
+                isPrimary: i === 0,
+                sortOrder: i,
+              }),
+            );
+
+            const saveResults = await Promise.all(savePromises);
+            const successCount = saveResults.filter((r) => r.success).length;
+
+            if (successCount > 0) {
+              toast.success(`Product created with ${successCount} image(s)`);
+            } else {
+              toast.success("Product created (but images failed to save)");
+            }
+          } catch (error) {
+            console.error("Image upload error:", error);
+            toast.success("Product created (but images failed to upload)");
           }
         } else {
           toast.success("Product created");
@@ -173,12 +190,10 @@ export default function NewProductPage() {
 
         router.push(`/admin/dashboard/inventory/${result.data.id}`);
       } else {
-        // Parse validation errors if they exist
         let errorMessage = result.error || "Failed to create product";
         try {
           const parsed = JSON.parse(errorMessage);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            // Extract the first validation error message
             errorMessage = parsed[0].message || errorMessage;
           }
         } catch {
@@ -189,7 +204,7 @@ export default function NewProductPage() {
     });
   };
 
-  const handleFileSelect = async (files: FileList | null) => {
+  const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
 
     const validFiles = Array.from(files).filter((file) => {
@@ -206,74 +221,33 @@ export default function NewProductPage() {
 
     if (validFiles.length === 0) return;
 
-    if (preUploadedImages.length + validFiles.length > 10) {
+    if (imageFiles.length + validFiles.length > 10) {
       setUploadError("Maximum 10 images allowed");
       return;
     }
 
-    setIsUploadingImages(true);
     setUploadError(null);
 
-    for (const file of validFiles) {
-      try {
-        const preview = URL.createObjectURL(file);
-        const tempId = `temp-${Date.now()}-${Math.random()}`;
+    // Create local previews only - no upload yet
+    const newPreviews = validFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
 
-        // Add loading state
-        setPreUploadedImages((prev) => [
-          ...prev,
-          { id: tempId, url: preview, publicId: "", isLoading: true },
-        ]);
-
-        // Upload to Cloudinary
-        const uploadResponse = await uploadImageToCloudinary(file);
-
-        // Replace preview with actual URL using temp ID
-        setPreUploadedImages((prev) =>
-          prev.map((img) =>
-            img.id === tempId
-              ? {
-                  id: tempId,
-                  url: uploadResponse.secure_url,
-                  publicId: uploadResponse.public_id,
-                  isLoading: false,
-                }
-              : img,
-          ),
-        );
-      } catch (error) {
-        console.error("Upload error:", error);
-        setUploadError(
-          error instanceof Error ? error.message : "Upload failed",
-        );
-        // Remove failed image
-        setPreUploadedImages((prev) => prev.filter((img) => !img.isLoading));
-      }
-    }
-
-    setIsUploadingImages(false);
-    setSuccessMessage(`Uploaded ${validFiles.length} image(s)`);
+    setImageFiles((prev) => [...prev, ...newPreviews]);
+    setSuccessMessage(`${validFiles.length} image(s) ready to upload`);
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  const handleRemoveImage = async (index: number) => {
-    const image = preUploadedImages[index];
-    if (image.isLoading) return;
-
-    try {
-      // Delete from Cloudinary via server action
-      if (image.publicId) {
-        await deleteProductImage(undefined, image.publicId);
-      }
-
-      // Remove from UI state
-      setPreUploadedImages((prev) => prev.filter((_, i) => i !== index));
-      setSuccessMessage("Image removed");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error("Delete error:", error);
-      setUploadError("Failed to delete image");
-    }
+  const handleRemoveImage = (index: number) => {
+    setImageFiles((prev) => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].preview);
+      updated.splice(index, 1);
+      return updated;
+    });
+    setSuccessMessage("Image removed");
+    setTimeout(() => setSuccessMessage(null), 3000);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -503,23 +477,17 @@ export default function NewProductPage() {
               multiple
               accept="image/*"
               onChange={(e) => handleFileSelect(e.target.files)}
-              disabled={isUploadingImages || preUploadedImages.length >= 10}
+              disabled={imageFiles.length >= 10}
               className="absolute inset-0 cursor-pointer opacity-0"
             />
 
             <div className="flex flex-col items-center space-y-2">
-              {isUploadingImages ? (
-                <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-              ) : (
-                <Upload className="h-10 w-10 text-gray-400" />
-              )}
+              <Upload className="h-10 w-10 text-gray-400" />
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {isUploadingImages
-                  ? "Uploading..."
-                  : "Drop images here or click to upload"}
+                Drop images here or click to upload
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {preUploadedImages.length}/10 images • Max 5MB per image
+                {imageFiles.length}/10 images • Max 5MB per image
               </p>
             </div>
           </div>
@@ -550,53 +518,43 @@ export default function NewProductPage() {
           )}
 
           {/* Image Grid */}
-          {preUploadedImages.length > 0 && (
+          {imageFiles.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {preUploadedImages.map((image, index) => (
+              {imageFiles.map((image, index) => (
                 <div
                   key={index}
                   className="group relative aspect-square overflow-hidden rounded-lg border-2 border-transparent bg-gray-100 transition-all hover:border-gray-300 dark:bg-gray-800"
                 >
                   {/* Image */}
                   <img
-                    src={image.url}
+                    src={image.preview}
                     alt={`Upload ${index + 1}`}
                     className="h-full w-full object-cover"
                   />
 
                   {/* Primary Badge */}
-                  {index === 0 && preUploadedImages.length > 0 && (
+                  {index === 0 && (
                     <Badge className="absolute left-1 top-1 bg-blue-500 text-white hover:bg-blue-600">
                       Primary
                     </Badge>
                   )}
 
-                  {/* Loading Overlay */}
-                  {image.isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <Loader2 className="h-6 w-6 animate-spin text-white" />
-                    </div>
-                  )}
-
                   {/* Delete Button */}
-                  {!image.isLoading && (
-                    <button
-                      onClick={() => handleRemoveImage(index)}
-                      disabled={isUploadingImages}
-                      className="absolute right-2 top-2 hidden rounded-full bg-red-500 p-1.5 text-white transition-all hover:bg-red-600 disabled:opacity-50 group-hover:block"
-                      aria-label="Delete image"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute right-2 top-2 hidden rounded-full bg-red-500 p-1.5 text-white transition-all hover:bg-red-600 group-hover:block"
+                    aria-label="Delete image"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </div>
           )}
 
-          {preUploadedImages.length === 0 && !isUploadingImages && (
+          {imageFiles.length === 0 && (
             <p className="text-center text-sm text-muted-foreground">
-              No images uploaded yet. Upload images above (optional).
+              No images selected. Upload images above (optional).
             </p>
           )}
         </CardContent>

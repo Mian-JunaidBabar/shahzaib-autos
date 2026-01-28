@@ -12,32 +12,132 @@ cloudinary.config({
 export default cloudinary;
 
 /**
- * Extract public_id from a Cloudinary URL
- * URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{version}/{public_id}.{format}
+ * Extract Cloudinary public_id from a Cloudinary delivery URL.
+ *
+ * Supports versioned and unversioned URLs, and strips transformations.
+ * Example:
+ * https://.../upload/v123/shahzaib-autos/products/tire.jpg -> shahzaib-autos/products/tire
  */
-export function extractPublicIdFromUrl(url: string): string | null {
+const TRANSFORMATION_PREFIXES = [
+  "a_",
+  "ar_",
+  "b_",
+  "bo_",
+  "c_",
+  "co_",
+  "dpr_",
+  "e_",
+  "f_",
+  "fl_",
+  "g_",
+  "h_",
+  "l_",
+  "o_",
+  "q_",
+  "r_",
+  "t_",
+  "u_",
+  "w_",
+  "x_",
+  "y_",
+  "z_",
+];
+
+function isLikelyTransformationSegment(segment: string): boolean {
+  if (!segment) return false;
+  if (segment.includes(",")) return true;
+  return TRANSFORMATION_PREFIXES.some((prefix) => segment.startsWith(prefix));
+}
+
+export function extractPublicId(urlOrPublicId: string): string | null {
+  const value = (urlOrPublicId ?? "").trim();
+  if (!value) return null;
+
+  // If this doesn't look like a Cloudinary delivery URL, assume it's already a public_id.
+  if (!value.includes("/upload/") && !/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
   try {
-    // Handle URLs with version: .../upload/v1234567890/folder/image.jpg
-    // Handle URLs without version: .../upload/folder/image.jpg
-    const uploadIndex = url.indexOf("/upload/");
+    const parsed = new URL(value);
+    const pathname = parsed.pathname;
+    const uploadIndex = pathname.indexOf("/upload/");
     if (uploadIndex === -1) return null;
 
-    let path = url.substring(uploadIndex + 8); // Skip "/upload/"
+    const afterUpload = pathname.slice(uploadIndex + "/upload/".length);
+    const segments = afterUpload.split("/").filter(Boolean);
 
-    // Remove version prefix if present (v followed by digits)
-    if (path.startsWith("v") && /^v\d+\//.test(path)) {
-      path = path.replace(/^v\d+\//, "");
+    // Drop transformation segments (if present)
+    while (segments.length > 0 && isLikelyTransformationSegment(segments[0])) {
+      segments.shift();
     }
 
-    // Remove file extension
-    const lastDotIndex = path.lastIndexOf(".");
-    if (lastDotIndex !== -1) {
-      path = path.substring(0, lastDotIndex);
+    // Drop version segment (v1234)
+    if (segments.length > 0 && /^v\d+$/.test(segments[0])) {
+      segments.shift();
     }
 
-    return path || null;
+    if (segments.length === 0) return null;
+
+    // Remove file extension from final segment
+    const last = segments[segments.length - 1];
+    segments[segments.length - 1] = last.replace(/\.[^/.]+$/, "");
+
+    const publicId = segments.join("/");
+    return publicId || null;
   } catch {
-    return null;
+    // Fallback for non-URL inputs that still include /upload/
+    const uploadIndex = value.indexOf("/upload/");
+    if (uploadIndex === -1) return null;
+    const afterUpload = value.slice(uploadIndex + "/upload/".length);
+    const withoutQuery = afterUpload.split("?")[0].split("#")[0];
+    const segments = withoutQuery.split("/").filter(Boolean);
+
+    while (segments.length > 0 && isLikelyTransformationSegment(segments[0])) {
+      segments.shift();
+    }
+    if (segments.length > 0 && /^v\d+$/.test(segments[0])) {
+      segments.shift();
+    }
+    if (segments.length === 0) return null;
+
+    const last = segments[segments.length - 1];
+    segments[segments.length - 1] = last.replace(/\.[^/.]+$/, "");
+    const publicId = segments.join("/");
+    return publicId || null;
+  }
+}
+
+/**
+ * Backwards-compatible alias.
+ */
+export function extractPublicIdFromUrl(url: string): string | null {
+  return extractPublicId(url);
+}
+
+async function destroyImage(publicId: string): Promise<string | undefined> {
+  const result = await cloudinary.uploader.destroy(publicId, {
+    invalidate: true,
+  });
+
+  return typeof result?.result === "string" ? result.result : undefined;
+}
+
+/**
+ * Delete an image from Cloudinary by public_id.
+ * Soft-fail: logs and never throws.
+ */
+export async function deleteImage(publicId: string): Promise<void> {
+  if (!publicId) return;
+  try {
+    const result = await destroyImage(publicId);
+
+    // "not found" is acceptable: image may already be deleted
+    if (result && result !== "ok" && result !== "not found") {
+      console.error(`Cloudinary delete returned '${result}' for ${publicId}`);
+    }
+  } catch (error) {
+    console.error(`Error deleting Cloudinary image ${publicId}:`, error);
   }
 }
 
@@ -53,19 +153,15 @@ export async function deleteImageFromCloudinary(
       return { success: false, error: "No public_id provided" };
     }
 
-    const result = await cloudinary.uploader.destroy(publicId, {
-      invalidate: true,
-    });
+    const result = await destroyImage(publicId);
 
-    if (result.result === "ok" || result.result === "not found") {
-      // "not found" is acceptable - image may have been already deleted
+    if (result === "ok" || result === "not found") {
       return { success: true };
     }
 
-    return {
-      success: false,
-      error: `Cloudinary delete failed: ${result.result}`,
-    };
+    // Soft-fail behavior: log and return failure, caller decides whether to block.
+    console.error(`Cloudinary delete returned '${result}' for ${publicId}`);
+    return { success: false, error: `Cloudinary delete failed: ${result}` };
   } catch (error) {
     console.error("Error deleting image from Cloudinary:", error);
     return {
@@ -82,21 +178,31 @@ export async function deleteImageFromCloudinary(
 export async function deleteImagesFromCloudinary(
   publicIds: string[],
 ): Promise<{ success: boolean; deletedCount: number; errors: string[] }> {
+  const unique = Array.from(
+    new Set((publicIds ?? []).map((p) => p?.trim()).filter(Boolean)),
+  );
+  const results = await Promise.allSettled(
+    unique.map(async (publicId) => {
+      const result = await deleteImageFromCloudinary(publicId);
+      return { publicId, result };
+    }),
+  );
+
   const errors: string[] = [];
   let deletedCount = 0;
 
-  for (const publicId of publicIds) {
-    const result = await deleteImageFromCloudinary(publicId);
-    if (result.success) {
+  for (const item of results) {
+    if (item.status === "rejected") {
+      errors.push(`Unknown error: ${String(item.reason)}`);
+      continue;
+    }
+
+    if (item.value.result.success) {
       deletedCount++;
-    } else if (result.error) {
-      errors.push(`${publicId}: ${result.error}`);
+    } else if (item.value.result.error) {
+      errors.push(`${item.value.publicId}: ${item.value.result.error}`);
     }
   }
 
-  return {
-    success: errors.length === 0,
-    deletedCount,
-    errors,
-  };
+  return { success: errors.length === 0, deletedCount, errors };
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { Save, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { Save, ArrowLeft, Image as ImageIcon, X, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BadgeSelector } from "@/components/ui/badge-selector";
-import { ProductImageManager } from "@/components/admin/product-image-manager";
 import {
   getProductAction,
   updateProductAction,
 } from "@/app/actions/productActions";
 import { getActiveBadgesAction } from "@/app/actions/badgeActions";
+import {
+  getProductImages,
+  deleteProductImage,
+  saveProductImage,
+} from "@/app/actions/imageActions";
+import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import { toast } from "sonner";
 
 interface Badge {
@@ -26,13 +31,27 @@ interface Badge {
   isActive: boolean;
 }
 
+interface ExistingImage {
+  id: string;
+  secureUrl: string;
+  publicId: string;
+  isPrimary: boolean;
+  sortOrder: number;
+}
+
+interface NewImagePreview {
+  file: File;
+  preview: string;
+}
+
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
   const [badges, setBadges] = useState<Badge[]>([]);
-  const [currentImages, setCurrentImages] = useState<string[]>([]); // Track image publicIds
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [newImages, setNewImages] = useState<NewImagePreview[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
@@ -94,11 +113,25 @@ export default function EditProductPage() {
         lowStockThreshold: (p.inventory?.lowStockAt ?? 10).toString(),
         isActive: p.isActive,
       });
+
+      // Load existing images
+      const imagesResult = await getProductImages(params.id);
+      if (imagesResult.success && imagesResult.data) {
+        setExistingImages(imagesResult.data);
+      }
+
       setIsLoading(false);
     };
 
     load();
   }, [params?.id, router]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      newImages.forEach((img) => URL.revokeObjectURL(img.preview));
+    };
+  }, [newImages]);
 
   const normalizeSlug = (value: string) =>
     value
@@ -129,57 +162,135 @@ export default function EditProductPage() {
     if (!params?.id) return;
     setSubmitError(null); // Clear previous errors
     startTransition(async () => {
-      const price = Math.round(Number(form.price || 0) * 100);
-      const salePrice = form.salePrice
-        ? Math.round(Number(form.salePrice || 0) * 100)
-        : undefined;
-      const costPrice = form.costPrice
-        ? Math.round(Number(form.costPrice || 0) * 100)
-        : undefined;
-      const stock = Number(form.stock || 0);
-      const lowStockThreshold = Number(form.lowStockThreshold || 0);
+      try {
+        const price = Math.round(Number(form.price || 0) * 100);
+        const salePrice = form.salePrice
+          ? Math.round(Number(form.salePrice || 0) * 100)
+          : undefined;
+        const costPrice = form.costPrice
+          ? Math.round(Number(form.costPrice || 0) * 100)
+          : undefined;
+        const stock = Number(form.stock || 0);
+        const lowStockThreshold = Number(form.lowStockThreshold || 0);
 
-      const result = await updateProductAction({
-        id: params.id,
-        name: form.name,
-        slug: form.slug || undefined,
-        sku: form.sku,
-        description: form.description || undefined,
-        price,
-        salePrice,
-        costPrice,
-        barcode: form.barcode || undefined,
-        category: form.category || undefined,
-        badgeId: form.badgeId || undefined,
-        stock,
-        lowStockThreshold,
-        isActive: form.isActive,
-        keepImagePublicIds: currentImages, // Pass the current image list
-      });
+        // Update product first
+        const result = await updateProductAction({
+          id: params.id,
+          name: form.name,
+          slug: form.slug || undefined,
+          sku: form.sku,
+          description: form.description || undefined,
+          price,
+          salePrice,
+          costPrice,
+          barcode: form.barcode || undefined,
+          category: form.category || undefined,
+          badgeId: form.badgeId || undefined,
+          stock,
+          lowStockThreshold,
+          isActive: form.isActive,
+          keepImagePublicIds: existingImages.map((img) => img.publicId),
+        });
 
-      if (result.success) {
+        if (!result.success) {
+          // Parse validation errors if they exist
+          let errorMessage = result.error || "Failed to update product";
+          try {
+            const parsed = JSON.parse(errorMessage);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              errorMessage = parsed[0].message || errorMessage;
+            }
+          } catch {
+            // Not JSON, use as-is
+          }
+          setSubmitError(errorMessage);
+          return;
+        }
+
+        // Upload new images in parallel
+        if (newImages.length > 0) {
+          const uploadPromises = newImages.map((img, index) =>
+            uploadImageToCloudinary(img.file).then((uploadResult) =>
+              saveProductImage({
+                productId: params.id,
+                secureUrl: uploadResult.secure_url,
+                publicId: uploadResult.public_id,
+                isPrimary: existingImages.length === 0 && index === 0,
+                sortOrder: existingImages.length + index,
+              }),
+            ),
+          );
+
+          const imageResults = await Promise.all(uploadPromises);
+          const failedUploads = imageResults.filter((r) => !r.success);
+
+          if (failedUploads.length > 0) {
+            toast.warning(
+              `Product updated but ${failedUploads.length} image(s) failed to upload`,
+            );
+          }
+        }
+
         toast.success("Product updated");
         router.push(`/admin/dashboard/inventory/${params.id}`);
-      } else {
-        // Parse validation errors if they exist
-        let errorMessage = result.error || "Failed to update product";
-        try {
-          const parsed = JSON.parse(errorMessage);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Extract the first validation error message
-            errorMessage = parsed[0].message || errorMessage;
-          }
-        } catch {
-          // Not JSON, use as-is
-        }
-        setSubmitError(errorMessage);
+      } catch (error) {
+        console.error("Update error:", error);
+        setSubmitError(
+          error instanceof Error ? error.message : "Failed to update product",
+        );
       }
     });
   };
 
-  const handleImagesChange = useCallback((images: { publicId: string }[]) => {
-    setCurrentImages(images.map((img) => img.publicId));
-  }, []);
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Only image files are allowed");
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    const totalImages =
+      existingImages.length + newImages.length + validFiles.length;
+    if (totalImages > 10) {
+      toast.error("Maximum 10 images allowed");
+      return;
+    }
+
+    const newPreviews = validFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+
+    setNewImages((prev) => [...prev, ...newPreviews]);
+  };
+
+  const handleRemoveNewImage = (index: number) => {
+    const imageToRemove = newImages[index];
+    URL.revokeObjectURL(imageToRemove.preview);
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingImage = async (index: number) => {
+    const image = existingImages[index];
+    try {
+      await deleteProductImage(image.id, image.publicId);
+      setExistingImages((prev) => prev.filter((_, i) => i !== index));
+      toast.success("Image removed");
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete image");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -376,23 +487,116 @@ export default function EditProductPage() {
       </Card>
 
       {/* Product Images */}
-      {params?.id && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" />
-              Product Images
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProductImageManager
-              productId={params.id}
-              maxFiles={10}
-              onImagesChange={handleImagesChange}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Product Images
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Existing Images */}
+          {existingImages.length > 0 && (
+            <div>
+              <Label className="mb-2 block">Current Images</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {existingImages.map((image, index) => (
+                  <div key={image.id} className="relative group">
+                    <img
+                      src={image.secureUrl}
+                      alt={`Product ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                    {image.isPrimary && (
+                      <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                        Primary
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExistingImage(index)}
+                      className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={isPending}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* New Images (not uploaded yet) */}
+          {newImages.length > 0 && (
+            <div>
+              <Label className="mb-2 block">
+                New Images (will upload on save)
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {newImages.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={image.preview}
+                      alt={`New ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border border-dashed border-primary"
+                    />
+                    <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                      New
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveNewImage(index)}
+                      className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={isPending}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upload Area */}
+          {existingImages.length + newImages.length < 10 && (
+            <div>
+              <Label className="mb-2 block">Add More Images</Label>
+              <div className="relative rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center transition-colors dark:border-gray-600 dark:bg-gray-900">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                  disabled={
+                    isPending || existingImages.length + newImages.length >= 10
+                  }
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+                <div className="flex flex-col items-center space-y-2">
+                  <Upload className="h-10 w-10 text-gray-400" />
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    Drop images here or click to upload
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {existingImages.length + newImages.length}/10 images • Max
+                    5MB per image
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <p className="text-sm text-muted-foreground">
+            {existingImages.length + newImages.length} / 10 images
+            {newImages.length > 0 && (
+              <span className="text-blue-600">
+                {" "}
+                · {newImages.length} new image(s) will upload when you save
+              </span>
+            )}
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
