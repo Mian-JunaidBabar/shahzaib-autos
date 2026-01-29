@@ -116,17 +116,37 @@ export async function createBookingAction(
  * Update booking status
  */
 export async function updateBookingStatusAction(
-  input: BookingUpdateInput,
+  input: BookingUpdateInput | string,
+  status?: string,
+  reschedule?: { date: string; timeSlot: string },
 ): Promise<ActionResult<{ whatsappUrl?: string }>> {
   try {
     await requireAdmin();
 
-    const validated = bookingUpdateSchema.parse(input);
-    const booking = await BookingService.updateBookingStatus(
-      validated.id,
-      validated.status,
-      validated.notes,
-    );
+    let id: string;
+    let newStatus: string;
+
+    // Handle both old and new call signatures
+    if (typeof input === "string") {
+      id = input;
+      newStatus = status || "PENDING";
+    } else {
+      const validated = bookingUpdateSchema.parse(input);
+      id = validated.id;
+      newStatus = validated.status;
+    }
+
+    const updateData: Record<string, unknown> = { status: newStatus };
+    if (reschedule) {
+      updateData.date = new Date(reschedule.date);
+      updateData.timeSlot = reschedule.timeSlot;
+    }
+
+    const booking = await prisma.booking.update({
+      where: { id },
+      data: updateData,
+      include: { customer: true },
+    });
 
     // Generate WhatsApp notification URL
     const notification = NotificationService.sendBookingNotification(
@@ -135,7 +155,7 @@ export async function updateBookingStatusAction(
     );
 
     revalidatePath("/admin/dashboard/bookings");
-    revalidatePath(`/admin/dashboard/bookings/${validated.id}`);
+    revalidatePath(`/admin/dashboard/bookings/${id}`);
 
     return { success: true, data: { whatsappUrl: notification.url } };
   } catch (error) {

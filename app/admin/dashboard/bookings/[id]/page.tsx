@@ -1,181 +1,224 @@
+"use client";
+
+import {
+  getBookingAction,
+  updateBookingStatusAction,
+} from "@/app/actions/bookingActions";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 type BookingDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
 
-interface ServiceItem {
+interface Booking {
   id: string;
-  name: string;
-  description: string;
-  estimatedTime: string;
-  status: "available" | "unavailable";
+  bookingNumber: string;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone: string;
+  address: string;
+  serviceType: string;
+  vehicleInfo: string;
+  date: Date;
+  timeSlot: string;
+  status: string;
+  notes?: string;
 }
-
-interface BookingEvent {
-  id: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  author: string;
-  type: "info" | "success" | "warning" | "error";
-}
-
-const bookingData = {
-  id: "BK001",
-  customer: {
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Main Street, Anytown, AT 12345",
-  },
-  service: {
-    name: "Oil Change & Filter",
-    description: "Complete oil change with premium oil and filter replacement",
-    estimatedTime: "1-2 hours",
-    price: 89.99,
-  },
-  vehicleInfo: {
-    make: "Toyota",
-    model: "Camry",
-    year: 2020,
-    plateNumber: "ABC-1234",
-    vin: "1HGCM82633A123456",
-    mileage: 45000,
-    color: "Silver",
-  },
-  appointment: {
-    date: "2024-01-25",
-    time: "10:00 AM",
-    duration: "2 hours",
-  },
-  status: "confirmed" as const,
-  priority: "normal" as const,
-  notes:
-    "Customer mentioned strange engine noise. Please check during service.",
-  createdDate: "2024-01-20T09:30:00Z",
-  assignedTechnician: "Mike Johnson",
-};
-
-const serviceItems: ServiceItem[] = [
-  {
-    id: "1",
-    name: "Oil Change",
-    description: "Premium synthetic oil replacement",
-    estimatedTime: "30 min",
-    status: "available",
-  },
-  {
-    id: "2",
-    name: "Oil Filter",
-    description: "High-quality oil filter replacement",
-    estimatedTime: "15 min",
-    status: "available",
-  },
-  {
-    id: "3",
-    name: "Engine Inspection",
-    description: "Comprehensive engine diagnostics",
-    estimatedTime: "45 min",
-    status: "available",
-  },
-];
-
-const bookingEvents: BookingEvent[] = [
-  {
-    id: "1",
-    title: "Booking Confirmed",
-    description: "Appointment confirmed by customer service",
-    timestamp: "2024-01-20T10:15:00Z",
-    author: "Admin",
-    type: "success",
-  },
-  {
-    id: "2",
-    title: "Technician Assigned",
-    description: "Mike Johnson assigned to this appointment",
-    timestamp: "2024-01-20T11:30:00Z",
-    author: "Manager",
-    type: "info",
-  },
-  {
-    id: "3",
-    title: "Customer Note Added",
-    description: "Special instructions added for engine noise inspection",
-    timestamp: "2024-01-20T14:20:00Z",
-    author: "Customer Service",
-    type: "info",
-  },
-  {
-    id: "4",
-    title: "Booking Created",
-    description: "New service booking created by customer",
-    timestamp: "2024-01-20T09:30:00Z",
-    author: "Customer",
-    type: "info",
-  },
-];
-
-const getEventIcon = (type: string) => {
-  switch (type) {
-    case "success":
-      return "check_circle";
-    case "warning":
-      return "warning";
-    case "error":
-      return "error";
-    default:
-      return "info";
-  }
-};
-
-const getEventColor = (type: string) => {
-  switch (type) {
-    case "success":
-      return "text-green-500";
-    case "warning":
-      return "text-orange-500";
-    case "error":
-      return "text-red-500";
-    default:
-      return "text-blue-500";
-  }
-};
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "confirmed":
+    case "CONFIRMED":
       return "text-blue-600 bg-blue-50";
-    case "pending":
+    case "PENDING":
       return "text-orange-600 bg-orange-50";
-    case "in-progress":
+    case "IN_PROGRESS":
       return "text-purple-600 bg-purple-50";
-    case "completed":
+    case "COMPLETED":
       return "text-green-600 bg-green-50";
-    case "cancelled":
+    case "CANCELLED":
       return "text-red-600 bg-red-50";
     default:
       return "text-gray-600 bg-gray-50";
   }
 };
 
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case "high":
-      return "text-red-600 bg-red-50";
-    case "medium":
-      return "text-orange-600 bg-orange-50";
-    case "normal":
-      return "text-green-600 bg-green-50";
-    default:
-      return "text-gray-600 bg-gray-50";
-  }
-};
-
-export default async function BookingDetailsPage({
+export default function BookingDetailsPage({
   params,
 }: BookingDetailsPageProps) {
-  const { id } = await params;
+  const [id, setId] = useState<string>("");
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>();
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchBooking = async () => {
+      const resolvedParams = await params;
+      setId(resolvedParams.id);
+
+      const result = await getBookingAction(resolvedParams.id);
+      if (result.success && result.data) {
+        setBooking(result.data as Booking);
+      }
+      setLoading(false);
+    };
+
+    fetchBooking();
+  }, [params]);
+
+  const fetchTimeSlots = async () => {
+    setSlotsLoading(true);
+    try {
+      // Fetch from settings endpoint
+      const response = await fetch("/api/settings/booking", {
+        method: "GET",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTimeSlots(data.bookingTimeSlots || generateDefaultSlots());
+      } else {
+        setTimeSlots(generateDefaultSlots());
+      }
+    } catch (error) {
+      console.error("Error fetching time slots:", error);
+      setTimeSlots(generateDefaultSlots());
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  const generateDefaultSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour <= 17; hour++) {
+      const ampm = hour < 12 ? "AM" : "PM";
+      const displayHour = hour > 12 ? hour - 12 : hour;
+      slots.push(`${displayHour}:00 ${ampm}`);
+    }
+    return slots;
+  };
+
+  const handleOpenReschedule = () => {
+    fetchTimeSlots();
+    setIsRescheduleOpen(true);
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!id) return;
+
+    setIsUpdating(true);
+    try {
+      const result = await updateBookingStatusAction(id, newStatus);
+      if (result.success) {
+        setBooking((prev) => (prev ? { ...prev, status: newStatus } : null));
+        toast.success("Booking status updated");
+      } else {
+        toast.error("Failed to update status");
+      }
+    } catch (error) {
+      toast.error("Error updating status");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!rescheduleDate || !rescheduleTime) {
+      toast.error("Please select date and time");
+      return;
+    }
+
+    if (!id) return;
+
+    setIsUpdating(true);
+    try {
+      // Update booking with new date and time
+      const result = await updateBookingStatusAction(
+        id,
+        booking?.status || "PENDING",
+        {
+          date: format(rescheduleDate, "yyyy-MM-dd"),
+          timeSlot: rescheduleTime,
+        },
+      );
+
+      if (result.success) {
+        setBooking((prev) =>
+          prev
+            ? {
+                ...prev,
+                date: rescheduleDate,
+                timeSlot: rescheduleTime,
+              }
+            : null,
+        );
+        setIsRescheduleOpen(false);
+        setRescheduleDate(undefined);
+        setRescheduleTime("");
+        toast.success("Booking rescheduled successfully");
+      } else {
+        toast.error("Failed to reschedule booking");
+      }
+    } catch (error) {
+      toast.error("Error rescheduling booking");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading booking details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            Booking Not Found
+          </h1>
+          <Link
+            href="/admin/dashboard/bookings"
+            className="text-blue-600 hover:underline"
+          >
+            Back to Bookings
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -189,31 +232,42 @@ export default async function BookingDetailsPage({
               <span className="material-symbols-outlined">arrow_back</span>
             </Link>
             <h1 className="text-3xl font-bold text-foreground">
-              Booking #{id}
+              Booking #{booking.bookingNumber}
             </h1>
             <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(bookingData.status)}`}
+              className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}
             >
-              {bookingData.status}
-            </span>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(bookingData.priority)}`}
-            >
-              {bookingData.priority} priority
+              {booking.status.replace("_", " ")}
             </span>
           </div>
           <p className="text-muted-foreground">
-            Appointment scheduled for {bookingData.appointment.date} at{" "}
-            {bookingData.appointment.time}
+            Appointment scheduled for {booking.date.toLocaleDateString()} at{" "}
+            {booking.timeSlot}
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors">
+          <button
+            onClick={handleOpenReschedule}
+            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors"
+          >
             Reschedule
           </button>
-          <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
-            Update Status
-          </button>
+          <Select
+            value={booking.status}
+            onValueChange={handleStatusChange}
+            disabled={isUpdating}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -231,66 +285,11 @@ export default async function BookingDetailsPage({
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium text-foreground mb-4">
-                    {bookingData.service.name}
+                    {booking.serviceType}
                   </h3>
                   <p className="text-muted-foreground mb-4">
-                    {bookingData.service.description}
+                    Service scheduled for {booking.date.toLocaleDateString()}
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-muted-foreground">
-                        Estimated Time
-                      </label>
-                      <p className="font-medium text-foreground">
-                        {bookingData.service.estimatedTime}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-muted-foreground">
-                        Service Price
-                      </label>
-                      <p className="font-medium text-foreground">
-                        ${bookingData.service.price}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-foreground mb-3">
-                    Service Items
-                  </h4>
-                  <div className="space-y-3">
-                    {serviceItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                      >
-                        <div>
-                          <h5 className="font-medium text-foreground">
-                            {item.name}
-                          </h5>
-                          <p className="text-sm text-muted-foreground">
-                            {item.description}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">
-                            {item.estimatedTime}
-                          </p>
-                          <span
-                            className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                              item.status === "available"
-                                ? "text-green-600 bg-green-50"
-                                : "text-red-600 bg-red-50"
-                            }`}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
@@ -307,84 +306,69 @@ export default async function BookingDetailsPage({
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="text-sm text-muted-foreground">
-                    Make & Model
+                    Vehicle
                   </label>
                   <p className="font-medium text-foreground">
-                    {bookingData.vehicleInfo.year}{" "}
-                    {bookingData.vehicleInfo.make}{" "}
-                    {bookingData.vehicleInfo.model}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Color</label>
-                  <p className="font-medium text-foreground">
-                    {bookingData.vehicleInfo.color}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">
-                    Plate Number
-                  </label>
-                  <p className="font-medium text-foreground">
-                    {bookingData.vehicleInfo.plateNumber}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">
-                    Mileage
-                  </label>
-                  <p className="font-medium text-foreground">
-                    {bookingData.vehicleInfo.mileage.toLocaleString()} miles
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">VIN</label>
-                  <p className="font-medium text-foreground font-mono">
-                    {bookingData.vehicleInfo.vin}
+                    {booking.vehicleInfo}
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Booking Timeline */}
+          {/* Booking Status */}
           <div className="bg-card rounded-lg border border-border">
             <div className="p-6 border-b border-border">
               <h2 className="text-xl font-semibold text-foreground">
-                Booking Timeline
+                Booking Status
               </h2>
             </div>
             <div className="p-6">
-              <div className="space-y-6">
-                {bookingEvents.map((event) => (
-                  <div key={event.id} className="flex items-start gap-4">
-                    <div
-                      className={`p-2 rounded-full ${getEventColor(event.type)} bg-opacity-10`}
-                    >
-                      <span
-                        className={`material-symbols-outlined text-sm ${getEventColor(event.type)}`}
-                      >
-                        {getEventIcon(event.type)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-foreground">
-                          {event.title}
-                        </h3>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(event.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        {event.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        by {event.author}
-                      </p>
-                    </div>
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full text-green-500 bg-green-50">
+                    <span className="material-symbols-outlined text-sm">
+                      check_circle
+                    </span>
                   </div>
-                ))}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-foreground">
+                      Booking Created
+                    </h3>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      Booking #{booking.bookingNumber} created for{" "}
+                      {booking.customerName}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`p-2 rounded-full ${
+                      booking.status === "CONFIRMED" ||
+                      booking.status === "IN_PROGRESS" ||
+                      booking.status === "COMPLETED"
+                        ? "text-green-500 bg-green-50"
+                        : "text-orange-500 bg-orange-50"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      {booking.status === "CONFIRMED" ||
+                      booking.status === "IN_PROGRESS" ||
+                      booking.status === "COMPLETED"
+                        ? "check_circle"
+                        : "schedule"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-foreground">
+                      Current Status: {booking.status.replace("_", " ")}
+                    </h3>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      Scheduled for {booking.date.toLocaleDateString()} at{" "}
+                      {booking.timeSlot}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -403,26 +387,24 @@ export default async function BookingDetailsPage({
               <div>
                 <label className="text-sm text-muted-foreground">Name</label>
                 <p className="font-medium text-foreground">
-                  {bookingData.customer.name}
+                  {booking.customerName}
                 </p>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">Email</label>
                 <p className="font-medium text-foreground">
-                  {bookingData.customer.email}
+                  {booking.customerEmail || "N/A"}
                 </p>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">Phone</label>
                 <p className="font-medium text-foreground">
-                  {bookingData.customer.phone}
+                  {booking.customerPhone}
                 </p>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">Address</label>
-                <p className="font-medium text-foreground">
-                  {bookingData.customer.address}
-                </p>
+                <p className="font-medium text-foreground">{booking.address}</p>
               </div>
             </div>
           </div>
@@ -438,29 +420,19 @@ export default async function BookingDetailsPage({
               <div>
                 <label className="text-sm text-muted-foreground">Date</label>
                 <p className="font-medium text-foreground">
-                  {bookingData.appointment.date}
+                  {booking.date.toLocaleDateString()}
                 </p>
               </div>
               <div>
                 <label className="text-sm text-muted-foreground">Time</label>
                 <p className="font-medium text-foreground">
-                  {bookingData.appointment.time}
+                  {booking.timeSlot}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">
-                  Duration
-                </label>
+                <label className="text-sm text-muted-foreground">Status</label>
                 <p className="font-medium text-foreground">
-                  {bookingData.appointment.duration}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">
-                  Assigned Technician
-                </label>
-                <p className="font-medium text-foreground">
-                  {bookingData.assignedTechnician}
+                  {booking.status.replace("_", " ")}
                 </p>
               </div>
             </div>
@@ -474,7 +446,9 @@ export default async function BookingDetailsPage({
               </h2>
             </div>
             <div className="p-6">
-              <p className="text-foreground">{bookingData.notes}</p>
+              <p className="text-foreground">
+                {booking.notes || "No special notes"}
+              </p>
             </div>
           </div>
 
@@ -524,6 +498,74 @@ export default async function BookingDetailsPage({
           </div>
         </div>
       </div>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={isRescheduleOpen} onOpenChange={setIsRescheduleOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reschedule Booking</DialogTitle>
+            <DialogDescription>
+              Update the date and time for booking #{booking?.bookingNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-2 block">Select Date</Label>
+              <div className="flex justify-center border rounded-lg p-4 bg-muted/30">
+                <Calendar
+                  mode="single"
+                  selected={rescheduleDate}
+                  onSelect={setRescheduleDate}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return date < today;
+                  }}
+                  className="rounded-md"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="mb-2 block">Select Time Slot</Label>
+              {slotsLoading ? (
+                <p className="text-sm text-muted-foreground">
+                  Loading time slots...
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {timeSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      onClick={() => setRescheduleTime(slot)}
+                      className={`px-3 py-2 rounded-md text-sm transition-colors ${
+                        rescheduleTime === slot
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRescheduleOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReschedule}
+              disabled={isUpdating || !rescheduleDate || !rescheduleTime}
+            >
+              {isUpdating ? "Rescheduling..." : "Reschedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
