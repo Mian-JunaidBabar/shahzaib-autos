@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Image as ImageIcon,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,9 @@ import {
   getProductsAction,
   toggleProductActiveAction,
   deleteProductAction,
+  updateProductAction,
 } from "@/app/actions/productActions";
+import { getBadgesAction } from "@/app/actions/badgeActions";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -51,6 +54,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 
 type Product = {
@@ -120,6 +124,12 @@ export default function InventoryPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBadgeDialog, setShowBadgeDialog] = useState(false);
+  const [badges, setBadges] = useState<
+    Array<{ id: string; name: string; color: string }>
+  >([]);
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
+  const [isApplyingBadge, setIsApplyingBadge] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -175,6 +185,17 @@ export default function InventoryPage() {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, page]);
+
+  useEffect(() => {
+    // Fetch badges on mount
+    const loadBadges = async () => {
+      const result = await getBadgesAction();
+      if (result.success && result.data) {
+        setBadges(result.data);
+      }
+    };
+    loadBadges();
+  }, []);
 
   const handleSearch = () => {
     setPage(1);
@@ -264,6 +285,42 @@ export default function InventoryPage() {
       newSet.add(id);
     }
     setSelectedIds(newSet);
+  };
+
+  const handleApplyBadge = async () => {
+    if (selectedIds.size === 0) return;
+
+    setIsApplyingBadge(true);
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const id of Array.from(selectedIds)) {
+      const result = await updateProductAction({
+        id,
+        badgeId: selectedBadgeId,
+      });
+      if (result.success) {
+        successCount++;
+      } else {
+        failureCount++;
+      }
+    }
+
+    // Refresh products to show updated badges
+    await fetchProducts();
+    setSelectedIds(new Set());
+    setIsApplyingBadge(false);
+    setShowBadgeDialog(false);
+    setSelectedBadgeId(null);
+
+    if (failureCount === 0) {
+      const action = selectedBadgeId ? "Badge applied" : "Badge removed";
+      toast.success(`${action} to ${successCount} product(s)`);
+    } else {
+      toast.error(
+        `Updated ${successCount} product(s). ${failureCount} failed.`,
+      );
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -412,15 +469,26 @@ export default function InventoryPage() {
               <span className="text-sm font-medium">
                 {selectedIds.size} product(s) selected
               </span>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => handleBulkDelete()}
-                disabled={isBulkDeleting || isPending}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Selected
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowBadgeDialog(true)}
+                  disabled={isApplyingBadge || isPending}
+                >
+                  <Tag className="h-4 w-4 mr-2" />
+                  Manage Badge
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleBulkDelete()}
+                  disabled={isBulkDeleting || isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected
+                </Button>
+              </div>
             </div>
           )}
           <Table>
@@ -468,7 +536,7 @@ export default function InventoryPage() {
                       key={product.id}
                       className={
                         selectedIds.has(product.id)
-                          ? "bg-blue-50 dark:bg-blue-950"
+                          ? "bg-blue-100/50 dark:bg-blue-950/50"
                           : ""
                       }
                     >
@@ -641,6 +709,73 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+
+      {/* Badge Management Dialog */}
+      <Dialog open={showBadgeDialog} onOpenChange={setShowBadgeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Product Badge</DialogTitle>
+            <DialogDescription>
+              Apply or remove a badge for {selectedIds.size} selected product(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Badge</label>
+              <Select
+                value={selectedBadgeId || "none"}
+                onValueChange={(value) =>
+                  setSelectedBadgeId(value === "none" ? null : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a badge" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
+                      No Badge (Remove)
+                    </div>
+                  </SelectItem>
+                  {badges.map((badge) => (
+                    <SelectItem key={badge.id} value={badge.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: badge.color }}
+                        />
+                        {badge.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowBadgeDialog(false);
+                setSelectedBadgeId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleApplyBadge} disabled={isApplyingBadge}>
+              {isApplyingBadge ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                "Apply"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog
