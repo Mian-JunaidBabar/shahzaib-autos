@@ -8,6 +8,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as ServiceService from "@/lib/services/service.service";
 import {
@@ -24,6 +25,41 @@ export type ActionResult<T = void> = {
   data?: T;
   error?: string;
 };
+
+/**
+ * Helper: Extract user-friendly error message from Prisma errors
+ */
+function getPrismaErrorMessage(error: unknown): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    // Handle unique constraint violations (P2002)
+    if (error.code === "P2002") {
+      const field = (error.meta?.target as string[])?.[0] || "field";
+      const fieldLabels: Record<string, string> = {
+        slug: "URL slug",
+        title: "Title",
+      };
+      const label = fieldLabels[field] || field;
+      return `This ${label} is already in use. Please choose another.`;
+    }
+
+    // Handle foreign key constraint failures (P2003)
+    if (error.code === "P2003") {
+      return "This operation references data that doesn't exist.";
+    }
+
+    // Handle record not found (P2025)
+    if (error.code === "P2025") {
+      return "The service you're trying to update or delete doesn't exist.";
+    }
+  }
+
+  // Fallback for other errors
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "An unexpected error occurred. Please try again.";
+}
 
 /**
  * Get services with filters and pagination
@@ -96,8 +132,7 @@ export async function createServiceAction(
     console.error("createServiceAction error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to create service",
+      error: getPrismaErrorMessage(error),
     };
   }
 }
@@ -122,8 +157,7 @@ export async function updateServiceAction(
     console.error("updateServiceAction error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update service",
+      error: getPrismaErrorMessage(error),
     };
   }
 }

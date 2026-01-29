@@ -11,13 +11,6 @@ import {
   GripVertical,
 } from "lucide-react";
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
-import {
-  saveProductImage,
-  deleteProductImage,
-  getProductImages,
-  setPrimaryImage,
-  updateImageOrder,
-} from "@/app/actions/imageActions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -31,55 +24,73 @@ export interface ProductImage {
 }
 
 interface ProductImageManagerProps {
-  productId: string;
+  /**
+   * Initial images to display (from database)
+   */
+  initialImages?: ProductImage[];
   maxFiles?: number;
-  onImagesChange?: (images: ProductImage[]) => void;
+  /**
+   * Callback when images change. Returns the complete array of images.
+   * Parent form should handle the actual saving on form submit.
+   */
+  onImagesChange: (images: ProductImage[]) => void;
+  /**
+   * If true, uploads happen immediately. If false (default), files are stored
+   * for batch upload on form submit.
+   */
+  immediateUpload?: boolean;
 }
 
 interface ImageState extends ProductImage {
   isLoading?: boolean;
   isNew?: boolean;
+  file?: File; // For lazy upload
 }
 
+/**
+ * ProductImageManager - Lazy Image Management Component
+ *
+ * This component implements "Lazy Remove" behavior:
+ * - Removing an image only updates local state (no immediate API call)
+ * - The parent form handles actual deletion when Save is clicked
+ * - Uses the "Diff & Clean" pattern in the service layer for safe deletion
+ */
 export function ProductImageManager({
-  productId,
+  initialImages = [],
   maxFiles = 10,
   onImagesChange,
+  immediateUpload = false,
 }: ProductImageManagerProps) {
-  const [images, setImages] = useState<ImageState[]>([]);
+  const [images, setImages] = useState<ImageState[]>(
+    initialImages.map((img) => ({
+      ...img,
+      isLoading: false,
+      isNew: false,
+    })),
+  );
   const [isUploading, setIsUploading] = useState(false);
-  const [isLoadingImages, setIsLoadingImages] = useState(true);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // Load existing images on mount
+  // Notify parent of changes (only non-loading, clean images)
   useEffect(() => {
-    const loadImages = async () => {
-      const result = await getProductImages(productId);
-      if (result.success && result.data) {
-        setImages(
-          result.data.map((img) => ({
-            ...img,
-            isLoading: false,
-            isNew: false,
-          })),
-        );
-      }
-      setIsLoadingImages(false);
-    };
-    loadImages();
-  }, [productId]);
-
-  // Notify parent of changes
-  useEffect(() => {
-    if (onImagesChange) {
-      const cleanImages = images
-        .filter((img) => !img.isLoading)
-        .map(({ isLoading, isNew, ...rest }) => rest);
-      onImagesChange(cleanImages);
-    }
+    const cleanImages = images
+      .filter((img) => !img.isLoading)
+      .map(({ isLoading, isNew, file, ...rest }) => rest);
+    onImagesChange(cleanImages);
   }, [images, onImagesChange]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      images.forEach((img) => {
+        if (img.secureUrl?.startsWith("blob:")) {
+          URL.revokeObjectURL(img.secureUrl);
+        }
+      });
+    };
+  }, []);
 
   const handleFileSelect = useCallback(
     async (files: FileList | null) => {
@@ -104,123 +115,135 @@ export function ProductImageManager({
         return;
       }
 
-      setIsUploading(true);
       setUploadError(null);
 
-      for (const file of validFiles) {
-        try {
-          // Create preview immediately
-          const preview = URL.createObjectURL(file);
-          const tempId = `temp-${Date.now()}-${Math.random()}`;
-          const tempImage: ImageState = {
-            id: tempId,
-            secureUrl: preview,
-            publicId: "",
-            isPrimary: false,
-            sortOrder: images.length,
-            createdAt: new Date().toISOString(),
-            isLoading: true,
-            isNew: true,
-          };
-          setImages((prev) => [...prev, tempImage]);
+      if (immediateUpload) {
+        // Immediate upload mode: upload to Cloudinary right away
+        setIsUploading(true);
+        for (const file of validFiles) {
+          try {
+            const preview = URL.createObjectURL(file);
+            const tempId = `temp-${Date.now()}-${Math.random()}`;
+            const tempImage: ImageState = {
+              id: tempId,
+              secureUrl: preview,
+              publicId: "",
+              isPrimary: images.length === 0,
+              sortOrder: images.length,
+              createdAt: new Date().toISOString(),
+              isLoading: true,
+              isNew: true,
+            };
+            setImages((prev) => [...prev, tempImage]);
 
-          // Upload to Cloudinary
-          const uploadResponse = await uploadImageToCloudinary(file);
+            const uploadResponse = await uploadImageToCloudinary(file);
 
-          // Save to database
-          const isPrimary = images.length === 0; // First image is primary
-          const result = await saveProductImage({
-            productId,
-            secureUrl: uploadResponse.secure_url,
-            publicId: uploadResponse.public_id,
-            isPrimary,
-            sortOrder: images.length,
-          });
-
-          if (result.success && result.data) {
-            // Update the image state with actual data
             setImages((prev) =>
               prev.map((img) =>
                 img.id === tempId
                   ? {
-                      id: result.data!.id,
-                      secureUrl: result.data!.secureUrl,
-                      publicId: result.data!.publicId,
-                      isPrimary: result.data!.isPrimary,
-                      sortOrder: result.data!.sortOrder,
-                      createdAt: result.data!.createdAt,
+                      ...img,
+                      publicId: uploadResponse.public_id,
+                      secureUrl: uploadResponse.secure_url,
                       isLoading: false,
-                      isNew: false,
                     }
                   : img,
               ),
             );
-          } else {
-            throw new Error(result.error || "Failed to save image");
+          } catch (error) {
+            console.error("Upload error:", error);
+            setUploadError(
+              error instanceof Error ? error.message : "Upload failed",
+            );
+            setImages((prev) => prev.filter((img) => !img.isLoading));
           }
-        } catch (error) {
-          console.error("Upload error:", error);
-          setUploadError(
-            error instanceof Error ? error.message : "Upload failed",
-          );
-          // Remove failed image from state
-          setImages((prev) => prev.filter((img) => !img.isLoading));
         }
+        setIsUploading(false);
+      } else {
+        // Lazy upload mode: store files for batch upload on form submit
+        const newImages: ImageState[] = validFiles.map((file, index) => {
+          const preview = URL.createObjectURL(file);
+          return {
+            id: `temp-${Date.now()}-${index}-${Math.random()}`,
+            secureUrl: preview,
+            publicId: "", // Will be assigned after upload
+            isPrimary: images.length === 0 && index === 0,
+            sortOrder: images.length + index,
+            createdAt: new Date().toISOString(),
+            isLoading: false,
+            isNew: true,
+            file, // Store file for later upload
+          };
+        });
+
+        setImages((prev) => [...prev, ...newImages]);
       }
 
-      setIsUploading(false);
-      setSuccessMessage(`Successfully uploaded ${validFiles.length} image(s)`);
+      setSuccessMessage(
+        `${validFiles.length} image(s) ${immediateUpload ? "uploaded" : "added"}`,
+      );
       setTimeout(() => setSuccessMessage(null), 3000);
     },
-    [images.length, maxFiles, productId],
+    [images.length, maxFiles, immediateUpload],
   );
 
-  const handleRemoveImage = async (index: number) => {
+  /**
+   * LAZY REMOVE: Only updates local state.
+   * No API call is made here. The parent form's onSubmit will handle
+   * the actual deletion via the "Diff & Clean" pattern in the service layer.
+   */
+  const handleRemoveImage = (index: number) => {
     const image = images[index];
     if (image.isLoading) return;
 
-    try {
-      await deleteProductImage(image.id, image.publicId);
-
-      const wasPrimary = image.isPrimary;
-      const newImages = images.filter((_, i) => i !== index);
-
-      // If we deleted the primary image, set the first remaining as primary
-      if (wasPrimary && newImages.length > 0) {
-        await setPrimaryImage(newImages[0].id, productId);
-        newImages[0].isPrimary = true;
-      }
-
-      setImages(newImages);
-      setSuccessMessage("Image deleted successfully");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error("Delete error:", error);
-      setUploadError("Failed to delete image");
+    // Cleanup blob URL if it exists
+    if (image.secureUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(image.secureUrl);
     }
+
+    const wasPrimary = image.isPrimary;
+    const newImages = images.filter((_, i) => i !== index);
+
+    // If we deleted the primary image, set the first remaining as primary
+    if (wasPrimary && newImages.length > 0) {
+      newImages[0].isPrimary = true;
+    }
+
+    // Update sort orders
+    newImages.forEach((img, i) => {
+      img.sortOrder = i;
+    });
+
+    setImages(newImages);
+    setSuccessMessage("Image removed (will be deleted on save)");
+    setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  const handleSetPrimary = async (index: number) => {
+  /**
+   * Set an image as primary (local state only)
+   */
+  const handleSetPrimary = (index: number) => {
     const image = images[index];
     if (image.isLoading || image.isPrimary) return;
 
-    try {
-      await setPrimaryImage(image.id, productId);
-      setImages((prev) =>
-        prev.map((img, i) => ({
-          ...img,
-          isPrimary: i === index,
-        })),
-      );
-      setSuccessMessage("Primary image updated");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error("Set primary error:", error);
-      setUploadError("Failed to set primary image");
-    }
+    setImages((prev) =>
+      prev.map((img, i) => ({
+        ...img,
+        isPrimary: i === index,
+      })),
+    );
+    setSuccessMessage("Primary image updated");
+    setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  // Drag and drop reordering
+  /**
+   * Get pending files for upload (for parent form to use)
+   */
+  const getPendingUploads = useCallback(() => {
+    return images.filter((img) => img.isNew && img.file);
+  }, [images]);
+
+  // Drag and drop reordering (local state only)
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -238,27 +261,19 @@ export function ProductImageManager({
     setDraggedIndex(index);
   };
 
-  const handleDragEnd = async () => {
+  /**
+   * Drag end - update sort orders locally (no API call)
+   */
+  const handleDragEnd = () => {
     if (draggedIndex === null) return;
 
-    // Update sort order in database
-    const imageOrders = images.map((img, i) => ({
-      id: img.id,
-      sortOrder: i,
-    }));
-
-    try {
-      await updateImageOrder(imageOrders);
-      setImages((prev) =>
-        prev.map((img, i) => ({
-          ...img,
-          sortOrder: i,
-        })),
-      );
-    } catch (error) {
-      console.error("Reorder error:", error);
-      setUploadError("Failed to save image order");
-    }
+    // Update sort order in local state only
+    setImages((prev) =>
+      prev.map((img, i) => ({
+        ...img,
+        sortOrder: i,
+      })),
+    );
 
     setDraggedIndex(null);
   };
@@ -277,15 +292,6 @@ export function ProductImageManager({
     e.currentTarget.classList.remove("ring-2", "ring-blue-400");
     handleFileSelect(e.dataTransfer.files);
   };
-
-  if (isLoadingImages) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-muted-foreground">Loading images...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full space-y-4">

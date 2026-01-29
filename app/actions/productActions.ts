@@ -8,6 +8,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as ProductService from "@/lib/services/product.service";
 import {
@@ -24,6 +25,42 @@ export type ActionResult<T = void> = {
   data?: T;
   error?: string;
 };
+
+/**
+ * Helper: Extract user-friendly error message from Prisma errors
+ */
+function getPrismaErrorMessage(error: unknown): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    // Handle unique constraint violations (P2002)
+    if (error.code === "P2002") {
+      const field = (error.meta?.target as string[])?.[0] || "field";
+      const fieldLabels: Record<string, string> = {
+        sku: "SKU",
+        slug: "URL slug",
+        barcode: "Barcode",
+      };
+      const label = fieldLabels[field] || field;
+      return `This ${label} is already in use. Please choose another.`;
+    }
+
+    // Handle foreign key constraint failures (P2003)
+    if (error.code === "P2003") {
+      return "This operation references data that doesn't exist.";
+    }
+
+    // Handle record not found (P2025)
+    if (error.code === "P2025") {
+      return "The record you're trying to update or delete doesn't exist.";
+    }
+  }
+
+  // Fallback for other errors
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "An unexpected error occurred. Please try again.";
+}
 
 /**
  * Get products with filters and pagination
@@ -96,8 +133,7 @@ export async function createProductAction(
     console.error("createProductAction error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to create product",
+      error: getPrismaErrorMessage(error),
     };
   }
 }
@@ -124,8 +160,7 @@ export async function updateProductAction(
     console.error("updateProductAction error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update product",
+      error: getPrismaErrorMessage(error),
     };
   }
 }
