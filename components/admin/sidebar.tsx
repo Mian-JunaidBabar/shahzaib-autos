@@ -14,7 +14,6 @@ const navItems = [
         icon: "shopping_cart",
         label: "Orders",
       },
-      { href: "/admin/dashboard/leads", icon: "contact_phone", label: "Leads" },
       {
         href: "/admin/dashboard/bookings",
         icon: "calendar_today",

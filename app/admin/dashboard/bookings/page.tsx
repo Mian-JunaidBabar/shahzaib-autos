@@ -426,19 +426,44 @@ export default function BookingsPage() {
                           disabled={isPending}
                         >
                           <SelectTrigger className="w-36">
-                            <Badge className={getStatusColor(booking.status)}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
-                              {booking.status.replace("_", " ")}
-                            </Badge>
+                            <SelectValue>
+                              <Badge className={getStatusColor(booking.status)}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {booking.status.replace("_", " ")}
+                              </Badge>
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="PENDING">Pending</SelectItem>
-                            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                            <SelectItem value="IN_PROGRESS">
-                              In Progress
+                            <SelectItem value="PENDING">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4" />
+                                Pending
+                              </div>
                             </SelectItem>
-                            <SelectItem value="COMPLETED">Completed</SelectItem>
-                            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                            <SelectItem value="CONFIRMED">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4" />
+                                Confirmed
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="IN_PROGRESS">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4" />
+                                In Progress
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="COMPLETED">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4" />
+                                Completed
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="CANCELLED">
+                              <div className="flex items-center gap-2">
+                                <XCircle className="h-4 w-4" />
+                                Cancelled
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
