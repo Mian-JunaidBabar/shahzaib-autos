@@ -574,3 +574,31 @@ export const bulkUploadSchema = z.object({
 
 export type BulkProductInput = z.infer<typeof bulkProductSchema>;
 export type BulkUploadInput = z.infer<typeof bulkUploadSchema>;
+
+// ============ Checkout Schemas (Public - No Admin Required) ============
+
+// Cart item from the public storefront
+export const checkoutCartItemSchema = z.object({
+  id: z.union([z.string(), z.number()]).transform((val) => String(val)),
+  name: z.string().min(1, "Product name is required"),
+  price: z.coerce.number().int().min(0, "Price must be non-negative"),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  image: z.string().optional(),
+});
+
+// Customer details for checkout
+export const checkoutCustomerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  phone: phoneSchema,
+  address: z.string().min(5, "Please provide a delivery address"),
+});
+
+// Full checkout payload
+export const checkoutSchema = z.object({
+  customer: checkoutCustomerSchema,
+  items: z.array(checkoutCartItemSchema).min(1, "Cart is empty"),
+});
+
+export type CheckoutCartItem = z.infer<typeof checkoutCartItemSchema>;
+export type CheckoutCustomer = z.infer<typeof checkoutCustomerSchema>;
+export type CheckoutInput = z.infer<typeof checkoutSchema>;

@@ -1,13 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useCart } from "@/context/cart-context";
+import { formatPrice } from "@/lib/whatsapp";
+import { createPublicOrderAction } from "@/app/actions/orderActions";
 import {
-  formatPrice,
-  generateOrderMessage,
-  openWhatsApp,
-} from "@/lib/whatsapp";
+  checkoutCustomerSchema,
+  type CheckoutCustomer,
+} from "@/lib/validations";
+import { toast } from "sonner";
 import {
   ShoppingCart,
   Trash2,
@@ -16,7 +21,22 @@ import {
   MessageCircle,
   ArrowLeft,
   Package,
+  User,
+  Phone,
+  MapPin,
+  Loader2,
+  CheckCircle,
 } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function CheckoutPage() {
   const {
@@ -27,12 +47,106 @@ export default function CheckoutPage() {
     getTotal,
     getItemCount,
   } = useCart();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState<{
+    orderNumber: string;
+    whatsappUrl: string;
+  } | null>(null);
 
-  const handleSendOrder = () => {
-    const message = generateOrderMessage(items);
-    openWhatsApp(message);
+  // Form setup with Zod validation
+  const form = useForm<CheckoutCustomer>({
+    resolver: zodResolver(checkoutCustomerSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      address: "",
+    },
+  });
+
+  const onSubmit = async (customerData: CheckoutCustomer) => {
+    if (items.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const result = await createPublicOrderAction({
+        customer: customerData,
+        items: items.map((item) => ({
+          id: String(item.id),
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+      });
+
+      if (result.success && result.data) {
+        // Clear the cart after successful order
+        clearCart();
+
+        // Store success data for display
+        setOrderSuccess({
+          orderNumber: result.data.orderNumber,
+          whatsappUrl: result.data.whatsappUrl,
+        });
+
+        toast.success(`Order ${result.data.orderNumber} created successfully!`);
+
+        // Redirect to WhatsApp
+        window.location.href = result.data.whatsappUrl;
+      } else {
+        toast.error(result.error || "Failed to create order");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  // Success state after order
+  if (orderSuccess) {
+    return (
+      <section className="px-4 md:px-8 lg:px-40 py-20 min-h-[60vh] flex flex-col items-center justify-center">
+        <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
+          <CheckCircle className="h-10 w-10 text-green-600" />
+        </div>
+        <h1 className="text-2xl font-bold text-text-primary mb-2">
+          Order Placed Successfully!
+        </h1>
+        <p className="text-text-muted mb-2 text-center max-w-md">
+          Your order{" "}
+          <span className="font-semibold">{orderSuccess.orderNumber}</span> has
+          been placed.
+        </p>
+        <p className="text-text-muted mb-6 text-center max-w-md">
+          Redirecting you to WhatsApp to confirm with our team...
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <a
+            href={orderSuccess.whatsappUrl}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold transition-colors"
+          >
+            <MessageCircle className="h-5 w-5" />
+            Open WhatsApp
+          </a>
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary hover:opacity-90 text-white font-semibold transition-colors"
+          >
+            <Package className="h-5 w-5" />
+            Continue Shopping
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  // Empty cart state
   if (items.length === 0) {
     return (
       <section className="px-4 md:px-8 lg:px-40 py-20 min-h-[60vh] flex flex-col items-center justify-center">
@@ -70,7 +184,7 @@ export default function CheckoutPage() {
             Continue Shopping
           </Link>
           <h1 className="text-3xl md:text-4xl font-black text-text-primary">
-            Your Cart
+            Checkout
           </h1>
           <p className="text-text-muted mt-2">
             {getItemCount()} {getItemCount() === 1 ? "item" : "items"} in your
@@ -79,97 +193,185 @@ export default function CheckoutPage() {
         </div>
       </section>
 
-      {/* Cart Content */}
+      {/* Checkout Content */}
       <section className="px-4 md:px-8 lg:px-40 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex gap-4 p-4 bg-card border border-border rounded-xl transition-colors duration-300"
-              >
-                {/* Image */}
-                <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden bg-muted shrink-0">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+          {/* Left Column: Customer Details + Cart Items */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Customer Details Form */}
+            <div className="bg-card border border-border rounded-xl p-6 transition-colors duration-300">
+              <h2 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Customer Details
+              </h2>
 
-                {/* Details */}
-                <div className="flex-1 flex flex-col justify-between min-w-0">
-                  <div>
-                    <h3 className="text-lg font-semibold text-text-primary truncate">
-                      {item.name}
-                    </h3>
-                    <p className="text-primary font-bold mt-1">
-                      {formatPrice(item.price)}
-                    </p>
+              <Form {...form}>
+                <form className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Full Name
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your full name"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          Phone Number
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., 03001234567"
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Delivery Address
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter your complete delivery address"
+                            rows={3}
+                            {...field}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            </div>
+
+            {/* Cart Items */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+                Order Items
+              </h2>
+
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex gap-4 p-4 bg-card border border-border rounded-xl transition-colors duration-300"
+                >
+                  {/* Image */}
+                  <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden bg-muted shrink-0">
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
 
-                  <div className="flex items-center justify-between mt-3">
-                    {/* Quantity Controls */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          updateQuantity(item.id, item.quantity - 1)
-                        }
-                        className="w-8 h-8 rounded-lg bg-muted hover:bg-border text-text-primary flex items-center justify-center transition-colors"
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-10 text-center text-text-primary font-medium">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() =>
-                          updateQuantity(item.id, item.quantity + 1)
-                        }
-                        className="w-8 h-8 rounded-lg bg-muted hover:bg-border text-text-primary flex items-center justify-center transition-colors"
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
+                  {/* Details */}
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
+                    <div>
+                      <h3 className="text-lg font-semibold text-text-primary truncate">
+                        {item.name}
+                      </h3>
+                      <p className="text-primary font-bold mt-1">
+                        {formatPrice(item.price)}
+                      </p>
                     </div>
 
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="p-2 text-text-muted hover:text-red-500 transition-colors"
-                      aria-label="Remove item"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                    <div className="flex items-center justify-between mt-3">
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity - 1)
+                          }
+                          disabled={isSubmitting}
+                          className="w-8 h-8 rounded-lg bg-muted hover:bg-border text-text-primary flex items-center justify-center transition-colors disabled:opacity-50"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-10 text-center text-text-primary font-medium">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity + 1)
+                          }
+                          disabled={isSubmitting}
+                          className="w-8 h-8 rounded-lg bg-muted hover:bg-border text-text-primary flex items-center justify-center transition-colors disabled:opacity-50"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Remove Button */}
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        disabled={isSubmitting}
+                        className="p-2 text-text-muted hover:text-red-500 transition-colors disabled:opacity-50"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Line Total (Desktop) */}
+                  <div className="hidden md:flex flex-col items-end justify-center">
+                    <span className="text-sm text-text-muted">Subtotal</span>
+                    <span className="text-lg font-bold text-text-primary">
+                      {formatPrice(item.price * item.quantity)}
+                    </span>
                   </div>
                 </div>
+              ))}
 
-                {/* Line Total (Desktop) */}
-                <div className="hidden md:flex flex-col items-end justify-center">
-                  <span className="text-sm text-text-muted">Subtotal</span>
-                  <span className="text-lg font-bold text-text-primary">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
-                </div>
+              {/* Clear Cart */}
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={clearCart}
+                  disabled={isSubmitting}
+                  className="text-sm text-text-muted hover:text-red-500 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear Cart
+                </button>
               </div>
-            ))}
-
-            {/* Clear Cart */}
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={clearCart}
-                className="text-sm text-text-muted hover:text-red-500 transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear Cart
-              </button>
             </div>
           </div>
 
-          {/* Order Summary */}
+          {/* Right Column: Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-card border border-border rounded-xl p-6 sticky top-24 transition-colors duration-300">
               <h2 className="text-xl font-bold text-text-primary mb-6">
@@ -201,16 +403,26 @@ export default function CheckoutPage() {
 
               {/* WhatsApp Order Button */}
               <button
-                onClick={handleSendOrder}
-                className="w-full h-14 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/30"
+                onClick={form.handleSubmit(onSubmit)}
+                disabled={isSubmitting}
+                className="w-full h-14 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <MessageCircle className="h-5 w-5" />
-                Send Order via WhatsApp
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Processing Order...
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="h-5 w-5" />
+                    Send Order via WhatsApp
+                  </>
+                )}
               </button>
 
               <p className="text-xs text-text-subtle text-center mt-4">
-                You&apos;ll be redirected to WhatsApp to complete your order.
-                Our team will confirm availability and delivery.
+                Your order will be saved and you&apos;ll be redirected to
+                WhatsApp to confirm with our team.
               </p>
 
               {/* Additional Info */}
