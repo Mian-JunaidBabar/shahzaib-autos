@@ -235,6 +235,11 @@ export async function createProduct(
 
 /**
  * Update a product with image sync and stock automation
+ *
+ * Uses Fetch-Then-Clean strategy for safe image deletion:
+ * 1. FETCH: Get current state (product + images) from database
+ * 2. DIFF & CLEAN: Compare old/new images, delete removed ones from Cloudinary
+ * 3. COMMIT: Update database with nested writes (atomic operation)
  */
 export async function updateProduct(
   id: string,
@@ -258,49 +263,56 @@ export async function updateProduct(
   const quantity = stock ?? initialStock;
   const lowStockLevel = lowStockThreshold ?? lowStockAt;
 
-  // Handle image sync - delete removed images from Cloudinary (Fetch-Then-Clean Strategy)
+  // ==========================================================================
+  // STEP 1: FETCH FIRST - Get current product state including all images
+  // ==========================================================================
+  const existingProduct = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      images: true,
+      inventory: true,
+    },
+  });
+
+  if (!existingProduct) {
+    throw new Error(`Product not found: ${id}`);
+  }
+
+  // ==========================================================================
+  // STEP 2: DIFF & CLEAN - Compare images and delete removed ones from Cloudinary
+  // ==========================================================================
+  const existingPublicIds = existingProduct.images.map((img) => img.publicId);
+  const publicIdsToDelete: string[] = [];
+
+  // If keepImagePublicIds is provided, calculate which images were removed
   if (keepImagePublicIds !== undefined) {
-    // Step 1: Fetch current images from database
-    const existingImages = await prisma.image.findMany({
-      where: { productId: id },
-      select: { id: true, publicId: true, secureUrl: true },
-    });
-
-    // Step 2: Diff - Identify images to delete (oldList - newList)
-    const imagesToDelete = existingImages.filter(
-      (img) => !keepImagePublicIds.includes(img.publicId),
-    );
-
-    if (imagesToDelete.length > 0) {
-      // Step 3: Cleanup - Delete from Cloudinary (soft-fail)
-      const deletePromises = imagesToDelete
-        .map((img) => img.publicId ?? extractPublicId(img.secureUrl))
-        .filter((publicId): publicId is string => Boolean(publicId))
-        .map((publicId) => deleteImage(publicId));
-
-      await Promise.allSettled(deletePromises);
-
-      // Step 4: Delete from database
-      await prisma.image.deleteMany({
-        where: {
-          id: { in: imagesToDelete.map((img) => img.id) },
-        },
-      });
+    for (const existingId of existingPublicIds) {
+      if (!keepImagePublicIds.includes(existingId)) {
+        publicIdsToDelete.push(existingId);
+      }
     }
   }
 
-  // Get current product to check status
-  const currentProduct = await prisma.product.findUnique({
-    where: { id },
-    include: { inventory: true },
-  });
+  // Delete removed images from Cloudinary BEFORE touching the database
+  // Using Promise.allSettled for soft-fail (log errors, don't crash)
+  if (publicIdsToDelete.length > 0) {
+    const cloudinaryDeletePromises = publicIdsToDelete
+      .filter((publicId): publicId is string => Boolean(publicId))
+      .map((publicId) => deleteImage(publicId));
+
+    await Promise.allSettled(cloudinaryDeletePromises);
+  }
+
+  // ==========================================================================
+  // STEP 3: COMMIT LAST - Update database with nested writes (atomic)
+  // ==========================================================================
 
   // Determine new status based on stock automation
   let newStatus = status;
-  if (quantity !== undefined && currentProduct) {
+  if (quantity !== undefined) {
     newStatus = determineStatusFromStock(
       quantity,
-      status ?? currentProduct.status,
+      status ?? existingProduct.status,
     );
   }
 
@@ -313,7 +325,18 @@ export async function updateProduct(
     ...(isArchived !== undefined && { isArchived }),
   };
 
-  // Update product
+  // Add nested image operations if we need to delete images
+  if (publicIdsToDelete.length > 0) {
+    updateData.images = {
+      deleteMany: {
+        publicId: {
+          in: publicIdsToDelete,
+        },
+      },
+    };
+  }
+
+  // Update product with nested image deletions (atomic transaction)
   const product = await prisma.product.update({
     where: { id },
     data: updateData,

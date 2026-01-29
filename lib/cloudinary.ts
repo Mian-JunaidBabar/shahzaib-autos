@@ -126,19 +126,72 @@ async function destroyImage(publicId: string): Promise<string | undefined> {
 /**
  * Delete an image from Cloudinary by public_id.
  * Soft-fail: logs and never throws.
+ *
+ * DEBUG MODE: Forensic-level logging enabled to diagnose deletion failures.
  */
 export async function deleteImage(publicId: string): Promise<void> {
-  if (!publicId) return;
-  try {
-    const result = await destroyImage(publicId);
+  console.log("--- Cloudinary Deletion ---");
+  console.log(`[ATTEMPT] Deleting image with public_id: "${publicId}"`);
 
-    // "not found" is acceptable: image may already be deleted
-    if (result && result !== "ok" && result !== "not found") {
-      console.error(`Cloudinary delete returned '${result}' for ${publicId}`);
+  // 1. Verify Environment Variables
+  console.log(
+    `[AUTH] CLOUDINARY_CLOUD_NAME: ${process.env.CLOUDINARY_CLOUD_NAME ? "Loaded ✓" : "MISSING!"}`,
+  );
+  console.log(
+    `[AUTH] CLOUDINARY_API_KEY: ${process.env.CLOUDINARY_API_KEY ? "Loaded ✓" : "MISSING!"}`,
+  );
+  // IMPORTANT: NEVER log the API secret itself. Just check for its presence.
+  console.log(
+    `[AUTH] CLOUDINARY_API_SECRET: ${process.env.CLOUDINARY_API_SECRET ? "Loaded ✓" : "MISSING!"}`,
+  );
+
+  if (!publicId) {
+    console.error("[FAIL] The public_id is empty or undefined. Skipping.");
+    console.log("--- End Deletion ---");
+    return;
+  }
+
+  // Check if publicId looks like a URL instead of actual public_id
+  if (publicId.startsWith("http://") || publicId.startsWith("https://")) {
+    console.error(
+      "[FAIL] The public_id looks like a URL, not an actual public_id!",
+    );
+    console.error(
+      "[HINT] Database is storing URLs instead of public_ids. Fix the data layer.",
+    );
+    console.log("--- End Deletion ---");
+    return;
+  }
+
+  try {
+    // 2. Execute the API Call
+    console.log("[EXEC] Calling cloudinary.uploader.destroy()...");
+    const result = await cloudinary.uploader.destroy(publicId, {
+      invalidate: true, // Important for CDN cache
+    });
+
+    // 3. Log the Result
+    console.log("[RESPONSE] Cloudinary API response:", JSON.stringify(result));
+
+    if (result.result === "ok") {
+      console.log("[SUCCESS] Image deleted successfully ✓");
+    } else if (result.result === "not found") {
+      console.log("[INFO] Image already deleted or never existed (not found)");
+    } else {
+      console.warn(
+        `[WARN] Cloudinary reported unusual status: "${result.result}"`,
+      );
     }
   } catch (error) {
-    console.error(`Error deleting Cloudinary image ${publicId}:`, error);
+    // 4. Log the DETAILED Error
+    console.error("[FATAL] Cloudinary Deletion FAILED!");
+    console.error("[ERROR] Full error object:", error);
+    if (error instanceof Error) {
+      console.error("[ERROR] Message:", error.message);
+      console.error("[ERROR] Stack:", error.stack);
+    }
   }
+  console.log("--- End Deletion ---");
 }
 
 /**
