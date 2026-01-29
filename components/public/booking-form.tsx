@@ -3,8 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { getPublicServicesAction } from "@/app/actions/serviceActions";
-import { createPublicBookingAction } from "@/app/actions/bookingActions";
-import { generateBookingMessage, openWhatsApp } from "@/lib/whatsapp";
+import {
+  createPublicBookingAction,
+  getAvailableSlotsAction,
+} from "@/app/actions/bookingActions";
 import { toast } from "sonner";
 import {
   Calendar,
@@ -44,14 +46,6 @@ type Service = {
   features: string[];
 };
 
-const timeSlots = [
-  "09:00 AM - 11:00 AM",
-  "11:00 AM - 01:00 PM",
-  "02:00 PM - 04:00 PM",
-  "04:00 PM - 06:00 PM",
-  "06:00 PM - 08:00 PM",
-];
-
 export function BookingForm() {
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState<FormData>({
@@ -69,6 +63,8 @@ export function BookingForm() {
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasPreselectedRef = useRef(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   // Get tomorrow's date as minimum
   const today = new Date();
   today.setDate(today.getDate() + 1);
@@ -96,6 +92,34 @@ export function BookingForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [services, searchParams]);
 
+  // Fetch available slots when date changes
+  useEffect(() => {
+    if (formData.date) {
+      fetchAvailableSlots(formData.date);
+    }
+  }, [formData.date]);
+
+  const fetchAvailableSlots = async (date: string) => {
+    setIsLoadingSlots(true);
+    try {
+      const result = await getAvailableSlotsAction(date);
+      if (result.success && result.data) {
+        setAvailableSlots(result.data);
+        // Clear selected time if it's no longer available
+        if (formData.time && !result.data.includes(formData.time)) {
+          setFormData((prev) => ({ ...prev, time: "" }));
+        }
+      } else {
+        setAvailableSlots([]);
+        toast.error("No available slots for this date");
+      }
+    } catch (error) {
+      console.error("Error fetching slots:", error);
+      setAvailableSlots([]);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
   const loadServices = async () => {
     setIsLoadingServices(true);
     try {
@@ -313,21 +337,37 @@ export function BookingForm() {
                   <Clock className="h-4 w-4" />
                   Time Slot
                 </label>
-                <select
-                  name="time"
-                  value={formData.time}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 rounded-lg bg-background border ${
-                    errors.time ? "border-red-500" : "border-border"
-                  } text-text-primary focus:outline-none focus:ring-2 focus:ring-primary transition-colors`}
-                >
-                  <option value="">Select a time slot</option>
-                  {timeSlots.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
+                {!formData.date ? (
+                  <div className="w-full px-4 py-3 rounded-lg bg-muted/50 border border-border text-text-muted">
+                    Please select a date first
+                  </div>
+                ) : isLoadingSlots ? (
+                  <div className="flex items-center gap-2 w-full px-4 py-3 rounded-lg bg-background border border-border text-text-muted">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading available slots...
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <div className="w-full px-4 py-3 rounded-lg bg-background border border-red-200 text-red-600">
+                    No available slots for this date. Please select another
+                    date.
+                  </div>
+                ) : (
+                  <select
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-3 rounded-lg bg-background border ${
+                      errors.time ? "border-red-500" : "border-border"
+                    } text-text-primary focus:outline-none focus:ring-2 focus:ring-primary transition-colors`}
+                  >
+                    <option value="">Select a time slot</option>
+                    {availableSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 {errors.time && (
                   <p className="text-red-500 text-sm mt-1">{errors.time}</p>
                 )}
@@ -441,25 +481,24 @@ export function BookingForm() {
               <div>
                 <label className="flex items-center gap-2 text-sm font-medium text-text-primary mb-2">
                   <FileText className="h-4 w-4" />
-                  Special Requests (Optional)
+                  Notes (Optional)
                 </label>
                 <textarea
                   name="notes"
                   value={formData.notes}
                   onChange={handleChange}
                   rows={3}
-                  placeholder="Any specific requirements or questions?"
+                  placeholder="Any additional details or requests"
                   className="w-full px-4 py-3 rounded-lg bg-background border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary transition-colors resize-none"
                 />
               </div>
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-14 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary text-primary-foreground py-4 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

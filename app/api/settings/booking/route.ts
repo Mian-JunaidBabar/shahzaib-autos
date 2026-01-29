@@ -2,37 +2,27 @@ import { requireAdmin } from "@/lib/services/auth.service";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(request: NextRequest) {
+const prismaClient = prisma as any;
+
+export async function GET() {
   try {
-    // Get settings without auth requirement for time slots display
-    const settings = await prisma.businessSettings.findUnique({
-      where: { id: "default" },
+    const { getDefaultOperatingHours } =
+      await import("@/lib/services/slot.service");
+
+    let settings: any = await prismaClient.bookingSettings.findUnique({
+      where: { id: 1 },
     });
 
     if (!settings) {
-      // Return default settings if not found
-      return NextResponse.json({
-        bookingTimeSlots: [
-          "9:00 AM",
-          "10:00 AM",
-          "11:00 AM",
-          "12:00 PM",
-          "2:00 PM",
-          "3:00 PM",
-          "4:00 PM",
-          "5:00 PM",
-        ],
-        minAdvanceBookingDays: 1,
-        maxAdvanceBookingDays: 30,
+      settings = await prismaClient.bookingSettings.create({
+        data: {
+          id: 1,
+          operatingHours: getDefaultOperatingHours(),
+        },
       });
     }
 
-    return NextResponse.json({
-      bookingTimeSlots: settings.bookingTimeSlots,
-      minAdvanceBookingDays: settings.minAdvanceBookingDays,
-      maxAdvanceBookingDays: settings.maxAdvanceBookingDays,
-      maxBookingsPerSlot: settings.maxBookingsPerSlot,
-    });
+    return NextResponse.json(settings);
   } catch (error) {
     console.error("Error fetching booking settings:", error);
     return NextResponse.json(
@@ -46,49 +36,38 @@ export async function PUT(request: NextRequest) {
   try {
     await requireAdmin();
 
+    const { getDefaultOperatingHours } =
+      await import("@/lib/services/slot.service");
     const body = await request.json();
     const {
-      bookingTimeSlots,
-      minAdvanceBookingDays,
-      maxAdvanceBookingDays,
-      maxBookingsPerSlot,
+      slotDuration,
+      bufferTime,
+      advanceBookingDays,
+      allowSameDayBooking,
+      operatingHours,
     } = body;
 
-    const settings = await prisma.businessSettings.upsert({
-      where: { id: "default" },
+    const settings = await prismaClient.bookingSettings.upsert({
+      where: { id: 1 },
       update: {
-        ...(bookingTimeSlots && { bookingTimeSlots }),
-        ...(minAdvanceBookingDays && { minAdvanceBookingDays }),
-        ...(maxAdvanceBookingDays && { maxAdvanceBookingDays }),
-        ...(maxBookingsPerSlot && { maxBookingsPerSlot }),
+        ...(slotDuration && { slotDuration }),
+        ...(bufferTime !== undefined && { bufferTime }),
+        ...(advanceBookingDays && { advanceBookingDays }),
+        ...(allowSameDayBooking !== undefined && { allowSameDayBooking }),
+        ...(operatingHours && { operatingHours }),
       },
       create: {
-        id: "default",
-        bookingTimeSlots: bookingTimeSlots || [
-          "9:00 AM",
-          "10:00 AM",
-          "11:00 AM",
-          "12:00 PM",
-          "2:00 PM",
-          "3:00 PM",
-          "4:00 PM",
-          "5:00 PM",
-        ],
-        minAdvanceBookingDays: minAdvanceBookingDays || 1,
-        maxAdvanceBookingDays: maxAdvanceBookingDays || 30,
-        maxBookingsPerSlot: maxBookingsPerSlot || 3,
+        id: 1,
+        slotDuration: slotDuration || 60,
+        bufferTime: bufferTime !== undefined ? bufferTime : 15,
+        advanceBookingDays: advanceBookingDays || 30,
+        allowSameDayBooking:
+          allowSameDayBooking !== undefined ? allowSameDayBooking : true,
+        operatingHours: operatingHours || getDefaultOperatingHours(),
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        bookingTimeSlots: settings.bookingTimeSlots,
-        minAdvanceBookingDays: settings.minAdvanceBookingDays,
-        maxAdvanceBookingDays: settings.maxAdvanceBookingDays,
-        maxBookingsPerSlot: settings.maxBookingsPerSlot,
-      },
-    });
+    return NextResponse.json(settings);
   } catch (error) {
     console.error("Error updating booking settings:", error);
     return NextResponse.json(

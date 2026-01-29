@@ -2,17 +2,12 @@
 
 import {
   getBookingAction,
+  getAvailableSlotsAction,
+  rescheduleBookingAction,
   updateBookingStatusAction,
 } from "@/app/actions/bookingActions";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +17,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
@@ -42,27 +36,15 @@ interface Booking {
   serviceType: string;
   vehicleInfo: string;
   date: Date;
-  timeSlot: string;
+  timeSlot: string | null;
   status: string;
   notes?: string;
+  activityLog?: Array<{
+    id: string;
+    activity: string;
+    createdAt: Date;
+  }>;
 }
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "CONFIRMED":
-      return "text-blue-600 bg-blue-50";
-    case "PENDING":
-      return "text-orange-600 bg-orange-50";
-    case "IN_PROGRESS":
-      return "text-purple-600 bg-purple-50";
-    case "COMPLETED":
-      return "text-green-600 bg-green-50";
-    case "CANCELLED":
-      return "text-red-600 bg-red-50";
-    default:
-      return "text-gray-600 bg-gray-50";
-  }
-};
 
 export default function BookingDetailsPage({
   params,
@@ -77,6 +59,23 @@ export default function BookingDetailsPage({
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "CONFIRMED":
+        return "text-blue-600 bg-blue-50";
+      case "PENDING":
+        return "text-orange-600 bg-orange-50";
+      case "IN_PROGRESS":
+        return "text-purple-600 bg-purple-50";
+      case "COMPLETED":
+        return "text-green-600 bg-green-50";
+      case "CANCELLED":
+        return "text-red-600 bg-red-50";
+      default:
+        return "text-gray-600 bg-gray-50";
+    }
+  };
+
   useEffect(() => {
     const fetchBooking = async () => {
       const resolvedParams = await params;
@@ -84,7 +83,16 @@ export default function BookingDetailsPage({
 
       const result = await getBookingAction(resolvedParams.id);
       if (result.success && result.data) {
-        setBooking(result.data as Booking);
+        const data = result.data as Booking;
+        const normalizedBooking: Booking = {
+          ...data,
+          date: new Date(data.date),
+          activityLog: data.activityLog?.map((log) => ({
+            ...log,
+            createdAt: new Date(log.createdAt),
+          })),
+        };
+        setBooking(normalizedBooking);
       }
       setLoading(false);
     };
@@ -92,39 +100,39 @@ export default function BookingDetailsPage({
     fetchBooking();
   }, [params]);
 
-  const fetchTimeSlots = async () => {
+  const fetchTimeSlots = async (selectedDate: Date) => {
     setSlotsLoading(true);
     try {
-      // Fetch from settings endpoint
-      const response = await fetch("/api/settings/booking", {
-        method: "GET",
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTimeSlots(data.bookingTimeSlots || generateDefaultSlots());
+      const result = await getAvailableSlotsAction(selectedDate.toISOString());
+      if (result.success && result.data) {
+        setTimeSlots(result.data);
+        if (rescheduleTime && !result.data.includes(rescheduleTime)) {
+          setRescheduleTime("");
+        }
       } else {
-        setTimeSlots(generateDefaultSlots());
+        setTimeSlots([]);
       }
     } catch (error) {
       console.error("Error fetching time slots:", error);
-      setTimeSlots(generateDefaultSlots());
+      setTimeSlots([]);
     } finally {
       setSlotsLoading(false);
     }
   };
 
-  const generateDefaultSlots = () => {
-    const slots = [];
-    for (let hour = 9; hour <= 17; hour++) {
-      const ampm = hour < 12 ? "AM" : "PM";
-      const displayHour = hour > 12 ? hour - 12 : hour;
-      slots.push(`${displayHour}:00 ${ampm}`);
+  useEffect(() => {
+    if (rescheduleDate) {
+      fetchTimeSlots(rescheduleDate);
     }
-    return slots;
-  };
+  }, [rescheduleDate]);
 
   const handleOpenReschedule = () => {
-    fetchTimeSlots();
+    if (booking?.date) {
+      setRescheduleDate(booking.date);
+    }
+    if (booking?.timeSlot) {
+      setRescheduleTime(booking.timeSlot);
+    }
     setIsRescheduleOpen(true);
   };
 
@@ -157,14 +165,10 @@ export default function BookingDetailsPage({
 
     setIsUpdating(true);
     try {
-      // Update booking with new date and time
-      const result = await updateBookingStatusAction(
+      const result = await rescheduleBookingAction(
         id,
-        booking?.status || "PENDING",
-        {
-          date: format(rescheduleDate, "yyyy-MM-dd"),
-          timeSlot: rescheduleTime,
-        },
+        rescheduleDate,
+        rescheduleTime,
       );
 
       if (result.success) {
@@ -219,214 +223,67 @@ export default function BookingDetailsPage({
     );
   }
 
+  const services = booking.serviceType
+    .split(",")
+    .map((service) => service.trim())
+    .filter(Boolean);
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-            <Link
-              href="/admin/dashboard/bookings"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <span className="material-symbols-outlined">arrow_back</span>
-            </Link>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin/dashboard/bookings"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </Link>
+          <div>
             <h1 className="text-3xl font-bold text-foreground">
               Booking #{booking.bookingNumber}
             </h1>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}
-            >
-              {booking.status.replace("_", " ")}
-            </span>
+            <p className="text-muted-foreground">
+              Scheduled for {booking.date.toLocaleDateString()} at{" "}
+              {booking.timeSlot || "TBD"}
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Appointment scheduled for {booking.date.toLocaleDateString()} at{" "}
-            {booking.timeSlot}
-          </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleOpenReschedule}
-            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors"
-          >
-            Reschedule
-          </button>
-          <Select
-            value={booking.status}
-            onValueChange={handleStatusChange}
-            disabled={isUpdating}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-              <SelectItem value="COMPLETED">Completed</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <span
+          className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+            booking.status,
+          )}`}
+        >
+          {booking.status.replace("_", " ")}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Booking Details */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Service Details */}
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Booking Details */}
           <div className="bg-card rounded-lg border border-border">
             <div className="p-6 border-b border-border">
               <h2 className="text-xl font-semibold text-foreground">
-                Service Details
+                Booking Details
               </h2>
             </div>
-            <div className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium text-foreground mb-4">
-                    {booking.serviceType}
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Service scheduled for {booking.date.toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Vehicle Information */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-foreground">
-                Vehicle Information
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm text-muted-foreground">
-                    Vehicle
-                  </label>
-                  <p className="font-medium text-foreground">
-                    {booking.vehicleInfo}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Booking Status */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-foreground">
-                Booking Status
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full text-green-500 bg-green-50">
-                    <span className="material-symbols-outlined text-sm">
-                      check_circle
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground">
-                      Booking Created
-                    </h3>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      Booking #{booking.bookingNumber} created for{" "}
-                      {booking.customerName}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`p-2 rounded-full ${
-                      booking.status === "CONFIRMED" ||
-                      booking.status === "IN_PROGRESS" ||
-                      booking.status === "COMPLETED"
-                        ? "text-green-500 bg-green-50"
-                        : "text-orange-500 bg-orange-50"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-sm">
-                      {booking.status === "CONFIRMED" ||
-                      booking.status === "IN_PROGRESS" ||
-                      booking.status === "COMPLETED"
-                        ? "check_circle"
-                        : "schedule"}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground">
-                      Current Status: {booking.status.replace("_", " ")}
-                    </h3>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      Scheduled for {booking.date.toLocaleDateString()} at{" "}
-                      {booking.timeSlot}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Customer Information */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">
-                Customer Information
-              </h2>
-            </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="text-sm text-muted-foreground">Name</label>
+                <label className="text-sm text-muted-foreground">
+                  Booking #
+                </label>
                 <p className="font-medium text-foreground">
-                  {booking.customerName}
+                  {booking.bookingNumber}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground">Email</label>
+                <label className="text-sm text-muted-foreground">
+                  Date & Time
+                </label>
                 <p className="font-medium text-foreground">
-                  {booking.customerEmail || "N/A"}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Phone</label>
-                <p className="font-medium text-foreground">
-                  {booking.customerPhone}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Address</label>
-                <p className="font-medium text-foreground">{booking.address}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Appointment Details */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">
-                Appointment Details
-              </h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-sm text-muted-foreground">Date</label>
-                <p className="font-medium text-foreground">
-                  {booking.date.toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Time</label>
-                <p className="font-medium text-foreground">
-                  {booking.timeSlot}
+                  {booking.date.toLocaleDateString()} •{" "}
+                  {booking.timeSlot || "TBD"}
                 </p>
               </div>
               <div>
@@ -438,62 +295,123 @@ export default function BookingDetailsPage({
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Customer & Vehicle */}
           <div className="bg-card rounded-lg border border-border">
             <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">
-                Special Notes
+              <h2 className="text-xl font-semibold text-foreground">
+                Customer & Vehicle
               </h2>
             </div>
-            <div className="p-6">
-              <p className="text-foreground">
-                {booking.notes || "No special notes"}
-              </p>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm text-muted-foreground">
+                  Customer
+                </label>
+                <p className="font-medium text-foreground">
+                  {booking.customerName}
+                </p>
+                <a
+                  href={`tel:${booking.customerPhone}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {booking.customerPhone}
+                </a>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Vehicle</label>
+                <p className="font-medium text-foreground">
+                  {booking.vehicleInfo || "Not provided"}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Services Requested */}
           <div className="bg-card rounded-lg border border-border">
             <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">
-                Quick Actions
+              <h2 className="text-xl font-semibold text-foreground">
+                Services Requested
               </h2>
             </div>
             <div className="p-6 space-y-3">
-              <button className="w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-blue-500">
-                    schedule
-                  </span>
-                  <span className="text-foreground">
-                    Reschedule Appointment
-                  </span>
+              {services.length > 0 ? (
+                services.map((service) => (
+                  <div
+                    key={service}
+                    className="flex items-center gap-2 text-foreground"
+                  >
+                    <span className="material-symbols-outlined text-sm text-primary">
+                      check_circle
+                    </span>
+                    <span>{service}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground">No services listed</p>
+              )}
+              {booking.notes && (
+                <div className="pt-4">
+                  <label className="text-sm text-muted-foreground">Notes</label>
+                  <p className="text-foreground mt-1">{booking.notes}</p>
                 </div>
-              </button>
-              <button className="w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-green-500">
-                    call
-                  </span>
-                  <span className="text-foreground">Call Customer</span>
-                </div>
-              </button>
-              <button className="w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-purple-500">
-                    email
-                  </span>
-                  <span className="text-foreground">Send Email</span>
-                </div>
-              </button>
-              <button className="w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-red-500">
-                    cancel
-                  </span>
-                  <span className="text-foreground">Cancel Booking</span>
-                </div>
-              </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Actions */}
+          <div className="bg-card rounded-lg border border-border">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">Actions</h2>
+            </div>
+            <div className="p-6 space-y-3">
+              <Button
+                variant="outline"
+                onClick={handleOpenReschedule}
+                className="w-full"
+              >
+                Reschedule
+              </Button>
+              <Button
+                onClick={() => handleStatusChange("CONFIRMED")}
+                disabled={isUpdating}
+                className="w-full"
+              >
+                Confirm Booking
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleStatusChange("CANCELLED")}
+                disabled={isUpdating}
+                className="w-full"
+              >
+                Cancel Booking
+              </Button>
+            </div>
+          </div>
+
+          {/* Booking History */}
+          <div className="bg-card rounded-lg border border-border">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">
+                Booking History
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {booking.activityLog && booking.activityLog.length > 0 ? (
+                booking.activityLog.map((log) => (
+                  <div key={log.id} className="space-y-1">
+                    <p className="text-foreground">{log.activity}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(log.createdAt, "PPP p")}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground">No activity logged yet.</p>
+              )}
             </div>
           </div>
         </div>
@@ -516,6 +434,7 @@ export default function BookingDetailsPage({
                   mode="single"
                   selected={rescheduleDate}
                   onSelect={setRescheduleDate}
+                  initialFocus
                   disabled={(date) => {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
@@ -530,6 +449,10 @@ export default function BookingDetailsPage({
               {slotsLoading ? (
                 <p className="text-sm text-muted-foreground">
                   Loading time slots...
+                </p>
+              ) : timeSlots.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No available time slots for this date.
                 </p>
               ) : (
                 <div className="grid grid-cols-3 gap-2">

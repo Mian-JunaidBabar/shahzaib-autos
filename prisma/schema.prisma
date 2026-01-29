@@ -221,10 +221,26 @@ model Booking {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  customer Customer? @relation(fields: [customerId], references: [id])
-  order    Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customer      Customer?             @relation(fields: [customerId], references: [id])
+  order         Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  activityLog   BookingActivityLog[]
 
   @@map("bookings")
+}
+
+// ============================================
+// BOOKING ACTIVITY LOG (Track booking changes)
+// ============================================
+
+model BookingActivityLog {
+  id        String   @id @default(cuid())
+  bookingId String   @map("booking_id")
+  activity  String   // e.g., "Status changed to CONFIRMED", "Rescheduled to 2026-02-10"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("booking_activity_logs")
 }
 
 // ============================================
@@ -314,8 +330,21 @@ model Service {
 }
 
 // ============================================
-// BUSINESS SETTINGS
+// BOOKING SETTINGS (Scheduling configuration)
 // ============================================
+
+model BookingSettings {
+  id                  Int      @id @default(1) // Single-row table
+  slotDuration        Int      @default(60) // In minutes
+  bufferTime          Int      @default(15) // In minutes between bookings
+  advanceBookingDays  Int      @default(30) // How far in advance customers can book
+  allowSameDayBooking Boolean  @default(true) // Can customers book same day?
+  operatingHours      Json // Array of operating hours per day of week
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("booking_settings")
+}
 
 model BusinessSettings {
   id              String   @id @default("default") // Always "default" for single-row table

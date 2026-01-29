@@ -148,6 +148,12 @@ export async function updateBookingStatusAction(
       include: { customer: true },
     });
 
+    const { logBookingActivity } = await import("@/lib/services/slot.service");
+    const activity = reschedule
+      ? `Rescheduled to ${new Date(reschedule.date).toLocaleDateString()} at ${reschedule.timeSlot}`
+      : `Status changed to ${newStatus}`;
+    await logBookingActivity(id, activity);
+
     // Generate WhatsApp notification URL
     const notification = NotificationService.sendBookingNotification(
       booking,
@@ -174,11 +180,25 @@ export async function updateBookingStatusAction(
 export async function rescheduleBookingAction(
   id: string,
   date: Date,
+  timeSlot?: string,
 ): Promise<ActionResult<{ whatsappUrl?: string }>> {
   try {
     await requireAdmin();
 
-    const booking = await BookingService.rescheduleBooking(id, date);
+    const booking = await prisma.booking.update({
+      where: { id },
+      data: {
+        date,
+        timeSlot: timeSlot || undefined,
+      },
+      include: { customer: true },
+    });
+
+    const { logBookingActivity } = await import("@/lib/services/slot.service");
+    await logBookingActivity(
+      id,
+      `Rescheduled to ${date.toLocaleDateString()} at ${timeSlot || "TBD"}`,
+    );
 
     // Generate WhatsApp notification URL
     const notification = NotificationService.sendBookingNotification(
@@ -392,6 +412,29 @@ export async function createPublicBookingAction(input: {
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to create booking",
+    };
+  }
+}
+
+/**
+ * Get available time slots for a specific date
+ * Public action - no authentication required for customer-facing bookings
+ */
+export async function getAvailableSlotsAction(
+  date: string,
+): Promise<ActionResult<string[]>> {
+  try {
+    const { getAvailableSlots } = await import("@/lib/services/slot.service");
+    const slots = await getAvailableSlots(new Date(date));
+    return { success: true, data: slots };
+  } catch (error) {
+    console.error("getAvailableSlotsAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch available slots",
     };
   }
 }

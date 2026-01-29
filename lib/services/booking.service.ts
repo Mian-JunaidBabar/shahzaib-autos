@@ -9,10 +9,11 @@ import { BookingStatus, Prisma } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
+const prismaClient = prisma as any;
 
 // Types
 export type BookingWithCustomer = Prisma.BookingGetPayload<{
-  include: { customer: true };
+  include: { customer: true; activityLog: true };
 }>;
 
 export type CreateBookingInput = {
@@ -95,14 +96,14 @@ export async function getBookings(
   }
 
   const [bookings, total] = await Promise.all([
-    prisma.booking.findMany({
+    prismaClient.booking.findMany({
       where,
-      include: { customer: true },
+      include: { customer: true, activityLog: true },
       orderBy: { date: "asc" },
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.booking.count({ where }),
+    prismaClient.booking.count({ where }),
   ]);
 
   return {
@@ -122,11 +123,14 @@ export async function getBookings(
 export async function getBooking(
   idOrNumber: string,
 ): Promise<BookingWithCustomer | null> {
-  return prisma.booking.findFirst({
+  return prismaClient.booking.findFirst({
     where: {
       OR: [{ id: idOrNumber }, { bookingNumber: idOrNumber }],
     },
-    include: { customer: true },
+    include: {
+      customer: true,
+      activityLog: { orderBy: { createdAt: "desc" } },
+    },
   });
 }
 
@@ -156,7 +160,7 @@ export async function createBooking(
     customerId = customer.id;
   }
 
-  return prisma.booking.create({
+  return prismaClient.booking.create({
     data: {
       bookingNumber: generateBookingNumber(),
       customerId,
@@ -170,7 +174,7 @@ export async function createBooking(
       address: input.address,
       notes: input.notes,
     },
-    include: { customer: true },
+    include: { customer: true, activityLog: true },
   });
 }
 
@@ -181,10 +185,10 @@ export async function updateBooking(
   id: string,
   input: UpdateBookingInput,
 ): Promise<BookingWithCustomer> {
-  return prisma.booking.update({
+  return prismaClient.booking.update({
     where: { id },
     data: input,
-    include: { customer: true },
+    include: { customer: true, activityLog: true },
   });
 }
 
@@ -219,18 +223,18 @@ export async function getBookingStats() {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   const [total, byStatus, todayCount, upcomingCount] = await Promise.all([
-    prisma.booking.count(),
-    prisma.booking.groupBy({
+    prismaClient.booking.count(),
+    prismaClient.booking.groupBy({
       by: ["status"],
       _count: true,
     }),
-    prisma.booking.count({
+    prismaClient.booking.count({
       where: {
         date: { gte: today, lt: tomorrow },
         status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
       },
     }),
-    prisma.booking.count({
+    prismaClient.booking.count({
       where: {
         date: { gte: today },
         status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
@@ -257,7 +261,7 @@ export async function getUpcomingBookings(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  return prisma.booking.findMany({
+  return prismaClient.booking.findMany({
     where: {
       date: { gte: today },
       status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
@@ -272,7 +276,7 @@ export async function getUpcomingBookings(
  * Get all unique service types
  */
 export async function getServiceTypes(): Promise<string[]> {
-  const services = await prisma.booking.findMany({
+  const services = await prismaClient.booking.findMany({
     select: { serviceType: true },
     distinct: ["serviceType"],
   });
@@ -284,5 +288,5 @@ export async function getServiceTypes(): Promise<string[]> {
  * Delete a booking
  */
 export async function deleteBooking(id: string): Promise<void> {
-  await prisma.booking.delete({ where: { id } });
+  await prismaClient.booking.delete({ where: { id } });
 }
