@@ -11,6 +11,7 @@
  */
 import { z } from "zod";
 
+
 // ============ Common Schemas ============
 
 export const phoneSchema = z
@@ -597,6 +598,7 @@ export const checkoutCustomerSchema = z.object({
 export const checkoutSchema = z.object({
   customer: checkoutCustomerSchema,
   items: z.array(checkoutCartItemSchema).min(1, "Cart is empty"),
+  serviceIds: z.array(z.string().uuid()).optional(), // Optional linked services
 });
 
 export type CheckoutCartItem = z.infer<typeof checkoutCartItemSchema>;

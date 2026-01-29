@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCart } from "@/context/cart-context";
 import { formatPrice } from "@/lib/whatsapp";
 import { createPublicOrderAction } from "@/app/actions/orderActions";
+import { getPublicServicesAction } from "@/app/actions/serviceActions";
 import {
   checkoutCustomerSchema,
   type CheckoutCustomer,
@@ -26,6 +27,7 @@ import {
   MapPin,
   Loader2,
   CheckCircle,
+  X,
 } from "lucide-react";
 import {
   Form,
@@ -37,6 +39,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ServiceUpsellModal } from "@/components/public/service-upsell-modal";
 
 export default function CheckoutPage() {
   const {
@@ -53,6 +56,10 @@ export default function CheckoutPage() {
     whatsappUrl: string;
   } | null>(null);
 
+  // Service upsell state
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
   // Form setup with Zod validation
   const form = useForm<CheckoutCustomer>({
     resolver: zodResolver(checkoutCustomerSchema),
@@ -63,12 +70,36 @@ export default function CheckoutPage() {
     },
   });
 
-  const onSubmit = async (customerData: CheckoutCustomer) => {
+  // Handle service selection from modal
+  const handleServicesSelected = (serviceIds: string[]) => {
+    setSelectedServices(serviceIds);
+    if (serviceIds.length > 0) {
+      toast.success(`${serviceIds.length} service(s) added to your order`);
+    }
+  };
+
+  // Handle initial order submit (opens service modal)
+  const handleInitialSubmit = async (customerData: CheckoutCustomer) => {
     if (items.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
 
+    // Store customer data temporarily
+    form.setValue("name", customerData.name);
+    form.setValue("phone", customerData.phone);
+    form.setValue("address", customerData.address);
+
+    // Show service upsell modal
+    setShowServiceModal(true);
+  };
+
+  // Final order submission (after modal closes)
+  const handleModalClose = async () => {
+    setShowServiceModal(false);
+
+    // Proceed with order creation
+    const customerData = form.getValues();
     setIsSubmitting(true);
 
     try {
@@ -81,6 +112,7 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           image: item.image,
         })),
+        serviceIds: selectedServices.length > 0 ? selectedServices : undefined,
       });
 
       if (result.success && result.data) {
@@ -403,7 +435,7 @@ export default function CheckoutPage() {
 
               {/* WhatsApp Order Button */}
               <button
-                onClick={form.handleSubmit(onSubmit)}
+                onClick={form.handleSubmit(handleInitialSubmit)}
                 disabled={isSubmitting}
                 className="w-full h-14 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -415,7 +447,7 @@ export default function CheckoutPage() {
                 ) : (
                   <>
                     <MessageCircle className="h-5 w-5" />
-                    Send Order via WhatsApp
+                    Continue to Checkout
                   </>
                 )}
               </button>
@@ -461,6 +493,13 @@ export default function CheckoutPage() {
           </Link>
         </div>
       </section>
+
+      {/* Service Upsell Modal */}
+      <ServiceUpsellModal
+        isOpen={showServiceModal}
+        onClose={handleModalClose}
+        onServicesSelected={handleServicesSelected}
+      />
     </>
   );
 }

@@ -10,9 +10,15 @@ import {
   Barcode,
   Hash,
   TrendingUp,
+  Warehouse,
+  Clock,
+  ShoppingCart,
 } from "lucide-react";
+import {
+  getProductAction,
+  getProductStockDetailsAction,
+} from "@/app/actions/productActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getProductAction } from "@/app/actions/productActions";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +51,12 @@ export default async function ProductDetailPage({
   const product = result.data;
   const stock = product.inventory?.quantity ?? 0;
   const lowStockAt = product.inventory?.lowStockAt ?? 0;
+
+  // Fetch stock details
+  const stockDetailsResult = await getProductStockDetailsAction(id);
+  const stockDetails = stockDetailsResult.success
+    ? stockDetailsResult.data
+    : null;
 
   const stockBadge = (() => {
     if (!product.inventory || stock === 0) {
@@ -255,6 +267,60 @@ export default async function ProductDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Stock Overview Card */}
+      {stockDetails && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Warehouse className="h-5 w-5 text-primary" />
+              Stock Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Warehouse className="h-4 w-4 text-blue-500" />
+                  Available in Warehouse
+                </div>
+                <p className="text-3xl font-bold text-blue-600">
+                  {stockDetails.available}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Units ready to ship
+                </p>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4 text-orange-500" />
+                  Reserved in Open Orders
+                </div>
+                <p className="text-3xl font-bold text-orange-600">
+                  {stockDetails.reserved}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Units in NEW, CONFIRMED, or PROCESSING orders
+                </p>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <ShoppingCart className="h-4 w-4 text-green-500" />
+                  Total Units Sold
+                </div>
+                <p className="text-3xl font-bold text-green-600">
+                  {stockDetails.sold}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Units in DELIVERED orders
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {product.images && product.images.length > 0 && (
         <Card>

@@ -9,7 +9,6 @@ import { OrderStatus, Prisma } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // Types
 export type OrderWithItems = Prisma.OrderGetPayload<{
   include: { items: { include: { product: true } }; customer: true };
@@ -129,6 +128,7 @@ export async function getOrder(
     include: {
       items: { include: { product: true } },
       customer: true,
+      booking: true, // Include linked booking if exists
     },
   });
 }

@@ -55,6 +55,7 @@ async function generateOrderNumber(): Promise<string> {
  *    b. Create order with PENDING status
  *    c. Create order items
  *    d. Decrement inventory for each item
+ *    e. If serviceIds provided, create linked booking
  * 4. Return order number and WhatsApp URL
  */
 export async function createPublicOrderAction(
@@ -65,14 +66,37 @@ export async function createPublicOrderAction(
   try {
     // Validate input
     const validated = checkoutSchema.parse(input);
-    const { customer, items } = validated;
+    const { customer, items, serviceIds } = validated;
 
     // Calculate totals
     const subtotal = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const total = subtotal;
+
+    // Fetch service prices if serviceIds provided
+    let serviceTotal = 0;
+    let selectedServices: any[] = [];
+    if (serviceIds && serviceIds.length > 0) {
+      selectedServices = await prisma.service.findMany({
+        where: {
+          id: { in: serviceIds },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          title: true,
+          price: true,
+        },
+      });
+
+      serviceTotal = selectedServices.reduce(
+        (sum, service) => sum + Number(service.price),
+        0,
+      );
+    }
+
+    const total = subtotal + serviceTotal;
 
     // Generate order number before transaction
     const orderNumber = await generateOrderNumber();
@@ -161,6 +185,30 @@ export async function createPublicOrderAction(
         }
       }
 
+      // 5. If services selected, create linked booking
+      if (serviceIds && serviceIds.length > 0 && selectedServices.length > 0) {
+        const serviceNames = selectedServices.map((s) => s.title).join(", ");
+        const bookingNumber = `BK-${Date.now()}`;
+
+        // Create booking linked to order
+        await tx.booking.create({
+          data: {
+            bookingNumber,
+            customerId: customerRecord.id,
+            customerName: customer.name,
+            customerPhone: customer.phone,
+            customerEmail: customerRecord.email ?? null,
+            serviceType: serviceNames,
+            date: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+            timeSlot: "To be confirmed",
+            address: customer.address,
+            notes: `Auto-created from order ${orderNumber}. Services: ${serviceNames}`,
+            status: "PENDING",
+            orderId: newOrder.id,
+          },
+        });
+      }
+
       return newOrder;
     });
 
@@ -172,7 +220,7 @@ export async function createPublicOrderAction(
       )
       .join("\n");
 
-    const message = `🛒 *New Order from Shahzaib Autos*
+    let message = `🛒 *New Order from Shahzaib Autos*
 
 *Order #: ${orderNumber}*
 
@@ -183,6 +231,27 @@ Address: ${customer.address}
 
 *Order Items:*
 ${itemsList}
+
+*Subtotal: PKR ${subtotal.toLocaleString()}*`;
+
+    // Add services if included
+    if (selectedServices.length > 0) {
+      const servicesList = selectedServices
+        .map(
+          (service) =>
+            `• ${service.title} - PKR ${Number(service.price).toLocaleString()}`,
+        )
+        .join("\n");
+
+      message += `
+
+*Professional Services:*
+${servicesList}
+
+*Service Total: PKR ${serviceTotal.toLocaleString()}*`;
+    }
+
+    message += `
 
 *Total: PKR ${total.toLocaleString()}*
 

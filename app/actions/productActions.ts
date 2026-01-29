@@ -487,3 +487,30 @@ export async function getLowStockProductsAction(): Promise<
     };
   }
 }
+
+/**
+ * Get product stock details (breakdown of available, reserved, sold)
+ */
+export async function getProductStockDetailsAction(
+  productId: string,
+): Promise<
+  ActionResult<
+    Awaited<ReturnType<typeof ProductService.getProductStockDetails>>
+  >
+> {
+  try {
+    await requireAdmin();
+
+    const stockDetails = await ProductService.getProductStockDetails(productId);
+    return { success: true, data: stockDetails };
+  } catch (error) {
+    console.error("getProductStockDetailsAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch stock details",
+    };
+  }
+}

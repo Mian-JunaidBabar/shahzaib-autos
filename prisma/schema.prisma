@@ -170,6 +170,7 @@ model Order {
 
   customer Customer? @relation(fields: [customerId], references: [id])
   items    OrderItem[]
+  booking  Booking? // One-to-one relation (booking can be linked to an order)
 
   @@map("orders")
 }
@@ -216,10 +217,12 @@ model Booking {
   notes         String?       @db.Text
   status        BookingStatus @default(PENDING)
   whatsappSent  Boolean       @default(false) @map("whatsapp_sent")
+  orderId       String?       @unique @map("order_id") // Link to order
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   customer Customer? @relation(fields: [customerId], references: [id])
+  order    Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@map("bookings")
 }

@@ -11,6 +11,7 @@ import { Prisma, ProductStatus, Image } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
+
 // Types
 export type ProductWithImages = Prisma.ProductGetPayload<{
   include: { images: true; inventory: true; badge: true };
@@ -755,4 +756,59 @@ export async function generateSlug(name: string): Promise<string> {
   }
 
   return slug;
+}
+
+/**
+ * Get detailed stock breakdown for a product
+ * Returns:
+ * - available: Current warehouse quantity (from Inventory)
+ * - reserved: Sum of quantities in open orders (NEW, CONFIRMED, PROCESSING)
+ * - sold: Sum of quantities in delivered orders
+ */
+export async function getProductStockDetails(productId: string) {
+  // Get warehouse stock
+  const inventory = await prisma.inventory.findUnique({
+    where: { productId },
+    select: { quantity: true },
+  });
+
+  const available = inventory?.quantity ?? 0;
+
+  // Get reserved stock (orders in progress)
+  const reservedResult = await prisma.orderItem.aggregate({
+    where: {
+      productId,
+      order: {
+        status: {
+          in: ["NEW", "CONFIRMED", "PROCESSING"],
+        },
+      },
+    },
+    _sum: {
+      quantity: true,
+    },
+  });
+
+  const reserved = reservedResult._sum.quantity ?? 0;
+
+  // Get sold stock (delivered orders)
+  const soldResult = await prisma.orderItem.aggregate({
+    where: {
+      productId,
+      order: {
+        status: "DELIVERED",
+      },
+    },
+    _sum: {
+      quantity: true,
+    },
+  });
+
+  const sold = soldResult._sum.quantity ?? 0;
+
+  return {
+    available,
+    reserved,
+    sold,
+  };
 }

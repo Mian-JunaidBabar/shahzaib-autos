@@ -8,6 +8,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as BookingService from "@/lib/services/booking.service";
 import * as NotificationService from "@/lib/services/notification.service";
@@ -296,6 +297,81 @@ export async function sendBookingReminderAction(
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to generate reminder",
+    };
+  }
+}
+
+/**
+ * Create a booking from public booking form (no auth required)
+ */
+export async function createPublicBookingAction(input: {
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  address: string;
+  date: string;
+  timeSlot: string;
+  vehicleInfo?: string;
+  serviceIds: string[];
+  notes?: string;
+}): Promise<
+  ActionResult<{
+    bookingNumber: string;
+    whatsappUrl: string;
+  }>
+> {
+  try {
+    // Get service titles
+    const services = await Promise.all(
+      input.serviceIds.map((id) =>
+        prisma.service.findUnique({
+          where: { id },
+          select: { title: true },
+        }),
+      ),
+    );
+
+    const serviceType = services
+      .filter((s) => s !== null)
+      .map((s) => s!.title)
+      .join(", ");
+
+    // Create booking
+    const booking = await BookingService.createBooking({
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      customerEmail: input.customerEmail,
+      address: input.address,
+      date: new Date(input.date),
+      timeSlot: input.timeSlot,
+      vehicleInfo: input.vehicleInfo,
+      serviceType,
+      notes: input.notes,
+    });
+
+    // Generate WhatsApp notification
+    const notification = NotificationService.sendBookingNotification(
+      booking,
+      "confirmation",
+    );
+
+    // Revalidate admin pages
+    revalidatePath("/admin/dashboard/bookings");
+    revalidatePath("/admin/dashboard");
+
+    return {
+      success: true,
+      data: {
+        bookingNumber: booking.bookingNumber,
+        whatsappUrl: notification.url!,
+      },
+    };
+  } catch (error) {
+    console.error("createPublicBookingAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to create booking",
     };
   }
 }

@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   Truck,
   XCircle,
+  Wrench,
+  Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +67,15 @@ type Order = {
   createdAt: Date;
   updatedAt: Date;
   items: OrderItem[];
+  booking?: {
+    id: string;
+    bookingNumber: string;
+    serviceType: string;
+    date: Date;
+    timeSlot: string | null;
+    status: string;
+    notes: string | null;
+  } | null;
 };
 
 const statusOptions: {
@@ -307,6 +318,91 @@ export default function OrderDetailPage({ params }: OrderDetailsPageProps) {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">{order.notes}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Linked Booking */}
+          {order.booking && (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-primary">
+                  <Wrench className="h-5 w-5" />
+                  Scheduled Services
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Booking Number
+                  </span>
+                  <Badge variant="outline" className="font-mono">
+                    {order.booking.bookingNumber}
+                  </Badge>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Wrench className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">Services</p>
+                      <p className="font-medium">{order.booking.serviceType}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">
+                        Scheduled Date
+                      </p>
+                      <p className="font-medium">
+                        {formatDate(order.booking.date)}
+                      </p>
+                      {order.booking.timeSlot && (
+                        <p className="text-sm text-muted-foreground">
+                          {order.booking.timeSlot}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <Badge
+                        variant={
+                          order.booking.status === "CONFIRMED"
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="mt-1"
+                      >
+                        {order.booking.status}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {order.booking.notes && (
+                    <div className="pt-3 border-t">
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Booking Notes
+                      </p>
+                      <p className="text-sm">{order.booking.notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <Link
+                  href={`/admin/dashboard/bookings/${order.booking.id}`}
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  View Full Booking Details
+                  <ArrowLeft className="h-3 w-3 rotate-180" />
+                </Link>
               </CardContent>
             </Card>
           )}

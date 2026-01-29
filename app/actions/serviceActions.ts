@@ -241,3 +241,57 @@ export async function getServiceStatsAction(): Promise<
     };
   }
 }
+
+// ============ Public Actions (No Admin Required) ============
+
+/**
+ * Get all active services (PUBLIC - No admin auth required)
+ * Used by customers on the booking page to select services
+ */
+export async function getPublicServicesAction(): Promise<
+  ActionResult<
+    Array<{
+      id: string;
+      title: string;
+      slug: string;
+      description: string | null;
+      price: number;
+      duration: number;
+      location: string;
+      features: string[];
+    }>
+  >
+> {
+  try {
+    const services = await ServiceService.getServices(
+      {
+        isActive: true,
+      },
+      {
+        sortBy: "title",
+        sortOrder: "asc",
+      },
+    );
+
+    // Return only the services array, not the pagination wrapper
+    const servicesData = services.services.map((service) => ({
+      id: service.id,
+      title: service.title,
+      slug: service.slug,
+      description: service.description,
+      price: service.price,
+      duration: service.duration,
+      location: service.location,
+      features: service.features,
+    }));
+
+    return { success: true, data: servicesData };
+  } catch (error) {
+    console.error("getPublicServicesAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to fetch services",
+    };
+  }
+}

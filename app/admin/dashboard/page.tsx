@@ -18,6 +18,9 @@ import {
 } from "@/app/actions/dashboardActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Force dynamic rendering for admin pages that use authentication
+export const dynamic = "force-dynamic";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
