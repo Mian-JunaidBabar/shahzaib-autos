@@ -11,7 +11,6 @@
  */
 import { z } from "zod";
 
-
 // ============ Common Schemas ============
 
 export const phoneSchema = z
@@ -591,6 +590,7 @@ export const checkoutCartItemSchema = z.object({
 export const checkoutCustomerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: phoneSchema,
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
   address: z.string().min(5, "Please provide a delivery address"),
 });
 

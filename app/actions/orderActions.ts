@@ -24,6 +24,9 @@ import {
   CheckoutInput,
 } from "@/lib/validations";
 import { generateWhatsAppUrl } from "@/lib/whatsapp";
+import { sendEmailAsync, adminEmail } from "@/lib/services/mail.service";
+import { AdminNewOrderAlert } from "@/emails/AdminNewOrderAlert";
+import { CustomerOrderConfirmation } from "@/emails/CustomerOrderConfirmation";
 
 export type ActionResult<T = void> = {
   success: boolean;
@@ -258,6 +261,52 @@ ${servicesList}
 Please confirm availability and delivery.`;
 
     const whatsappUrl = generateWhatsAppUrl(message);
+
+    // Send email notifications (fire-and-forget, don't await)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const adminOrderUrl = `${appUrl}/admin/dashboard/orders/${order.id}`;
+
+    // 1. Notify the Admin
+    sendEmailAsync({
+      to: adminEmail,
+      subject: `🛒 New Order Received: #${order.orderNumber}`,
+      react: AdminNewOrderAlert({
+        orderNumber: order.orderNumber,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerAddress: customer.address,
+        items: items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        subtotal,
+        total,
+        adminUrl: adminOrderUrl,
+        createdAt: new Date(),
+      }),
+    });
+
+    // 2. Confirm with the Customer (if email provided)
+    if (customer.email) {
+      sendEmailAsync({
+        to: customer.email,
+        subject: `Your Shahzaib Autos Order Confirmation (#${order.orderNumber})`,
+        react: CustomerOrderConfirmation({
+          customerName: customer.name,
+          orderNumber: order.orderNumber,
+          items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          subtotal,
+          total,
+          address: customer.address,
+          storeUrl: appUrl,
+        }),
+      });
+    }
 
     // Revalidate admin orders page
     revalidatePath("/admin/dashboard/orders");
