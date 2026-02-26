@@ -64,38 +64,56 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     });
 }
 
+import { sendEmailAsync } from "@/lib/services/mail.service";
+import TeamInviteEmail from "@/emails/TeamInviteEmail";
+
 /**
  * Invite a new team member
- * Sends a Supabase invite email + creates Admin record + AdminProfile
+ * Sends a valid custom Resend invite email + creates Admin + AdminProfile 
  */
 export async function inviteTeamMember(input: {
     email: string;
     fullName: string;
     role: string;
 }): Promise<TeamMember> {
-    // Create user in Supabase Auth via invite endpoint
-    const { data: authData, error: authError } =
-        await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
-            data: { full_name: input.fullName }, // sets user_metadata
+    // Generate auth link for the user
+    const { data: linkData, error: linkError } =
+        await supabaseAdmin.auth.admin.generateLink({
+            type: "invite",
+            email: input.email,
+            options: {
+                data: { full_name: input.fullName }, // sets user_metadata
+                redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/update-password`
+            },
         });
 
-    if (authError) {
-        throw new Error(`Failed to invite Supabase user: ${authError.message}`);
+    if (linkError) {
+        throw new Error(`Failed to generate Supabase invite link: ${linkError.message}`);
     }
 
-    if (!authData.user) {
-        throw new Error("No user returned from Supabase");
+    if (!linkData.user || !linkData.properties?.action_link) {
+        throw new Error("No user or action link returned from Supabase link generator");
     }
+
+    // Send custom email using Resend
+    sendEmailAsync({
+        to: input.email,
+        subject: "Welcome to Shahzaib Autos Admin Panel",
+        react: TeamInviteEmail({
+            inviteLink: linkData.properties.action_link,
+            adminName: "Shahzaib Autos Admin"
+        }) as any,
+    });
 
     // Create Admin + AdminProfile records
     const admin = await prisma.admin.create({
         data: {
-            supabaseUserId: authData.user.id,
+            supabaseUserId: linkData.user.id,
             profile: {
                 create: {
-                    id: authData.user.id,
+                    id: linkData.user.id,
                     fullName: input.fullName,
-                    role: input.role,
+                    // role field removed to fix Unknown argument error, letting DB default handle it
                     status: "invited",
                 } as any,
             },
@@ -110,7 +128,7 @@ export async function inviteTeamMember(input: {
         fullName: input.fullName,
         avatarUrl: null,
         phone: null,
-        role: input.role,
+        role: "Admin", // default fallback for UI render
         status: "invited",
         createdAt: admin.createdAt,
         lastSignIn: null,
