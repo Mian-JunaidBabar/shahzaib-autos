@@ -90,6 +90,7 @@ const statusOptions: {
   { value: "SHIPPED", label: "Shipped", icon: Truck },
   { value: "DELIVERED", label: "Delivered", icon: CheckCircle },
   { value: "CANCELLED", label: "Cancelled", icon: XCircle },
+  { value: "STALE", label: "Stale", icon: Clock },
 ];
 
 const getStatusColor = (status: OrderStatus) => {
@@ -108,6 +109,8 @@ const getStatusColor = (status: OrderStatus) => {
       return "bg-green-100 text-green-700";
     case "CANCELLED":
       return "bg-red-100 text-red-700";
+    case "STALE":
+      return "bg-gray-200 text-gray-800";
     default:
       return "bg-gray-100 text-gray-700";
   }

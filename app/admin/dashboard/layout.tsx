@@ -10,11 +10,24 @@ export const metadata: Metadata = {
   description: "Admin panel for managing Shahzaib Autos business operations",
 };
 
-export default function AdminDashboardLayout({
+import { getServerSession } from "@/lib/services/auth.service";
+import { redirect } from "next/navigation";
+
+export default async function AdminDashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession();
+
+  if (!session) {
+    redirect("/admin/auth/login");
+  }
+
+  if (!session.user.isAdmin) {
+    // Redirect to a 403 / 404 unauthorized page.
+    redirect("/admin/auth/unauthorized");
+  }
   return (
     <AuthGuard>
       <div className="h-screen overflow-hidden flex bg-background">

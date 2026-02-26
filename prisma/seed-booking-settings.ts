@@ -21,7 +21,7 @@ export async function seedBookingSettings() {
         bufferTime: 15, // 15 minutes between bookings
         advanceBookingDays: 30, // Can book up to 30 days in advance
         allowSameDayBooking: true, // Allow same-day bookings
-        operatingHours: getDefaultOperatingHours(),
+        operatingHours: getDefaultOperatingHours() as any,
       },
     });
 

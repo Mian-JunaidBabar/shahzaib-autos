@@ -263,6 +263,7 @@ export const orderUpdateSchema = z.object({
     "SHIPPED",
     "DELIVERED",
     "CANCELLED",
+    "STALE",
   ]),
   notes: z.string().optional(),
 });
@@ -278,6 +279,7 @@ export const orderFilterSchema = z.object({
       "SHIPPED",
       "DELIVERED",
       "CANCELLED",
+      "STALE",
     ])
     .optional(),
   customerId: z.string().uuid().optional(),

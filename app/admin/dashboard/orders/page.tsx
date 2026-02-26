@@ -58,6 +58,7 @@ const statusOptions: { value: OrderStatus | "all"; label: string }[] = [
   { value: "SHIPPED", label: "Shipped" },
   { value: "DELIVERED", label: "Delivered" },
   { value: "CANCELLED", label: "Cancelled" },
+  { value: "STALE", label: "Stale" },
 ];
 
 const getStatusColor = (status: OrderStatus) => {
@@ -76,6 +77,8 @@ const getStatusColor = (status: OrderStatus) => {
       return "bg-green-100 text-green-700 border-green-200";
     case "CANCELLED":
       return "bg-red-100 text-red-700 border-red-200";
+    case "STALE":
+      return "bg-gray-200 text-gray-800 border-gray-300";
     default:
       return "bg-gray-100 text-gray-700 border-gray-200";
   }
@@ -147,6 +150,13 @@ export default function OrdersPage() {
         revenue: totalRevenue,
       });
     } else {
+      if (
+        result.error?.includes("UNAUTHORIZED") ||
+        result.error?.includes("FORBIDDEN")
+      ) {
+        window.location.href = "/admin/auth/unauthorized";
+        return;
+      }
       setError(result.error || "Failed to fetch orders");
     }
 
