@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   getTeamMembersAction,
-  addTeamMemberAction,
+  inviteTeamMemberAction,
   updateTeamMemberAction,
   removeTeamMemberAction,
 } from "@/app/actions/teamActions";
@@ -73,6 +73,8 @@ const getStatusColor = (status: string) => {
   switch (status) {
     case "active":
       return "bg-green-100 text-green-700";
+    case "invited":
+      return "bg-yellow-100 text-yellow-700";
     case "inactive":
       return "bg-red-100 text-red-700";
     case "on-leave":
@@ -140,6 +142,7 @@ export default function TeamPage() {
   // Add form state
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState("Admin");
 
   const fetchMembers = async () => {
     setIsLoading(true);
@@ -170,9 +173,10 @@ export default function TeamPage() {
     }
 
     startTransition(async () => {
-      const result = await addTeamMemberAction({
+      const result = await inviteTeamMemberAction({
         email: newEmail,
         fullName: newName,
+        role: newRole,
       });
 
       if (result.success && result.data) {
@@ -180,6 +184,7 @@ export default function TeamPage() {
         setShowAddModal(false);
         setNewEmail("");
         setNewName("");
+        setNewRole("Admin");
         toast.success(
           "Team member added successfully! An invite email has been sent.",
         );
@@ -410,9 +415,19 @@ export default function TeamPage() {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={getStatusColor(member.status)}
+                        className={getStatusColor(
+                          !member.lastSignIn && member.status === "invited"
+                            ? "invited"
+                            : member.status === "invited"
+                              ? "active"
+                              : member.status,
+                        )}
                       >
-                        {member.status.replace("-", " ")}
+                        {!member.lastSignIn && member.status === "invited"
+                          ? "Invited"
+                          : member.status === "invited"
+                            ? "Active"
+                            : member.status.replace("-", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -492,13 +507,30 @@ export default function TeamPage() {
                 onChange={(e) => setNewEmail(e.target.value)}
               />
             </div>
+            <div>
+              <Label htmlFor="role" className="mb-2 block">
+                Role
+              </Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddModal(false)}>
               Cancel
             </Button>
             <Button onClick={handleAddMember} disabled={isPending}>
-              {isPending ? "Adding..." : "Add Member"}
+              {isPending ? "Sending..." : "Send Invite"}
             </Button>
           </DialogFooter>
         </DialogContent>

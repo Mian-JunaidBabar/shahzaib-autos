@@ -65,23 +65,22 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 }
 
 /**
- * Add a new team member
- * Creates Supabase Auth user + Admin record + AdminProfile
+ * Invite a new team member
+ * Sends a Supabase invite email + creates Admin record + AdminProfile
  */
-export async function addTeamMember(input: {
+export async function inviteTeamMember(input: {
     email: string;
     fullName: string;
+    role: string;
 }): Promise<TeamMember> {
-    // Create user in Supabase Auth (sends invite email)
+    // Create user in Supabase Auth via invite endpoint
     const { data: authData, error: authError } =
-        await supabaseAdmin.auth.admin.createUser({
-            email: input.email,
-            email_confirm: false, // Will send confirmation/invite email
-            user_metadata: { full_name: input.fullName },
+        await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
+            data: { full_name: input.fullName }, // sets user_metadata
         });
 
     if (authError) {
-        throw new Error(`Failed to create Supabase user: ${authError.message}`);
+        throw new Error(`Failed to invite Supabase user: ${authError.message}`);
     }
 
     if (!authData.user) {
@@ -96,8 +95,8 @@ export async function addTeamMember(input: {
                 create: {
                     id: authData.user.id,
                     fullName: input.fullName,
-                    role: "Admin",
-                    status: "active",
+                    role: input.role,
+                    status: "invited",
                 } as any,
             },
         },
@@ -111,8 +110,8 @@ export async function addTeamMember(input: {
         fullName: input.fullName,
         avatarUrl: null,
         phone: null,
-        role: "Admin",
-        status: "active",
+        role: input.role,
+        status: "invited",
         createdAt: admin.createdAt,
         lastSignIn: null,
     };

@@ -37,22 +37,23 @@ export async function getTeamMembersAction(): Promise<
 }
 
 /**
- * Add a new team member
+ * Invite a new team member
  */
-export async function addTeamMemberAction(input: {
+export async function inviteTeamMemberAction(input: {
     email: string;
     fullName: string;
+    role: string;
 }): Promise<ActionResult<TeamService.TeamMember>> {
     try {
         await requireAdmin();
-        const member = await TeamService.addTeamMember(input);
+        const member = await TeamService.inviteTeamMember(input);
         revalidatePath("/admin/dashboard/team");
         return { success: true, data: member };
     } catch (error) {
-        console.error("addTeamMemberAction error:", error);
+        console.error("inviteTeamMemberAction error:", error);
         return {
             success: false,
-            error: error instanceof Error ? error.message : "Failed to add team member",
+            error: error instanceof Error ? error.message : "Failed to invite team member",
         };
     }
 }
