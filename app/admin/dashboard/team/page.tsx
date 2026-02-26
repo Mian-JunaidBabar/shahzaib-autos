@@ -1,142 +1,265 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
+import {
+  Users,
+  UserPlus,
+  Shield,
+  Search,
+  MoreVertical,
+  Trash2,
+  Edit,
+  Clock,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  getTeamMembersAction,
+  addTeamMemberAction,
+  updateTeamMemberAction,
+  removeTeamMemberAction,
+} from "@/app/actions/teamActions";
+import { toast } from "sonner";
 
-interface TeamMember {
+type TeamMember = {
   id: string;
-  name: string;
+  supabaseUserId: string;
   email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  phone: string | null;
   role: string;
-  department: string;
-  status: "active" | "inactive" | "on-leave";
-  joinDate: string;
-  permissions: string[];
-  avatar?: string;
-  phone: string;
-  lastActive: string;
-}
+  status: string;
+  createdAt: Date;
+  lastSignIn: string | null;
+};
 
-const teamData: TeamMember[] = [
-  {
-    id: "TEAM001",
-    name: "Sarah Johnson",
-    email: "sarah@shahzaibautos.com",
-    role: "Manager",
-    department: "Administration",
-    status: "active",
-    joinDate: "2023-01-15T09:00:00Z",
-    permissions: ["admin", "orders", "customers", "inventory", "reports"],
-    phone: "+1 (555) 123-4567",
-    lastActive: "2024-01-24T15:30:00Z",
-  },
-  {
-    id: "TEAM002",
-    name: "Mike Wilson",
-    email: "mike@shahzaibautos.com",
-    role: "Senior Technician",
-    department: "Service",
-    status: "active",
-    joinDate: "2022-06-20T08:30:00Z",
-    permissions: ["bookings", "customers", "inventory"],
-    phone: "+1 (555) 234-5678",
-    lastActive: "2024-01-24T14:45:00Z",
-  },
-  {
-    id: "TEAM003",
-    name: "Emily Davis",
-    email: "emily@shahzaibautos.com",
-    role: "Sales Representative",
-    department: "Sales",
-    status: "active",
-    joinDate: "2023-03-10T09:15:00Z",
-    permissions: ["leads", "customers", "orders"],
-    phone: "+1 (555) 345-6789",
-    lastActive: "2024-01-24T16:00:00Z",
-  },
-  {
-    id: "TEAM004",
-    name: "David Brown",
-    email: "david@shahzaibautos.com",
-    role: "Technician",
-    department: "Service",
-    status: "on-leave",
-    joinDate: "2023-08-05T08:00:00Z",
-    permissions: ["bookings", "inventory"],
-    phone: "+1 (555) 456-7890",
-    lastActive: "2024-01-15T17:30:00Z",
-  },
-  {
-    id: "TEAM005",
-    name: "Lisa Martinez",
-    email: "lisa@shahzaibautos.com",
-    role: "Customer Service",
-    department: "Administration",
-    status: "active",
-    joinDate: "2023-11-01T09:30:00Z",
-    permissions: ["customers", "bookings", "leads"],
-    phone: "+1 (555) 567-8901",
-    lastActive: "2024-01-24T13:20:00Z",
-  },
-];
-
-const roles = [
-  "Manager",
-  "Senior Technician",
-  "Technician",
-  "Sales Representative",
-  "Customer Service",
-  "Admin",
-];
-const departments = ["Administration", "Service", "Sales", "Finance"];
-const allPermissions = [
-  { id: "admin", label: "Admin Access" },
-  { id: "orders", label: "Order Management" },
-  { id: "customers", label: "Customer Management" },
-  { id: "inventory", label: "Inventory Management" },
-  { id: "bookings", label: "Booking Management" },
-  { id: "leads", label: "Lead Management" },
-  { id: "reports", label: "Reports & Analytics" },
-];
+const ROLES = ["Admin", "Manager", "Editor", "Viewer"];
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "active":
-      return "text-green-600 bg-green-50";
+      return "bg-green-100 text-green-700";
     case "inactive":
-      return "text-red-600 bg-red-50";
+      return "bg-red-100 text-red-700";
     case "on-leave":
-      return "text-orange-600 bg-orange-50";
+      return "bg-orange-100 text-orange-700";
     default:
-      return "text-gray-600 bg-gray-50";
+      return "bg-gray-100 text-gray-700";
   }
 };
 
+const getRoleColor = (role: string) => {
+  switch (role) {
+    case "Admin":
+      return "bg-purple-100 text-purple-700";
+    case "Manager":
+      return "bg-blue-100 text-blue-700";
+    case "Editor":
+      return "bg-cyan-100 text-cyan-700";
+    case "Viewer":
+      return "bg-gray-100 text-gray-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+};
+
+function formatRelativeTime(dateStr: string | null) {
+  if (!dateStr) return "Never";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-PK", { month: "short", day: "numeric" });
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-10 w-40" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-24" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
+    </div>
+  );
+}
+
 export default function TeamPage() {
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const filteredTeamMembers = teamData.filter((member) => {
-    const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.role.toLowerCase().includes(searchTerm.toLowerCase());
+  // Add form state
+  const [newEmail, setNewEmail] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState("Admin");
 
-    const matchesDepartment =
-      departmentFilter === "all" || member.department === departmentFilter;
-    const matchesStatus =
-      statusFilter === "all" || member.status === statusFilter;
+  const fetchMembers = async () => {
+    setIsLoading(true);
+    const result = await getTeamMembersAction();
+    if (result.success && result.data) {
+      setMembers(result.data as TeamMember[]);
+    } else {
+      if (
+        result.error?.includes("UNAUTHORIZED") ||
+        result.error?.includes("FORBIDDEN")
+      ) {
+        window.location.href = "/admin/auth/unauthorized";
+        return;
+      }
+      toast.error(result.error || "Failed to load team members");
+    }
+    setIsLoading(false);
+  };
 
-    return matchesSearch && matchesDepartment && matchesStatus;
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const handleAddMember = async () => {
+    if (!newEmail || !newName) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await addTeamMemberAction({
+        email: newEmail,
+        fullName: newName,
+        role: newRole,
+      });
+
+      if (result.success && result.data) {
+        setMembers((prev) => [result.data as TeamMember, ...prev]);
+        setShowAddModal(false);
+        setNewEmail("");
+        setNewName("");
+        setNewRole("Admin");
+        toast.success(
+          "Team member added successfully! An invite email has been sent.",
+        );
+      } else {
+        toast.error(result.error || "Failed to add team member");
+      }
+    });
+  };
+
+  const handleUpdateRole = async (adminId: string, newRoleValue: string) => {
+    startTransition(async () => {
+      const result = await updateTeamMemberAction(adminId, {
+        role: newRoleValue,
+      });
+      if (result.success) {
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === adminId ? { ...m, role: newRoleValue } : m,
+          ),
+        );
+        toast.success("Role updated");
+      } else {
+        toast.error(result.error || "Failed to update role");
+      }
+    });
+  };
+
+  const handleToggleStatus = async (adminId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    startTransition(async () => {
+      const result = await updateTeamMemberAction(adminId, {
+        status: newStatus,
+      });
+      if (result.success) {
+        setMembers((prev) =>
+          prev.map((m) => (m.id === adminId ? { ...m, status: newStatus } : m)),
+        );
+        toast.success(
+          `Member ${newStatus === "active" ? "activated" : "deactivated"}`,
+        );
+      } else {
+        toast.error(result.error || "Failed to update status");
+      }
+    });
+  };
+
+  const handleRemoveMember = async (adminId: string) => {
+    if (!confirm("Remove this team member? They will lose admin access."))
+      return;
+    startTransition(async () => {
+      const result = await removeTeamMemberAction(adminId);
+      if (result.success) {
+        setMembers((prev) => prev.filter((m) => m.id !== adminId));
+        toast.success("Team member removed");
+      } else {
+        toast.error(result.error || "Failed to remove team member");
+      }
+    });
+  };
+
+  const filteredMembers = members.filter((m) => {
+    const matchSearch =
+      (m.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.role.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = statusFilter === "all" || m.status === statusFilter;
+    return matchSearch && matchStatus;
   });
 
   const stats = {
-    total: teamData.length,
-    active: teamData.filter((m) => m.status === "active").length,
-    onLeave: teamData.filter((m) => m.status === "on-leave").length,
-    inactive: teamData.filter((m) => m.status === "inactive").length,
+    total: members.length,
+    active: members.filter((m) => m.status === "active").length,
+    inactive: members.filter((m) => m.status === "inactive").length,
+    onLeave: members.filter((m) => m.status === "on-leave").length,
   };
+
+  if (isLoading) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-8">
@@ -147,351 +270,272 @@ export default function TeamPage() {
             Team Management
           </h1>
           <p className="text-muted-foreground">
-            Manage staff members, roles, and permissions
+            Manage staff members, roles, and access
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-        >
-          <span className="flex items-center gap-2">
-            <span className="material-symbols-outlined">person_add</span>
-            Add Team Member
-          </span>
-        </button>
+        <Button onClick={() => setShowAddModal(true)}>
+          <UserPlus className="h-4 w-4 mr-2" /> Add Team Member
+        </Button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground text-sm">Total Members</p>
-              <p className="text-2xl font-bold text-foreground">
-                {stats.total}
-              </p>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Members</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500 opacity-50" />
             </div>
-            <span className="material-symbols-outlined text-blue-500 bg-blue-50 p-2 rounded-full">
-              people
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground text-sm">Active</p>
-              <p className="text-2xl font-bold text-green-600">
-                {stats.active}
-              </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {stats.active}
+                </p>
+              </div>
+              <Shield className="h-8 w-8 text-green-500 opacity-50" />
             </div>
-            <span className="material-symbols-outlined text-green-500 bg-green-50 p-2 rounded-full">
-              check_circle
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground text-sm">On Leave</p>
-              <p className="text-2xl font-bold text-orange-600">
-                {stats.onLeave}
-              </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Inactive</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {stats.inactive}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-red-500 opacity-50" />
             </div>
-            <span className="material-symbols-outlined text-orange-500 bg-orange-50 p-2 rounded-full">
-              schedule
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-muted-foreground text-sm">Inactive</p>
-              <p className="text-2xl font-bold text-red-600">
-                {stats.inactive}
-              </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">On Leave</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {stats.onLeave}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-500 opacity-50" />
             </div>
-            <span className="material-symbols-outlined text-red-500 bg-red-50 p-2 rounded-full">
-              person_off
-            </span>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search team members..."
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search members..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 w-full border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="pl-10"
           />
         </div>
-
-        <select
-          value={departmentFilter}
-          onChange={(e) => setDepartmentFilter(e.target.value)}
-          className="px-4 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="all">All Departments</option>
-          {departments.map((dept) => (
-            <option key={dept} value={dept}>
-              {dept}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="on-leave">On Leave</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="on-leave">On Leave</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Team Members Table */}
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left p-4 font-medium text-foreground">
-                  Member
-                </th>
-                <th className="text-left p-4 font-medium text-foreground">
-                  Role
-                </th>
-                <th className="text-left p-4 font-medium text-foreground">
-                  Department
-                </th>
-                <th className="text-left p-4 font-medium text-foreground">
-                  Contact
-                </th>
-                <th className="text-left p-4 font-medium text-foreground">
-                  Status
-                </th>
-                <th className="text-left p-4 font-medium text-foreground">
-                  Last Active
-                </th>
-                <th className="text-left p-4 font-medium text-foreground">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTeamMembers.map((member) => (
-                <tr key={member.id} className="border-t border-border">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="material-symbols-outlined text-primary">
-                          person
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {member.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.email}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <p className="font-medium text-foreground">{member.role}</p>
-                  </td>
-                  <td className="p-4">
-                    <p className="text-foreground">{member.department}</p>
-                  </td>
-                  <td className="p-4">
-                    <p className="text-sm text-foreground">{member.phone}</p>
-                  </td>
-                  <td className="p-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(member.status)}`}
-                    >
-                      {member.status.replace("-", " ")}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <p className="text-foreground">
-                      {new Date(member.lastActive).toLocaleDateString()}
-                    </p>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="text-muted-foreground hover:text-primary"
-                        title="View Profile"
-                      >
-                        <span className="material-symbols-outlined">
-                          visibility
-                        </span>
-                      </button>
-                      <button
-                        className="text-muted-foreground hover:text-primary"
-                        title="Edit Member"
-                      >
-                        <span className="material-symbols-outlined">edit</span>
-                      </button>
-                      <button
-                        className="text-muted-foreground hover:text-green-500"
-                        title="Permissions"
-                      >
-                        <span className="material-symbols-outlined">
-                          security
-                        </span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add Team Member Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-foreground">
-                Add Team Member
-              </h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
+      {/* Team Table */}
+      <Card>
+        <CardContent className="p-0">
+          {filteredMembers.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="font-medium">No team members found</p>
+              <p className="text-sm">
+                {searchTerm || statusFilter !== "all"
+                  ? "Try adjusting your filters"
+                  : "Add your first team member to get started"}
+              </p>
             </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Member</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMembers.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary">
+                            {(member.fullName || member.email)
+                              .charAt(0)
+                              .toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {member.fullName || "Unnamed"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {member.email}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={getRoleColor(member.role)}
+                      >
+                        {member.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={getStatusColor(member.status)}
+                      >
+                        {member.status.replace("-", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatRelativeTime(member.lastSignIn)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={isPending}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {ROLES.filter((r) => r !== member.role).map(
+                            (role) => (
+                              <DropdownMenuItem
+                                key={role}
+                                onClick={() =>
+                                  handleUpdateRole(member.id, role)
+                                }
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Set as {role}
+                              </DropdownMenuItem>
+                            ),
+                          )}
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleToggleStatus(member.id, member.status)
+                            }
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            {member.status === "active"
+                              ? "Deactivate"
+                              : "Activate"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleRemoveMember(member.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Enter full name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Enter email address"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Enter phone number"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Role
-                </label>
-                <select className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="">Select role</option>
-                  {roles.map((role) => (
-                    <option key={role} value={role}>
+      {/* Add Team Member Dialog */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Team Member</DialogTitle>
+            <DialogDescription>
+              Invite a new member. They&apos;ll receive an email to set up their
+              account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name" className="mb-2 block">
+                Full Name
+              </Label>
+              <Input
+                id="name"
+                placeholder="Enter full name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="email" className="mb-2 block">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="role" className="mb-2 block">
+                Role
+              </Label>
+              <Select value={newRole} onValueChange={setNewRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((role) => (
+                    <SelectItem key={role} value={role}>
                       {role}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Department
-                </label>
-                <select className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="">Select department</option>
-                  {departments.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Permissions
-                </label>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {allPermissions.map((permission) => (
-                    <label key={permission.id} className="flex items-center">
-                      <input type="checkbox" className="mr-3" />
-                      <span className="text-sm text-foreground">
-                        {permission.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2 border border-border rounded-md text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  Add Member
-                </button>
-              </div>
-            </form>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-      )}
-
-      {filteredTeamMembers.length === 0 && (
-        <div className="text-center py-12">
-          <span className="material-symbols-outlined text-muted-foreground text-4xl mb-4">
-            people_outline
-          </span>
-          <h3 className="text-lg font-medium text-foreground mb-2">
-            No team members found
-          </h3>
-          <p className="text-muted-foreground">
-            {searchTerm || departmentFilter !== "all" || statusFilter !== "all"
-              ? "Try adjusting your search or filter criteria"
-              : "No team members have been added yet"}
-          </p>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddMember} disabled={isPending}>
+              {isPending ? "Adding..." : "Add Member"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

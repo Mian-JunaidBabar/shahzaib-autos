@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import SignOutButton from "@/components/admin/sign-out-button";
 
 const navItems = [
   {
@@ -101,8 +102,8 @@ export default function AdminSidebar() {
         ))}
       </div>
 
-      {/* User info */}
-      <div className="p-4 border-t border-border">
+      {/* User info + Sign Out */}
+      <div className="p-4 border-t border-border space-y-3">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
             <span className="text-sm font-bold text-primary">
@@ -118,6 +119,7 @@ export default function AdminSidebar() {
             </span>
           </div>
         </div>
+        <SignOutButton />
       </div>
     </aside>
   );

@@ -27,14 +27,6 @@ const settingsSections: SettingsSection[] = [
     href: "/admin/dashboard/settings/business",
   },
   {
-    id: "services",
-    title: "Services & Pricing",
-    description:
-      "Configure available services, pricing, and service categories",
-    icon: "handyman",
-    href: "/admin/dashboard/settings/services",
-  },
-  {
     id: "notifications",
     title: "Notifications",
     description: "Email, SMS, and push notification preferences",
@@ -54,13 +46,6 @@ const settingsSections: SettingsSection[] = [
     description: "Appointment slots, booking rules, and availability settings",
     icon: "event_available",
     href: "/admin/dashboard/settings/booking",
-  },
-  {
-    id: "inventory",
-    title: "Inventory Settings",
-    description: "Stock management, low stock alerts, and supplier settings",
-    icon: "inventory",
-    href: "/admin/dashboard/settings/inventory",
   },
   {
     id: "badges",

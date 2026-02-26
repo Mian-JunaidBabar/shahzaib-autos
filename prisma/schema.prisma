@@ -41,6 +41,9 @@ model AdminProfile {
   adminId      String   @unique @map("admin_id")
   fullName     String?  @map("full_name")
   avatarUrl    String?  @map("avatar_url")
+  phone        String?
+  role         String   @default("Admin")
+  status       String   @default("active") // active, inactive, on-leave
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

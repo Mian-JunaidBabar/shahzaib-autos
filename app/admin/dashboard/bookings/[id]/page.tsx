@@ -18,6 +18,33 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ArrowLeft,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Car,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Calendar as CalendarIcon,
+  MessageCircle,
+  Wrench,
+  CalendarClock,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -39,11 +66,81 @@ interface Booking {
   timeSlot: string | null;
   status: string;
   notes?: string;
+  orderId?: string | null;
+  order?: {
+    id: string;
+    orderNumber: string;
+    total: number;
+    status: string;
+  } | null;
   activityLog?: Array<{
     id: string;
     activity: string;
     createdAt: Date;
   }>;
+}
+
+const BOOKING_STATUSES = [
+  {
+    value: "PENDING",
+    label: "Pending",
+    icon: Clock,
+    color: "bg-yellow-100 text-yellow-700",
+  },
+  {
+    value: "CONFIRMED",
+    label: "Confirmed",
+    icon: CheckCircle,
+    color: "bg-blue-100 text-blue-700",
+  },
+  {
+    value: "IN_PROGRESS",
+    label: "In Progress",
+    icon: Wrench,
+    color: "bg-purple-100 text-purple-700",
+  },
+  {
+    value: "COMPLETED",
+    label: "Completed",
+    icon: CheckCircle,
+    color: "bg-green-100 text-green-700",
+  },
+  {
+    value: "CANCELLED",
+    label: "Cancelled",
+    icon: XCircle,
+    color: "bg-red-100 text-red-700",
+  },
+  {
+    value: "NO_SHOW",
+    label: "No Show",
+    icon: AlertTriangle,
+    color: "bg-gray-200 text-gray-700",
+  },
+];
+
+const getStatusMeta = (status: string) =>
+  BOOKING_STATUSES.find((s) => s.value === status) || BOOKING_STATUSES[0];
+
+// Timeline step order for visualization
+const TIMELINE_ORDER = ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED"];
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div className="h-10 w-64 bg-muted animate-pulse rounded" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="h-48 bg-muted animate-pulse rounded-lg" />
+          <div className="h-36 bg-muted animate-pulse rounded-lg" />
+        </div>
+        <div className="space-y-6">
+          <div className="h-48 bg-muted animate-pulse rounded-lg" />
+          <div className="h-64 bg-muted animate-pulse rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function BookingDetailsPage({
@@ -59,44 +156,24 @@ export default function BookingDetailsPage({
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "CONFIRMED":
-        return "text-blue-600 bg-blue-50";
-      case "PENDING":
-        return "text-orange-600 bg-orange-50";
-      case "IN_PROGRESS":
-        return "text-purple-600 bg-purple-50";
-      case "COMPLETED":
-        return "text-green-600 bg-green-50";
-      case "CANCELLED":
-        return "text-red-600 bg-red-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
-
   useEffect(() => {
     const fetchBooking = async () => {
       const resolvedParams = await params;
       setId(resolvedParams.id);
-
       const result = await getBookingAction(resolvedParams.id);
       if (result.success && result.data) {
         const data = result.data as Booking;
-        const normalizedBooking: Booking = {
+        setBooking({
           ...data,
           date: new Date(data.date),
           activityLog: data.activityLog?.map((log) => ({
             ...log,
             createdAt: new Date(log.createdAt),
           })),
-        };
-        setBooking(normalizedBooking);
+        });
       }
       setLoading(false);
     };
-
     fetchBooking();
   }, [params]);
 
@@ -112,8 +189,7 @@ export default function BookingDetailsPage({
       } else {
         setTimeSlots([]);
       }
-    } catch (error) {
-      console.error("Error fetching time slots:", error);
+    } catch {
       setTimeSlots([]);
     } finally {
       setSlotsLoading(false);
@@ -121,34 +197,27 @@ export default function BookingDetailsPage({
   };
 
   useEffect(() => {
-    if (rescheduleDate) {
-      fetchTimeSlots(rescheduleDate);
-    }
+    if (rescheduleDate) fetchTimeSlots(rescheduleDate);
   }, [rescheduleDate]);
 
   const handleOpenReschedule = () => {
-    if (booking?.date) {
-      setRescheduleDate(booking.date);
-    }
-    if (booking?.timeSlot) {
-      setRescheduleTime(booking.timeSlot);
-    }
+    if (booking?.date) setRescheduleDate(booking.date);
+    if (booking?.timeSlot) setRescheduleTime(booking.timeSlot);
     setIsRescheduleOpen(true);
   };
 
   const handleStatusChange = async (newStatus: string) => {
     if (!id) return;
-
     setIsUpdating(true);
     try {
       const result = await updateBookingStatusAction(id, newStatus);
       if (result.success) {
         setBooking((prev) => (prev ? { ...prev, status: newStatus } : null));
-        toast.success("Booking status updated");
+        toast.success(`Status updated to ${getStatusMeta(newStatus).label}`);
       } else {
         toast.error("Failed to update status");
       }
-    } catch (error) {
+    } catch {
       toast.error("Error updating status");
     } finally {
       setIsUpdating(false);
@@ -160,9 +229,7 @@ export default function BookingDetailsPage({
       toast.error("Please select date and time");
       return;
     }
-
     if (!id) return;
-
     setIsUpdating(true);
     try {
       const result = await rescheduleBookingAction(
@@ -170,250 +237,355 @@ export default function BookingDetailsPage({
         rescheduleDate,
         rescheduleTime,
       );
-
       if (result.success) {
         setBooking((prev) =>
           prev
-            ? {
-                ...prev,
-                date: rescheduleDate,
-                timeSlot: rescheduleTime,
-              }
+            ? { ...prev, date: rescheduleDate, timeSlot: rescheduleTime }
             : null,
         );
         setIsRescheduleOpen(false);
-        setRescheduleDate(undefined);
-        setRescheduleTime("");
         toast.success("Booking rescheduled successfully");
       } else {
         toast.error("Failed to reschedule booking");
       }
-    } catch (error) {
+    } catch {
       toast.error("Error rescheduling booking");
     } finally {
       setIsUpdating(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-8">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading booking details...</p>
-        </div>
-      </div>
+  const openWhatsApp = () => {
+    if (!booking) return;
+    const message = encodeURIComponent(
+      `Hello ${booking.customerName}! Regarding your booking #${booking.bookingNumber} at Shahzaib Autos...`,
     );
-  }
+    window.open(
+      `https://wa.me/${booking.customerPhone.replace(/\D/g, "")}?text=${message}`,
+      "_blank",
+    );
+  };
+
+  if (loading) return <LoadingSkeleton />;
 
   if (!booking) {
     return (
       <div className="space-y-8">
-        <div className="text-center py-12">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">
-            Booking Not Found
-          </h1>
-          <Link
-            href="/admin/dashboard/bookings"
-            className="text-blue-600 hover:underline"
-          >
-            Back to Bookings
+        <Button variant="ghost" asChild>
+          <Link href="/admin/dashboard/bookings">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Link>
-        </div>
+        </Button>
+        <Card className="border-destructive">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <p>Booking not found</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const statusMeta = getStatusMeta(booking.status);
   const services = booking.serviceType
     .split(",")
-    .map((service) => service.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
+  const currentStepIndex = TIMELINE_ORDER.indexOf(booking.status);
+  const isCancelledOrNoShow = ["CANCELLED", "NO_SHOW"].includes(booking.status);
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link
-            href="/admin/dashboard/bookings"
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </Link>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/admin/dashboard/bookings">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              Booking #{booking.bookingNumber}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold">
+                Booking #{booking.bookingNumber}
+              </h1>
+              <Badge className={statusMeta.color}>{statusMeta.label}</Badge>
+            </div>
             <p className="text-muted-foreground">
-              Scheduled for {booking.date.toLocaleDateString()} at{" "}
+              Scheduled for {format(booking.date, "PPP")} at{" "}
               {booking.timeSlot || "TBD"}
             </p>
           </div>
         </div>
-        <span
-          className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-            booking.status,
-          )}`}
-        >
-          {booking.status.replace("_", " ")}
-        </span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={openWhatsApp}>
+            <MessageCircle className="h-4 w-4 mr-2 text-green-600" /> WhatsApp
+          </Button>
+          <Button variant="outline" onClick={handleOpenReschedule}>
+            <CalendarClock className="h-4 w-4 mr-2" /> Reschedule
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
+        {/* Left Column — Customer + Vehicle + Services */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Booking Details */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-foreground">
-                Booking Details
-              </h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="text-sm text-muted-foreground">
-                  Booking #
-                </label>
-                <p className="font-medium text-foreground">
-                  {booking.bookingNumber}
-                </p>
+          {/* Customer Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" /> Customer Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{booking.customerName}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <a
+                    href={`tel:${booking.customerPhone}`}
+                    className="text-primary hover:underline"
+                  >
+                    {booking.customerPhone}
+                  </a>
+                </div>
+                {booking.customerEmail && (
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <a
+                      href={`mailto:${booking.customerEmail}`}
+                      className="text-primary hover:underline"
+                    >
+                      {booking.customerEmail}
+                    </a>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-sm text-muted-foreground">
-                  Date & Time
-                </label>
-                <p className="font-medium text-foreground">
-                  {booking.date.toLocaleDateString()} •{" "}
-                  {booking.timeSlot || "TBD"}
-                </p>
+              <div className="space-y-3">
+                {booking.address && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                    <span className="text-sm">{booking.address}</span>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Status</label>
-                <p className="font-medium text-foreground">
-                  {booking.status.replace("_", " ")}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Customer & Vehicle */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-foreground">
-                Customer & Vehicle
-              </h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-sm text-muted-foreground">
-                  Customer
-                </label>
-                <p className="font-medium text-foreground">
-                  {booking.customerName}
-                </p>
-                <a
-                  href={`tel:${booking.customerPhone}`}
-                  className="text-sm text-primary hover:underline"
-                >
-                  {booking.customerPhone}
-                </a>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Vehicle</label>
-                <p className="font-medium text-foreground">
-                  {booking.vehicleInfo || "Not provided"}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Vehicle Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Car className="h-5 w-5" /> Vehicle Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="font-medium">
+                {booking.vehicleInfo || "Not provided"}
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Services Requested */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-xl font-semibold text-foreground">
-                Services Requested
-              </h2>
-            </div>
-            <div className="p-6 space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wrench className="h-5 w-5" /> Services Requested
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               {services.length > 0 ? (
                 services.map((service) => (
-                  <div
-                    key={service}
-                    className="flex items-center gap-2 text-foreground"
-                  >
-                    <span className="material-symbols-outlined text-sm text-primary">
-                      check_circle
-                    </span>
+                  <div key={service} className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
                     <span>{service}</span>
                   </div>
                 ))
               ) : (
                 <p className="text-muted-foreground">No services listed</p>
               )}
-              {booking.notes && (
-                <div className="pt-4">
-                  <label className="text-sm text-muted-foreground">Notes</label>
-                  <p className="text-foreground mt-1">{booking.notes}</p>
+            </CardContent>
+          </Card>
+
+          {/* Notes */}
+          {booking.notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Notes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{booking.notes}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Linked Order */}
+          {booking.order && (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-primary">
+                  <Wrench className="h-5 w-5" /> Linked Order
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">
+                      Order #{booking.order.orderNumber}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Total: PKR {booking.order.total.toLocaleString()}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/admin/dashboard/orders/${booking.order.id}`}>
+                      View Order{" "}
+                      <ArrowLeft className="h-3 w-3 ml-1 rotate-180" />
+                    </Link>
+                  </Button>
                 </div>
-              )}
-            </div>
-          </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {/* Right Column */}
+        {/* Right Column — Status & Timeline */}
         <div className="space-y-6">
-          {/* Actions */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Actions</h2>
-            </div>
-            <div className="p-6 space-y-3">
-              <Button
-                variant="outline"
-                onClick={handleOpenReschedule}
-                className="w-full"
-              >
-                Reschedule
-              </Button>
-              <Button
-                onClick={() => handleStatusChange("CONFIRMED")}
+          {/* Status Control */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Update Status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Badge className={`text-sm px-3 py-1 ${statusMeta.color}`}>
+                {statusMeta.label}
+              </Badge>
+              <Select
+                value={booking.status}
+                onValueChange={handleStatusChange}
                 disabled={isUpdating}
-                className="w-full"
               >
-                Confirm Booking
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleStatusChange("CANCELLED")}
-                disabled={isUpdating}
-                className="w-full"
-              >
-                Cancel Booking
-              </Button>
-            </div>
-          </div>
+                <SelectTrigger>
+                  <SelectValue placeholder="Change status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOOKING_STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      <div className="flex items-center gap-2">
+                        <s.icon className="h-4 w-4" />
+                        {s.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
 
-          {/* Booking History */}
-          <div className="bg-card rounded-lg border border-border">
-            <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">
-                Booking History
-              </h2>
-            </div>
-            <div className="p-6 space-y-4">
+          {/* Status Timeline */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Progress Timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isCancelledOrNoShow ? (
+                <div className="flex items-center gap-2 text-red-600">
+                  <XCircle className="h-5 w-5" />
+                  <span className="font-medium">
+                    {booking.status === "CANCELLED"
+                      ? "Booking Cancelled"
+                      : "Customer No Show"}
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {TIMELINE_ORDER.map((step, index) => {
+                    const meta = getStatusMeta(step);
+                    const isActive = step === booking.status;
+                    const isCompleted = currentStepIndex > index;
+                    const IconComponent = meta.icon;
+
+                    return (
+                      <div key={step} className="flex gap-3">
+                        {/* Vertical line + dot */}
+                        <div className="flex flex-col items-center">
+                          <div
+                            className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${
+                              isCompleted
+                                ? "bg-green-100 border-green-500 text-green-600"
+                                : isActive
+                                  ? "bg-primary/10 border-primary text-primary"
+                                  : "bg-muted border-border text-muted-foreground"
+                            }`}
+                          >
+                            {isCompleted ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <IconComponent className="h-4 w-4" />
+                            )}
+                          </div>
+                          {index < TIMELINE_ORDER.length - 1 && (
+                            <div
+                              className={`w-0.5 h-8 ${
+                                isCompleted ? "bg-green-500" : "bg-border"
+                              }`}
+                            />
+                          )}
+                        </div>
+                        {/* Label */}
+                        <div className="pt-1">
+                          <p
+                            className={`text-sm font-medium ${
+                              isActive
+                                ? "text-primary"
+                                : isCompleted
+                                  ? "text-green-600"
+                                  : "text-muted-foreground"
+                            }`}
+                          >
+                            {meta.label}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Activity Log */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity Log</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {booking.activityLog && booking.activityLog.length > 0 ? (
                 booking.activityLog.map((log) => (
-                  <div key={log.id} className="space-y-1">
-                    <p className="text-foreground">{log.activity}</p>
+                  <div
+                    key={log.id}
+                    className="space-y-1 border-b border-border last:border-0 pb-3 last:pb-0"
+                  >
+                    <p className="text-sm">{log.activity}</p>
                     <p className="text-xs text-muted-foreground">
                       {format(log.createdAt, "PPP p")}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground">No activity logged yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No activity logged yet.
+                </p>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
