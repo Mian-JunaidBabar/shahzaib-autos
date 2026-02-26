@@ -64,7 +64,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     });
 }
 
-import { sendEmailAsync } from "@/lib/services/mail.service";
+import { sendEmail, sendEmailAsync } from "@/lib/services/mail.service";
 import TeamInviteEmail from "@/emails/TeamInviteEmail";
 
 /**
@@ -95,8 +95,24 @@ export async function inviteTeamMember(input: {
         throw new Error("No user or action link returned from Supabase link generator");
     }
 
-    // Send custom email using Resend
-    sendEmailAsync({
+    // Create Admin + AdminProfile records first
+    const admin = await prisma.admin.create({
+        data: {
+            supabaseUserId: linkData.user.id,
+            profile: {
+                create: {
+                    id: linkData.user.id,
+                    fullName: input.fullName,
+                    role: input.role || "Admin",
+                    status: "invited",
+                } as any,
+            },
+        },
+        include: { profile: true },
+    });
+
+    // Send custom email using Resend and await it
+    const emailResult = await sendEmail({
         to: input.email,
         subject: "Welcome to Shahzaib Autos Admin Panel",
         react: TeamInviteEmail({
@@ -105,21 +121,11 @@ export async function inviteTeamMember(input: {
         }) as any,
     });
 
-    // Create Admin + AdminProfile records
-    const admin = await prisma.admin.create({
-        data: {
-            supabaseUserId: linkData.user.id,
-            profile: {
-                create: {
-                    id: linkData.user.id,
-                    fullName: input.fullName,
-                    // role field removed to fix Unknown argument error, letting DB default handle it
-                    status: "invited",
-                } as any,
-            },
-        },
-        include: { profile: true },
-    });
+    if (!emailResult.success) {
+        console.error("Failed to send invite email via Resend:", emailResult.error);
+        // We log the error but still return the admin to not fail the overall request,
+        // or we could throw an error here depending on requirements.
+    }
 
     return {
         id: admin.id,
