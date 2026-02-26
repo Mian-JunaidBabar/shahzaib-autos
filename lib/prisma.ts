@@ -10,8 +10,8 @@ const rawConnectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 const connectionString =
   rawConnectionString && process.env.NODE_ENV !== "production"
     ? rawConnectionString.includes("?")
-      ? rawConnectionString + "&sslmode=require"
-      : rawConnectionString + "?sslmode=require"
+      ? rawConnectionString + "&uselibpqcompat=true&sslmode=require"
+      : rawConnectionString + "?uselibpqcompat=true&sslmode=require"
     : rawConnectionString;
 
 const pool = connectionString
