@@ -395,6 +395,14 @@ export async function createPublicBookingAction(input: {
       "confirmation",
     );
 
+    // Trigger Notification Engines (Email to admin, SMS to customer)
+    await NotificationService.EmailNotification.sendNewBookingAlert(booking.id);
+    await NotificationService.SmsNotification.sendBookingReminder(
+      booking.customerPhone,
+      booking.date.toLocaleDateString(),
+      booking.timeSlot || ""
+    );
+
     // Revalidate admin pages
     revalidatePath("/admin/dashboard/bookings");
     revalidatePath("/admin/dashboard");
@@ -435,6 +443,60 @@ export async function getAvailableSlotsAction(
         error instanceof Error
           ? error.message
           : "Failed to fetch available slots",
+    };
+  }
+}
+
+/**
+ * Get Booking Settings (Public)
+ * Safe method that returns only necessary limits (no sensitive info)
+ */
+export async function getPublicBookingSettingsAction(): Promise<
+  ActionResult<{
+    slotDuration: number;
+    bufferTime: number;
+    advanceBookingDays: number;
+    allowSameDayBooking: boolean;
+    operatingHours: any;
+  }>
+> {
+  try {
+    const bookingSettings = await prisma.bookingSettings.findUnique({
+      where: { id: 1 },
+    });
+
+    if (!bookingSettings) {
+      const { getDefaultOperatingHours } = await import("@/lib/services/slot.service");
+      return {
+        success: true,
+        data: {
+          slotDuration: 60,
+          bufferTime: 15,
+          advanceBookingDays: 30,
+          allowSameDayBooking: true,
+          operatingHours: getDefaultOperatingHours(),
+        }
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        slotDuration: bookingSettings.slotDuration,
+        bufferTime: bookingSettings.bufferTime,
+        advanceBookingDays: bookingSettings.advanceBookingDays,
+        allowSameDayBooking: bookingSettings.allowSameDayBooking,
+        operatingHours: bookingSettings.operatingHours,
+      },
+    };
+  } catch (error) {
+    console.error("getPublicBookingSettingsAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch booking settings",
     };
   }
 }

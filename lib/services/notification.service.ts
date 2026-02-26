@@ -352,3 +352,98 @@ export function generateDailySummary(stats: {
 Have a productive day!
 - ${BUSINESS_NAME} Dashboard`;
 }
+
+// ============ Email & SMS Engines (Simulated) ============
+
+/**
+ * Helper to get current notification settings safely
+ */
+export async function getNotificationSettings() {
+  const { prisma } = await import("@/lib/prisma");
+  const prismaClient = prisma as any;
+
+  let settings = await prismaClient.notificationSettings.findUnique({
+    where: { id: 1 },
+  });
+
+  if (!settings) {
+    settings = await prismaClient.notificationSettings.create({
+      data: { id: 1 },
+    });
+  }
+  return settings;
+}
+
+/**
+ * Email Notification Engine
+ */
+export const EmailNotification = {
+  async sendNewOrderAlert(orderId: string, total: number) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.newOrderEmail) return;
+      console.log(`\n📧 [EMAIL SEND] New Order Alert! Order ID: ${orderId} | Total: Rs ${total}\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  },
+
+  async sendNewBookingAlert(bookingId: string) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.newBookingEmail) return;
+      console.log(`\n📧 [EMAIL SEND] New Booking Alert! Booking ID: ${bookingId}\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  },
+
+  async sendNewLeadAlert(leadId: string, email: string) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.newLeadEmail) return;
+      console.log(`\n📧 [EMAIL SEND] New Lead Alert! Lead ID: ${leadId} | From: ${email}\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  },
+
+  async sendOrderStatusUpdate(orderId: string, status: string, customerEmail?: string) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.orderStatusEmail) return;
+      console.log(`\n📧 [EMAIL SEND] Order Status Update for ${orderId} -> ${status}. Sent to: ${customerEmail || "Admin"}\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  },
+
+  async sendLowStockAlert(productId: string, productName: string, currentStock: number) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.lowStockEmail) return;
+      console.log(`\n📧 [EMAIL SEND] LOW STOCK ALERT! Product: ${productName} (ID: ${productId}) is down to ${currentStock} units.\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  },
+
+  async sendStaleOrderAlert(orderId: string, daysStale: number) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.staleOrderEmail) return;
+      console.log(`\n📧 [EMAIL SEND] Stale Order Alert! Order ${orderId} has been inactive for ${daysStale} days.\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  }
+};
+
+/**
+ * SMS / WhatsApp Notification Engine (Automated)
+ */
+export const SmsNotification = {
+  async sendBookingReminder(customerPhone: string, bookingDate: string, time: string) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.bookingReminderSms) return;
+      console.log(`\n📱 [SMS SEND] To: ${customerPhone} -> "Reminder: Your auto service booking is scheduled for ${bookingDate} at ${time}."\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  },
+
+  async sendOrderConfirmation(customerPhone: string, orderId: string) {
+    try {
+      const settings = await getNotificationSettings();
+      if (!settings.orderConfirmSms) return;
+      console.log(`\n📱 [SMS SEND] To: ${customerPhone} -> "Shahzaib Autos: Thank you for your order! Your order ID is ${orderId}."\n`);
+    } catch (e) { console.error("Notification Error:", e); }
+  }
+};

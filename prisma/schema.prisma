@@ -362,3 +362,24 @@ model BusinessSettings {
 
   @@map("business_settings")
 }
+
+// ============================================
+// NOTIFICATION SETTINGS
+// ============================================
+model NotificationSettings {
+  id               Int      @id @default(1) // Single-row table
+  newOrderEmail    Boolean  @default(true)  @map("new_order_email")
+  newBookingEmail  Boolean  @default(true)  @map("new_booking_email")
+  newLeadEmail     Boolean  @default(true)  @map("new_lead_email")
+  orderStatusEmail Boolean  @default(false) @map("order_status_email")
+  lowStockEmail    Boolean  @default(true)  @map("low_stock_email")
+  staleOrderEmail  Boolean  @default(true)  @map("stale_order_email")
+  
+  bookingReminderSms Boolean @default(true)  @map("booking_reminder_sms")
+  orderConfirmSms    Boolean @default(false) @map("order_confirm_sms")
+  
+  createdAt        DateTime @default(now())  @map("created_at")
+  updatedAt        DateTime @updatedAt       @map("updated_at")
+  
+  @@map("notification_settings")
+}

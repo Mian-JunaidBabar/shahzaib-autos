@@ -6,6 +6,7 @@ import { getPublicServicesAction } from "@/app/actions/serviceActions";
 import {
   createPublicBookingAction,
   getAvailableSlotsAction,
+  getPublicBookingSettingsAction,
 } from "@/app/actions/bookingActions";
 import { toast } from "sonner";
 import {
@@ -65,16 +66,40 @@ export function BookingForm() {
   const hasPreselectedRef = useRef(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  // Get tomorrow's date as minimum
-  const today = new Date();
-  today.setDate(today.getDate() + 1);
-  const minDate = today.toISOString().split("T")[0];
+  const [settings, setSettings] = useState<any>(null);
+
+  // Dynamic Dates
+  const [minDate, setMinDate] = useState("");
+  const [maxDate, setMaxDate] = useState("");
 
   // Fetch services on mount
   useEffect(() => {
     loadServices();
+    loadSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadSettings = async () => {
+    try {
+      const res = await getPublicBookingSettingsAction();
+      if (res.success && res.data) {
+        setSettings(res.data);
+
+        // Calculate min/max dates
+        const today = new Date();
+        if (!res.data.allowSameDayBooking) {
+          today.setDate(today.getDate() + 1);
+        }
+        setMinDate(today.toISOString().split("T")[0]);
+
+        const max = new Date();
+        max.setDate(max.getDate() + res.data.advanceBookingDays);
+        setMaxDate(max.toISOString().split("T")[0]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Handle URL pre-selection
   useEffect(() => {
@@ -150,6 +175,21 @@ export function BookingForm() {
     >,
   ) => {
     const { name, value } = e.target;
+
+    if (name === "date" && settings && settings.operatingHours) {
+      const selectedDate = new Date(value);
+      if (!isNaN(selectedDate.getTime())) {
+        const selectedDay = selectedDate.getDay();
+        const dayConfig = settings.operatingHours.find(
+          (h: any) => h.dayOfWeek === selectedDay,
+        );
+        if (dayConfig && !dayConfig.isOpen) {
+          toast.error("We are closed on this day. Please select another date.");
+          return;
+        }
+      }
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof FormData]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -322,6 +362,7 @@ export function BookingForm() {
                   value={formData.date}
                   onChange={handleChange}
                   min={minDate}
+                  max={maxDate}
                   className={`w-full px-4 py-3 rounded-lg bg-background border ${
                     errors.date ? "border-red-500" : "border-border"
                   } text-text-primary focus:outline-none focus:ring-2 focus:ring-primary transition-colors`}

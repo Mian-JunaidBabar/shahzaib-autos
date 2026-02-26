@@ -88,6 +88,9 @@ export async function createLeadAction(
       "internal",
     );
 
+    // Send Email Alert
+    await NotificationService.EmailNotification.sendNewLeadAlert(lead.id, lead.email || "No Email Provided");
+
     revalidatePath("/admin/dashboard/leads");
 
     return {

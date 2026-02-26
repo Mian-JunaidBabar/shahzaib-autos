@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,91 +11,150 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Bell, Mail, MessageCircle } from "lucide-react";
-
-interface NotificationSetting {
-  id: string;
-  label: string;
-  description: string;
-  enabled: boolean;
-}
+import { Mail, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function NotificationsPage() {
-  const [emailSettings, setEmailSettings] = useState<NotificationSetting[]>([
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Settings State
+  const [settings, setSettings] = useState({
+    newOrderEmail: true,
+    newBookingEmail: true,
+    newLeadEmail: true,
+    orderStatusEmail: false,
+    lowStockEmail: true,
+    staleOrderEmail: true,
+    bookingReminderSms: true,
+    orderConfirmSms: false,
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("/api/settings/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setSettings({
+          newOrderEmail: data.newOrderEmail ?? true,
+          newBookingEmail: data.newBookingEmail ?? true,
+          newLeadEmail: data.newLeadEmail ?? true,
+          orderStatusEmail: data.orderStatusEmail ?? false,
+          lowStockEmail: data.lowStockEmail ?? true,
+          staleOrderEmail: data.staleOrderEmail ?? true,
+          bookingReminderSms: data.bookingReminderSms ?? true,
+          orderConfirmSms: data.orderConfirmSms ?? false,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load notifications", error);
+      toast.error("Failed to load notification settings");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggle = (key: keyof typeof settings) => {
+    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/settings/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+
+      if (res.ok) {
+        toast.success("Notification preferences saved successfully");
+      } else {
+        toast.error("Failed to save changes");
+      }
+    } catch (error) {
+      console.error("Failed to save", error);
+      toast.error("Error saving preferences");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[200px] w-full" />
+      </div>
+    );
+  }
+
+  const emailItems = [
     {
-      id: "new-order",
+      id: "newOrderEmail",
       label: "New Order",
-      description: "Email when a new order is placed",
-      enabled: true,
+      desc: "Email when a new order is placed",
     },
     {
-      id: "new-booking",
+      id: "newBookingEmail",
       label: "New Booking",
-      description: "Email when a new booking is created",
-      enabled: true,
+      desc: "Email when a new booking is created",
     },
     {
-      id: "new-lead",
+      id: "newLeadEmail",
       label: "New Lead",
-      description: "Email when a new lead comes in",
-      enabled: true,
+      desc: "Email when a new lead comes in",
     },
     {
-      id: "order-status",
+      id: "orderStatusEmail",
       label: "Order Status Changes",
-      description: "Email when an order status is updated",
-      enabled: false,
+      desc: "Email when an order status is updated",
     },
     {
-      id: "low-stock",
+      id: "lowStockEmail",
       label: "Low Stock Alerts",
-      description: "Email when a product stock is low",
-      enabled: true,
+      desc: "Email when a product stock is low",
     },
     {
-      id: "stale-order",
+      id: "staleOrderEmail",
       label: "Stale Order Alerts",
-      description: "Email when an order becomes stale",
-      enabled: true,
+      desc: "Email when an order becomes stale",
     },
-  ]);
+  ] as const;
 
-  const [smsSettings, setSmsSettings] = useState<NotificationSetting[]>([
+  const smsItems = [
     {
-      id: "booking-reminder",
+      id: "bookingReminderSms",
       label: "Booking Reminders",
-      description: "SMS reminders before appointments",
-      enabled: true,
+      desc: "SMS reminders before appointments",
     },
     {
-      id: "order-confirm",
+      id: "orderConfirmSms",
       label: "Order Confirmation",
-      description: "SMS to customer on order confirmation",
-      enabled: false,
+      desc: "SMS to customer on order confirmation",
     },
-  ]);
-
-  const toggleEmail = (id: string) => {
-    setEmailSettings((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)),
-    );
-  };
-
-  const toggleSms = (id: string) => {
-    setSmsSettings((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)),
-    );
-  };
+  ] as const;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-foreground mb-1">
-          Notifications
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Configure which events trigger email and SMS notifications.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground mb-1">
+            Notifications
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Configure which events trigger email and SMS notifications.
+          </p>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? "Saving..." : "Save Preferences"}
+        </Button>
       </div>
 
       <Card>
@@ -108,23 +168,23 @@ export default function NotificationsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {emailSettings.map((setting) => (
+          {emailItems.map((item) => (
             <div
-              key={setting.id}
+              key={item.id}
               className="flex items-center justify-between py-2 border-b border-border last:border-0"
             >
               <div className="space-y-0.5">
-                <Label htmlFor={setting.id} className="text-sm font-medium">
-                  {setting.label}
+                <Label htmlFor={item.id} className="text-sm font-medium">
+                  {item.label}
                 </Label>
-                <p className="text-xs text-muted-foreground">
-                  {setting.description}
-                </p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
               </div>
               <Switch
-                id={setting.id}
-                checked={setting.enabled}
-                onCheckedChange={() => toggleEmail(setting.id)}
+                id={item.id}
+                checked={settings[item.id as keyof typeof settings]}
+                onCheckedChange={() =>
+                  handleToggle(item.id as keyof typeof settings)
+                }
               />
             </div>
           ))}
@@ -140,27 +200,27 @@ export default function NotificationsPage() {
             </CardTitle>
           </div>
           <CardDescription>
-            Notifications sent via SMS or WhatsApp to customers.
+            Automated notifications sent via SMS or WhatsApp to customers.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {smsSettings.map((setting) => (
+          {smsItems.map((item) => (
             <div
-              key={setting.id}
+              key={item.id}
               className="flex items-center justify-between py-2 border-b border-border last:border-0"
             >
               <div className="space-y-0.5">
-                <Label htmlFor={setting.id} className="text-sm font-medium">
-                  {setting.label}
+                <Label htmlFor={item.id} className="text-sm font-medium">
+                  {item.label}
                 </Label>
-                <p className="text-xs text-muted-foreground">
-                  {setting.description}
-                </p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
               </div>
               <Switch
-                id={setting.id}
-                checked={setting.enabled}
-                onCheckedChange={() => toggleSms(setting.id)}
+                id={item.id}
+                checked={settings[item.id as keyof typeof settings]}
+                onCheckedChange={() =>
+                  handleToggle(item.id as keyof typeof settings)
+                }
               />
             </div>
           ))}

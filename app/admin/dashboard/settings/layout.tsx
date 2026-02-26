@@ -20,13 +20,6 @@ const settingsSections: SettingsSection[] = [
     href: "/admin/dashboard/settings/profile",
   },
   {
-    id: "business",
-    title: "Business Information",
-    description: "Manage company details, contact information, and branding",
-    icon: "business",
-    href: "/admin/dashboard/settings/business",
-  },
-  {
     id: "notifications",
     title: "Notifications",
     description: "Email, SMS, and push notification preferences",
