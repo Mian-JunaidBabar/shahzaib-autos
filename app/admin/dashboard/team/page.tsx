@@ -140,7 +140,6 @@ export default function TeamPage() {
   // Add form state
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState("Admin");
 
   const fetchMembers = async () => {
     setIsLoading(true);
@@ -174,7 +173,6 @@ export default function TeamPage() {
       const result = await addTeamMemberAction({
         email: newEmail,
         fullName: newName,
-        role: newRole,
       });
 
       if (result.success && result.data) {
@@ -182,7 +180,6 @@ export default function TeamPage() {
         setShowAddModal(false);
         setNewEmail("");
         setNewName("");
-        setNewRole("Admin");
         toast.success(
           "Team member added successfully! An invite email has been sent.",
         );
@@ -433,19 +430,6 @@ export default function TeamPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {ROLES.filter((r) => r !== member.role).map(
-                            (role) => (
-                              <DropdownMenuItem
-                                key={role}
-                                onClick={() =>
-                                  handleUpdateRole(member.id, role)
-                                }
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Set as {role}
-                              </DropdownMenuItem>
-                            ),
-                          )}
                           <DropdownMenuItem
                             onClick={() =>
                               handleToggleStatus(member.id, member.status)
@@ -507,23 +491,6 @@ export default function TeamPage() {
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
               />
-            </div>
-            <div>
-              <Label htmlFor="role" className="mb-2 block">
-                Role
-              </Label>
-              <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {role}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>

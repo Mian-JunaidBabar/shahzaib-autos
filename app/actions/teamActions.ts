@@ -42,7 +42,6 @@ export async function getTeamMembersAction(): Promise<
 export async function addTeamMemberAction(input: {
     email: string;
     fullName: string;
-    role: string;
 }): Promise<ActionResult<TeamService.TeamMember>> {
     try {
         await requireAdmin();

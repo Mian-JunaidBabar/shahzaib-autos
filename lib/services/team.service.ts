@@ -71,7 +71,6 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 export async function addTeamMember(input: {
     email: string;
     fullName: string;
-    role: string;
 }): Promise<TeamMember> {
     // Create user in Supabase Auth (sends invite email)
     const { data: authData, error: authError } =
@@ -97,7 +96,7 @@ export async function addTeamMember(input: {
                 create: {
                     id: authData.user.id,
                     fullName: input.fullName,
-                    role: input.role,
+                    role: "Admin",
                     status: "active",
                 } as any,
             },
@@ -112,7 +111,7 @@ export async function addTeamMember(input: {
         fullName: input.fullName,
         avatarUrl: null,
         phone: null,
-        role: input.role,
+        role: "Admin",
         status: "active",
         createdAt: admin.createdAt,
         lastSignIn: null,
