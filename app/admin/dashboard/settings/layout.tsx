@@ -27,13 +27,6 @@ const settingsSections: SettingsSection[] = [
     href: "/admin/dashboard/settings/notifications",
   },
   {
-    id: "payments",
-    title: "Payment Settings",
-    description: "Payment gateways, currencies, and transaction settings",
-    icon: "payment",
-    href: "/admin/dashboard/settings/payments",
-  },
-  {
     id: "booking",
     title: "Booking Configuration",
     description: "Appointment slots, booking rules, and availability settings",
