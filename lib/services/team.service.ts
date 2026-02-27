@@ -11,6 +11,7 @@ import type { User } from "@supabase/supabase-js";
  */
 import { prisma } from "@/lib/prisma";
 
+
 // Admin Supabase client (uses SERVICE_ROLE_KEY for user management)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,6 +100,12 @@ export async function inviteTeamMember(input: {
       "No user or action link returned from Supabase link generator",
     );
   }
+
+  // Step 1.5: Pre-confirm the email since we're managing the invite flow ourselves
+  // This prevents "Invalid login credentials" if user sets password via our custom flow
+  await supabaseAdmin.auth.admin.updateUserById(linkData.user.id, {
+    email_confirm: true,
+  });
 
   // Step 2: Create Admin + AdminProfile records in database
   // Note: role defaults to "ADMIN" and status defaults to "INVITED" in schema
