@@ -67,18 +67,14 @@ type TeamMember = {
   lastSignIn: string | null;
 };
 
-const ROLES = ["Admin", "Manager", "Editor", "Viewer"];
-
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case "active":
+  switch (status?.toUpperCase()) {
+    case "ACTIVE":
       return "bg-green-100 text-green-700";
-    case "invited":
+    case "INVITED":
       return "bg-yellow-100 text-yellow-700";
-    case "inactive":
+    case "INACTIVE":
       return "bg-red-100 text-red-700";
-    case "on-leave":
-      return "bg-orange-100 text-orange-700";
     default:
       return "bg-gray-100 text-gray-700";
   }
@@ -142,7 +138,6 @@ export default function TeamPage() {
   // Add form state
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState("Admin");
 
   const fetchMembers = async () => {
     setIsLoading(true);
@@ -176,7 +171,6 @@ export default function TeamPage() {
       const result = await inviteTeamMemberAction({
         email: newEmail,
         fullName: newName,
-        role: newRole,
       });
 
       if (result.success && result.data) {
@@ -184,36 +178,16 @@ export default function TeamPage() {
         setShowAddModal(false);
         setNewEmail("");
         setNewName("");
-        setNewRole("Admin");
-        toast.success(
-          "Team member added successfully! An invite email has been sent.",
-        );
+        toast.success("Team member invited! An invite email has been sent.");
       } else {
-        toast.error(result.error || "Failed to add team member");
-      }
-    });
-  };
-
-  const handleUpdateRole = async (adminId: string, newRoleValue: string) => {
-    startTransition(async () => {
-      const result = await updateTeamMemberAction(adminId, {
-        role: newRoleValue,
-      });
-      if (result.success) {
-        setMembers((prev) =>
-          prev.map((m) =>
-            m.id === adminId ? { ...m, role: newRoleValue } : m,
-          ),
-        );
-        toast.success("Role updated");
-      } else {
-        toast.error(result.error || "Failed to update role");
+        toast.error(result.error || "Failed to invite team member");
       }
     });
   };
 
   const handleToggleStatus = async (adminId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    const newStatus =
+      currentStatus?.toUpperCase() === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     startTransition(async () => {
       const result = await updateTeamMemberAction(adminId, {
         status: newStatus,
@@ -223,7 +197,7 @@ export default function TeamPage() {
           prev.map((m) => (m.id === adminId ? { ...m, status: newStatus } : m)),
         );
         toast.success(
-          `Member ${newStatus === "active" ? "activated" : "deactivated"}`,
+          `Member ${newStatus === "ACTIVE" ? "activated" : "deactivated"}`,
         );
       } else {
         toast.error(result.error || "Failed to update status");
@@ -346,14 +320,14 @@ export default function TeamPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="on-leave">On Leave</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="INVITED">Pending Invite</SelectItem>
+            <SelectItem value="INACTIVE">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -415,19 +389,13 @@ export default function TeamPage() {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={getStatusColor(
-                          !member.lastSignIn && member.status === "invited"
-                            ? "invited"
-                            : member.status === "invited"
-                              ? "active"
-                              : member.status,
-                        )}
+                        className={getStatusColor(member.status)}
                       >
-                        {!member.lastSignIn && member.status === "invited"
-                          ? "Invited"
-                          : member.status === "invited"
+                        {member.status?.toUpperCase() === "INVITED"
+                          ? "Pending Invite"
+                          : member.status?.toUpperCase() === "ACTIVE"
                             ? "Active"
-                            : member.status.replace("-", " ")}
+                            : member.status || "Unknown"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -445,23 +413,35 @@ export default function TeamPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleToggleStatus(member.id, member.status)
-                            }
-                          >
-                            <Shield className="h-4 w-4 mr-2" />
-                            {member.status === "active"
-                              ? "Deactivate"
-                              : "Activate"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleRemoveMember(member.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Remove
-                          </DropdownMenuItem>
+                          {member.status?.toUpperCase() === "INVITED" ? (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleRemoveMember(member.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Revoke Invite
+                            </DropdownMenuItem>
+                          ) : (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleToggleStatus(member.id, member.status)
+                                }
+                              >
+                                <Shield className="h-4 w-4 mr-2" />
+                                {member.status?.toUpperCase() === "ACTIVE"
+                                  ? "Deactivate"
+                                  : "Activate"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleRemoveMember(member.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -507,23 +487,9 @@ export default function TeamPage() {
                 onChange={(e) => setNewEmail(e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor="role" className="mb-2 block">
-                Role
-              </Label>
-              <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              New team members will be invited as Admins by default.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddModal(false)}>

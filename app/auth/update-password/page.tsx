@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { confirmAdminActiveAction } from "@/app/actions/teamActions";
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function UpdatePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Initialize Supabase client
   const supabase = createBrowserClient(
@@ -42,12 +44,18 @@ export default function UpdatePasswordPage() {
         session
       ) {
         setIsReady(true);
+        if (session?.user?.id) {
+          setUserId(session.user.id);
+        }
       }
     });
 
     // Also manually check if session exists just in case
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setIsReady(true);
+      if (session) {
+        setIsReady(true);
+        setUserId(session.user.id);
+      }
     });
 
     return () => {
@@ -68,8 +76,18 @@ export default function UpdatePasswordPage() {
 
     setIsSubmitting(true);
     try {
+      // Step 1: Update password in Supabase
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+
+      // Step 2: Update admin status to ACTIVE in database
+      if (userId) {
+        const result = await confirmAdminActiveAction(userId);
+        if (!result.success) {
+          console.error("Failed to activate admin:", result.error);
+          // Don't throw - password is already set, let them in
+        }
+      }
 
       toast.success("Password set successfully! Redirecting...");
       setTimeout(() => {
@@ -102,7 +120,8 @@ export default function UpdatePasswordPage() {
             Set Your Password
           </CardTitle>
           <CardDescription className="text-center">
-            Welcome! Please set your password to access your account.
+            Welcome to Shahzaib Autos Admin Panel! Please set your password to
+            complete your account setup.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
