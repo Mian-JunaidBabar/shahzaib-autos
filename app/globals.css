@@ -5,10 +5,12 @@
 /* Dark theme color palette (default) */
 :root,
 .dark {
-  --primary: #3b82f6;
+  --primary: #1773cf;
   --primary-foreground: #ffffff;
-  --background: #020817;
+  --background: #111921;
   --foreground: #e2e8f0;
+  --background-light: #f6f7f8;
+  --background-dark: #111921;
   --card: #0f172a;
   --card-foreground: #e2e8f0;
   --muted: #1e293b;
@@ -17,7 +19,7 @@
   --accent-foreground: #f8fafc;
   --border: #1e293b;
   --input: #1e293b;
-  --ring: #3b82f6;
+  --ring: #1773cf;
   --radius: 0.5rem;
   --whatsapp: #25d366;
   --whatsapp-hover: #20bd5a;
@@ -33,10 +35,12 @@
 
 /* Light theme color palette */
 .light {
-  --primary: #2563eb;
+  --primary: #1773cf;
   --primary-foreground: #ffffff;
   --background: #ffffff;
   --foreground: #0f172a;
+  --background-light: #f6f7f8;
+  --background-dark: #111921;
   --card: #f8fafc;
   --card-foreground: #0f172a;
   --muted: #e2e8f0;
@@ -45,7 +49,7 @@
   --accent-foreground: #0f172a;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #2563eb;
+  --ring: #1773cf;
   --radius: 0.5rem;
   --whatsapp: #25d366;
   --whatsapp-hover: #20bd5a;

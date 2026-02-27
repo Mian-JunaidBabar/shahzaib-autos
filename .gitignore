@@ -47,6 +47,7 @@ next-env.d.ts
 
 /.vscode/
 /.vscode/*
-
-
+/queue/*
 /.agents/*
+
+/stitch.json
