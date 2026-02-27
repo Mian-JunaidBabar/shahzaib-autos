@@ -8,7 +8,6 @@ import {
   Search,
   MoreVertical,
   Trash2,
-  Edit,
   Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -133,6 +132,8 @@ export default function TeamPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Add form state
@@ -158,7 +159,9 @@ export default function TeamPage() {
   };
 
   useEffect(() => {
-    fetchMembers();
+    startTransition(() => {
+      fetchMembers();
+    });
   }, []);
 
   const handleAddMember = async () => {
@@ -205,14 +208,21 @@ export default function TeamPage() {
     });
   };
 
-  const handleRemoveMember = async (adminId: string) => {
-    if (!confirm("Remove this team member? They will lose admin access."))
-      return;
+  const handleRemoveMember = (member: TeamMember) => {
+    setMemberToDelete(member);
+    setShowDeleteModal(true);
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!memberToDelete) return;
+
     startTransition(async () => {
-      const result = await removeTeamMemberAction(adminId);
+      const result = await removeTeamMemberAction(memberToDelete.id);
       if (result.success) {
-        setMembers((prev) => prev.filter((m) => m.id !== adminId));
+        setMembers((prev) => prev.filter((m) => m.id !== memberToDelete.id));
         toast.success("Team member removed");
+        setShowDeleteModal(false);
+        setMemberToDelete(null);
       } else {
         toast.error(result.error || "Failed to remove team member");
       }
@@ -416,7 +426,7 @@ export default function TeamPage() {
                           {member.status?.toUpperCase() === "INVITED" ? (
                             <DropdownMenuItem
                               className="text-destructive"
-                              onClick={() => handleRemoveMember(member.id)}
+                              onClick={() => handleRemoveMember(member)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Revoke Invite
@@ -435,7 +445,7 @@ export default function TeamPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => handleRemoveMember(member.id)}
+                                onClick={() => handleRemoveMember(member)}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Remove
@@ -497,6 +507,63 @@ export default function TeamPage() {
             </Button>
             <Button onClick={handleAddMember} disabled={isPending}>
               {isPending ? "Sending..." : "Send Invite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              {memberToDelete?.status?.toUpperCase() === "INVITED"
+                ? "Revoke Invite"
+                : "Remove Team Member"}
+            </DialogTitle>
+            <DialogDescription className="pt-4">
+              {memberToDelete?.status?.toUpperCase() === "INVITED" ? (
+                <>
+                  Are you sure you want to revoke the invite for{" "}
+                  <span className="font-semibold">
+                    {memberToDelete?.fullName || memberToDelete?.email}
+                  </span>
+                  ? They will not be able to join the team.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to remove{" "}
+                  <span className="font-semibold">
+                    {memberToDelete?.fullName || memberToDelete?.email}
+                  </span>{" "}
+                  from the admin team? They will lose all admin access
+                  immediately.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setMemberToDelete(null);
+              }}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmRemoveMember}
+              disabled={isPending}
+            >
+              {isPending
+                ? "Removing..."
+                : memberToDelete?.status?.toUpperCase() === "INVITED"
+                  ? "Revoke Invite"
+                  : "Remove Member"}
             </Button>
           </DialogFooter>
         </DialogContent>
