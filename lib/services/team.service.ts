@@ -41,6 +41,17 @@ export type InviteResult = {
   };
 };
 
+export type ActivityLog = {
+  id: string;
+  action: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  browser: string | null;
+  os: string | null;
+  device: string | null;
+  createdAt: Date;
+};
+
 /**
  * Generate a secure temporary password
  */
@@ -346,4 +357,146 @@ export async function confirmAdminActive(
     where: { id: supabaseUserId },
     data: { status: "ACTIVE" },
   });
+}
+
+/**
+ * Log admin activity (login, logout, etc.)
+ */
+export async function logAdminActivity(input: {
+  adminId: string;
+  action: "LOGIN" | "LOGOUT" | "SESSION_EXPIRED";
+  ipAddress?: string;
+  userAgent?: string;
+}): Promise<void> {
+  // Parse user agent for browser/OS info
+  let browser: string | null = null;
+  let os: string | null = null;
+  let device: string | null = null;
+
+  if (input.userAgent) {
+    // Simple parsing - can be enhanced with a proper UA parser
+    if (input.userAgent.includes("Chrome")) browser = "Chrome";
+    else if (input.userAgent.includes("Firefox")) browser = "Firefox";
+    else if (input.userAgent.includes("Safari")) browser = "Safari";
+    else if (input.userAgent.includes("Edge")) browser = "Edge";
+
+    if (input.userAgent.includes("Windows")) os = "Windows";
+    else if (input.userAgent.includes("Mac")) os = "macOS";
+    else if (input.userAgent.includes("Linux")) os = "Linux";
+    else if (input.userAgent.includes("Android")) os = "Android";
+    else if (input.userAgent.includes("iOS")) os = "iOS";
+
+    if (input.userAgent.includes("Mobile")) device = "mobile";
+    else if (input.userAgent.includes("Tablet")) device = "tablet";
+    else device = "desktop";
+  }
+
+  await prisma.adminActivityLog.create({
+    data: {
+      adminId: input.adminId,
+      action: input.action,
+      ipAddress: input.ipAddress || null,
+      userAgent: input.userAgent || null,
+      browser,
+      os,
+      device,
+    },
+  });
+}
+
+/**
+ * Get activity logs for an admin
+ */
+export async function getAdminActivityLogs(
+  adminId: string,
+  limit: number = 50,
+): Promise<ActivityLog[]> {
+  const logs = await prisma.adminActivityLog.findMany({
+    where: { adminId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+  return logs;
+}
+
+/**
+ * Get admin details including activity summary
+ */
+export async function getAdminDetails(adminId: string): Promise<{
+  member: TeamMember;
+  stats: {
+    totalLogins: number;
+    lastLogin: Date | null;
+    lastLogout: Date | null;
+    avgSessionMinutes: number;
+  };
+  recentLogs: ActivityLog[];
+}> {
+  const admin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    include: {
+      profile: true,
+      activityLogs: { orderBy: { createdAt: "desc" }, take: 20 },
+    },
+  });
+
+  if (!admin) throw new Error("Admin not found");
+
+  // Get Supabase user data
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(
+    admin.supabaseUserId,
+  );
+
+  const profile = admin.profile;
+  const member: TeamMember = {
+    id: admin.id,
+    supabaseUserId: admin.supabaseUserId,
+    email: userData.user?.email || "Unknown",
+    fullName: profile?.fullName || null,
+    avatarUrl: profile?.avatarUrl || null,
+    phone: profile?.phone || null,
+    role: profile?.role || "Admin",
+    status: profile?.status || "INVITED",
+    createdAt: admin.createdAt,
+    lastSignIn: userData.user?.last_sign_in_at || null,
+  };
+
+  // Calculate stats
+  const allLogs = await prisma.adminActivityLog.findMany({
+    where: { adminId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const loginLogs = allLogs.filter((l) => l.action === "LOGIN");
+  const logoutLogs = allLogs.filter(
+    (l) => l.action === "LOGOUT" || l.action === "SESSION_EXPIRED",
+  );
+
+  // Calculate average session time
+  let totalSessionTime = 0;
+  let sessionCount = 0;
+  for (let i = 0; i < loginLogs.length; i++) {
+    const login = loginLogs[i];
+    const nextLogout = logoutLogs.find((l) => l.createdAt > login.createdAt);
+    if (nextLogout) {
+      totalSessionTime +=
+        nextLogout.createdAt.getTime() - login.createdAt.getTime();
+      sessionCount++;
+    }
+  }
+
+  return {
+    member,
+    stats: {
+      totalLogins: loginLogs.length,
+      lastLogin: loginLogs[0]?.createdAt || null,
+      lastLogout: logoutLogs[0]?.createdAt || null,
+      avgSessionMinutes:
+        sessionCount > 0
+          ? Math.round(totalSessionTime / sessionCount / 60000)
+          : 0,
+    },
+    recentLogs: admin.activityLogs,
+  };
 }

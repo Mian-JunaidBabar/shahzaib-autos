@@ -6,7 +6,6 @@ import {
   UserPlus,
   Shield,
   Search,
-  MoreVertical,
   Trash2,
   Clock,
   Copy,
@@ -14,6 +13,14 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
+  Mail,
+  Phone,
+  Calendar,
+  Activity,
+  LogIn,
+  LogOut,
+  Monitor,
+  Smartphone,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -45,17 +53,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   getTeamMembersAction,
   inviteTeamMemberAction,
   updateTeamMemberAction,
   removeTeamMemberAction,
   getCredentialsAction,
+  getAdminDetailsAction,
 } from "@/app/actions/teamActions";
 import { toast } from "sonner";
 
@@ -70,6 +79,28 @@ type TeamMember = {
   status: string;
   createdAt: Date;
   lastSignIn: string | null;
+};
+
+type ActivityLog = {
+  id: string;
+  action: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  browser: string | null;
+  os: string | null;
+  device: string | null;
+  createdAt: Date;
+};
+
+type MemberDetails = {
+  member: TeamMember;
+  stats: {
+    totalLogins: number;
+    lastLogin: Date | null;
+    lastLogout: Date | null;
+    avgSessionMinutes: number;
+  };
+  recentLogs: ActivityLog[];
 };
 
 const getStatusColor = (status: string) => {
@@ -148,6 +179,14 @@ export default function TeamPage() {
   const [credentialsCopied, setCredentialsCopied] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Details panel state
+  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [memberDetails, setMemberDetails] = useState<MemberDetails | null>(
+    null,
+  );
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // Add form state
   const [newEmail, setNewEmail] = useState("");
@@ -282,6 +321,27 @@ export default function TeamPage() {
     });
   };
 
+  const handleOpenDetails = async (member: TeamMember) => {
+    setSelectedMember(member);
+    setShowDetailsPanel(true);
+    setIsLoadingDetails(true);
+    setMemberDetails(null);
+
+    const result = await getAdminDetailsAction(member.id);
+    if (result.success && result.data) {
+      setMemberDetails(result.data as MemberDetails);
+    } else {
+      toast.error(result.error || "Failed to load member details");
+    }
+    setIsLoadingDetails(false);
+  };
+
+  const handleCloseDetailsPanel = () => {
+    setShowDetailsPanel(false);
+    setSelectedMember(null);
+    setMemberDetails(null);
+  };
+
   const filteredMembers = members.filter((m) => {
     const matchSearch =
       (m.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -414,14 +474,16 @@ export default function TeamPage() {
                 <TableRow>
                   <TableHead>Member</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Last Active</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredMembers.map((member) => (
-                  <TableRow key={member.id}>
+                  <TableRow
+                    key={member.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleOpenDetails(member)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -449,72 +511,8 @@ export default function TeamPage() {
                         {member.role}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={getStatusColor(member.status)}
-                      >
-                        {member.status?.toUpperCase() === "INVITED"
-                          ? "Pending Invite"
-                          : member.status?.toUpperCase() === "ACTIVE"
-                            ? "Active"
-                            : member.status || "Unknown"}
-                      </Badge>
-                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatRelativeTime(member.lastSignIn)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={isPending}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {member.status?.toUpperCase() === "INVITED" ? (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => handleCopyCredentials(member)}
-                              >
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copy Credentials
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleRemoveMember(member)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Revoke Invite
-                              </DropdownMenuItem>
-                            </>
-                          ) : (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleToggleStatus(member.id, member.status)
-                                }
-                              >
-                                <Shield className="h-4 w-4 mr-2" />
-                                {member.status?.toUpperCase() === "ACTIVE"
-                                  ? "Deactivate"
-                                  : "Activate"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleRemoveMember(member)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remove
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -740,6 +738,270 @@ Password: ${credentials?.password}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Member Details Sidepanel */}
+      <Sheet open={showDetailsPanel} onOpenChange={setShowDetailsPanel}>
+        <SheetContent className="w-full sm:max-w-lg overflow-hidden flex flex-col">
+          <SheetHeader className="pb-4 border-b">
+            <div className="flex items-center justify-between">
+              <SheetTitle>Member Details</SheetTitle>
+            </div>
+          </SheetHeader>
+
+          {isLoadingDetails ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center space-y-2">
+                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
+                <p className="text-sm text-muted-foreground">
+                  Loading details...
+                </p>
+              </div>
+            </div>
+          ) : selectedMember ? (
+            <div className="flex-1 -mx-6 px-6 overflow-y-auto">
+              <div className="space-y-6 py-4">
+                {/* Profile Section */}
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-primary">
+                      {(selectedMember.fullName || selectedMember.email)
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {selectedMember.fullName || "Unnamed"}
+                    </h3>
+                    <Badge
+                      variant="outline"
+                      className={getStatusColor(selectedMember.status)}
+                    >
+                      {selectedMember.status?.toUpperCase() === "INVITED"
+                        ? "Pending Invite"
+                        : selectedMember.status?.toUpperCase() === "ACTIVE"
+                          ? "Active"
+                          : selectedMember.status || "Unknown"}
+                    </Badge>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Contact Info */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    Contact Information
+                  </h4>
+                  <div className="grid gap-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{selectedMember.email}</span>
+                    </div>
+                    {selectedMember.phone && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedMember.phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-sm">
+                      <Shield className="h-4 w-4 text-muted-foreground" />
+                      <span>Role: {selectedMember.role}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>
+                        Joined:{" "}
+                        {new Date(selectedMember.createdAt).toLocaleDateString(
+                          "en-PK",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          },
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Activity Stats */}
+                {memberDetails && (
+                  <>
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <Activity className="h-4 w-4" />
+                        Activity Summary
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-2xl font-bold">
+                            {memberDetails.stats.totalLogins}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Total Logins
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <p className="text-2xl font-bold">
+                            {memberDetails.stats.avgSessionMinutes}m
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Avg Session
+                          </p>
+                        </div>
+                      </div>
+                      {memberDetails.stats.lastLogin && (
+                        <p className="text-xs text-muted-foreground">
+                          Last login:{" "}
+                          {formatRelativeTime(
+                            memberDetails.stats.lastLogin.toString(),
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Activity Logs */}
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">
+                        Recent Activity
+                      </h4>
+                      {memberDetails.recentLogs.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No activity logs yet
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {memberDetails.recentLogs.map((log) => (
+                            <div
+                              key={log.id}
+                              className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50"
+                            >
+                              <div
+                                className={`p-1.5 rounded-full ${
+                                  log.action === "LOGIN"
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-orange-100 text-orange-600"
+                                }`}
+                              >
+                                {log.action === "LOGIN" ? (
+                                  <LogIn className="h-3 w-3" />
+                                ) : (
+                                  <LogOut className="h-3 w-3" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="font-medium">
+                                    {log.action}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatRelativeTime(
+                                      log.createdAt.toString(),
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  {log.device && (
+                                    <span className="flex items-center gap-1">
+                                      {log.device === "mobile" ? (
+                                        <Smartphone className="h-3 w-3" />
+                                      ) : (
+                                        <Monitor className="h-3 w-3" />
+                                      )}
+                                      {log.device}
+                                    </span>
+                                  )}
+                                  {log.browser && <span>{log.browser}</span>}
+                                  {log.os && <span>• {log.os}</span>}
+                                </div>
+                                {log.ipAddress && (
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    IP: {log.ipAddress}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <Separator />
+
+                {/* Actions */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    Actions
+                  </h4>
+                  {selectedMember.status?.toUpperCase() === "INVITED" ? (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          handleCopyCredentials(selectedMember);
+                          handleCloseDetailsPanel();
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Credentials
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          handleRemoveMember(selectedMember);
+                          handleCloseDetailsPanel();
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Revoke Invite
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          handleToggleStatus(
+                            selectedMember.id,
+                            selectedMember.status,
+                          );
+                          handleCloseDetailsPanel();
+                        }}
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        {selectedMember.status?.toUpperCase() === "ACTIVE"
+                          ? "Deactivate Account"
+                          : "Activate Account"}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          handleRemoveMember(selectedMember);
+                          handleCloseDetailsPanel();
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Member
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

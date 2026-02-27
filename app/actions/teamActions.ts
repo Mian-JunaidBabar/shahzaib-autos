@@ -155,3 +155,32 @@ export async function getCredentialsAction(
     };
   }
 }
+
+/**
+ * Get detailed admin info including activity logs
+ */
+export async function getAdminDetailsAction(adminId: string): Promise<
+  ActionResult<{
+    member: TeamService.TeamMember;
+    stats: {
+      totalLogins: number;
+      lastLogin: Date | null;
+      lastLogout: Date | null;
+      avgSessionMinutes: number;
+    };
+    recentLogs: TeamService.ActivityLog[];
+  }>
+> {
+  try {
+    await requireAdmin();
+    const details = await TeamService.getAdminDetails(adminId);
+    return { success: true, data: details };
+  } catch (error) {
+    console.error("getAdminDetailsAction error:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to get admin details",
+    };
+  }
+}

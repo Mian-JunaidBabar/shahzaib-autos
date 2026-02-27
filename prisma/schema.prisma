@@ -23,9 +23,32 @@ model Admin {
   supabaseUserId  String   @unique @map("supabase_user_id") // Supabase auth.users.id
   createdAt       DateTime @default(now()) @map("created_at")
 
-  profile AdminProfile?
+  profile      AdminProfile?
+  activityLogs AdminActivityLog[]
 
   @@map("admins")
+}
+
+// ============================================
+// ADMIN ACTIVITY LOG (Login/Logout tracking)
+// ============================================
+// Tracks admin login/logout events with browser and IP info
+
+model AdminActivityLog {
+  id        String   @id @default(uuid())
+  adminId   String   @map("admin_id")
+  action    String   // LOGIN, LOGOUT, SESSION_EXPIRED
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  browser   String?  // Parsed browser name
+  os        String?  // Parsed OS name
+  device    String?  // desktop, mobile, tablet
+  createdAt DateTime @default(now()) @map("created_at")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+  @@map("admin_activity_logs")
 }
 
 // ============================================
