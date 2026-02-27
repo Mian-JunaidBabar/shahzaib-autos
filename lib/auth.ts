@@ -1,3 +1,5 @@
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
 /**
  * Supabase Auth - Server-side utilities
  *
@@ -7,8 +9,7 @@
  * NOTE: All authentication is handled by Supabase Auth.
  * We do NOT store users, passwords, or sessions in Prisma.
  */
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cache } from "react";
 
 
 // Supabase environment variables
@@ -50,8 +51,9 @@ export async function createSupabaseServerClient() {
 /**
  * Get the current authenticated user from Supabase
  * Returns null if not authenticated
+ * Cached to prevent duplicate calls within the same request
  */
-export async function getSupabaseUser() {
+export const getSupabaseUser = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -63,13 +65,14 @@ export async function getSupabaseUser() {
   }
 
   return user;
-}
+});
 
 /**
  * Get the current session from Supabase
  * Returns null if no active session
+ * Cached to prevent duplicate calls within the same request
  */
-export async function getSupabaseSession() {
+export const getSupabaseSession = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const {
     data: { session },
@@ -81,4 +84,4 @@ export async function getSupabaseSession() {
   }
 
   return session;
-}
+});

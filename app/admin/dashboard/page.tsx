@@ -1,23 +1,8 @@
-import {
-  ShoppingCart,
-  DollarSign,
-  Users,
-  Clock,
-  Package,
-  Calendar,
-  UserPlus,
-  AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
-  FileText,
-  TrendingUp,
-} from "lucide-react";
-import {
-  getDashboardStatsAction,
-  getRecentActivityAction,
-} from "@/app/actions/dashboardActions";
+import { ShoppingCart, DollarSign, Users, Clock, Package, Calendar, UserPlus, AlertTriangle, ArrowUpRight, ArrowDownRight, FileText, TrendingUp, } from "lucide-react";
+import { getDashboardStatsAction, getRecentActivityAction, type DashboardStats, type RecentActivity, } from "@/app/actions/dashboardActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+
 
 // Force dynamic rendering for admin pages that use authentication
 export const dynamic = "force-dynamic";
@@ -97,26 +82,7 @@ function StatsCard({
 }
 
 // Dashboard Stats Component
-async function DashboardStats() {
-  const result = await getDashboardStatsAction();
-
-  if (!result.success || !result.data) {
-    return (
-      <div className="col-span-4">
-        <Card className="border-destructive">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              <p>Failed to load dashboard stats. {result.error}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const stats = result.data;
-
+async function DashboardStats({ stats }: { stats: DashboardStats }) {
   return (
     <>
       <StatsCard
@@ -151,20 +117,8 @@ async function DashboardStats() {
   );
 }
 
-// Recent Activity Component
-async function RecentActivity() {
-  const result = await getRecentActivityAction(5);
-
-  if (!result.success || !result.data) {
-    return (
-      <div className="text-muted-foreground text-center py-8">
-        Failed to load recent activity
-      </div>
-    );
-  }
-
-  const activities = result.data;
-
+// Recent Activity List Component
+function RecentActivityList({ activities }: { activities: RecentActivity[] }) {
   if (activities.length === 0) {
     return (
       <div className="text-muted-foreground text-center py-8">
@@ -284,15 +238,7 @@ function QuickActions() {
 }
 
 // Additional Stats Row
-async function AdditionalStats() {
-  const result = await getDashboardStatsAction();
-
-  if (!result.success || !result.data) {
-    return null;
-  }
-
-  const stats = result.data;
-
+function AdditionalStats({ stats }: { stats: DashboardStats }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       <Card>
@@ -351,39 +297,40 @@ async function AdditionalStats() {
   );
 }
 
-export default function AdminDashboardPage() {
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Welcome to Shahzaib Autos Admin Panel
-          </p>
-        </div>
-      </div>
+// Dashboard Content - fetches data once and passes to children
+async function DashboardContent() {
+  const [statsResult, activityResult] = await Promise.all([
+    getDashboardStatsAction(),
+    getRecentActivityAction(5),
+  ]);
 
+  if (!statsResult.success || !statsResult.data) {
+    return (
+      <div className="col-span-4">
+        <Card className="border-destructive">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <p>Failed to load dashboard stats. {statsResult.error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const stats = statsResult.data;
+  const activities = activityResult.success ? activityResult.data || [] : [];
+
+  return (
+    <>
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Suspense
-          fallback={
-            <>
-              <StatsCardSkeleton />
-              <StatsCardSkeleton />
-              <StatsCardSkeleton />
-              <StatsCardSkeleton />
-            </>
-          }
-        >
-          <DashboardStats />
-        </Suspense>
+        <DashboardStats stats={stats} />
       </div>
 
       {/* Additional Stats */}
-      <Suspense fallback={null}>
-        <AdditionalStats />
-      </Suspense>
+      <AdditionalStats stats={stats} />
 
       {/* Quick Actions */}
       <Card>
@@ -401,26 +348,45 @@ export default function AdminDashboardPage() {
           <CardTitle className="text-xl">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <Suspense
-            fallback={
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3 w-32" />
-                    </div>
-                    <Skeleton className="h-6 w-16" />
-                  </div>
-                ))}
-              </div>
-            }
-          >
-            <RecentActivity />
-          </Suspense>
+          <RecentActivityList activities={activities} />
         </CardContent>
       </Card>
+    </>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Welcome to Shahzaib Autos Admin Panel
+          </p>
+        </div>
+      </div>
+
+      <Suspense
+        fallback={
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-20" />
+              ))}
+            </div>
+          </div>
+        }
+      >
+        <DashboardContent />
+      </Suspense>
     </div>
   );
 }

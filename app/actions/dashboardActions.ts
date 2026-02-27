@@ -7,6 +7,7 @@
 
 "use server";
 
+import { cache } from "react";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as ProductService from "@/lib/services/product.service";
 import * as OrderService from "@/lib/services/order.service";
@@ -61,10 +62,11 @@ export type RecentActivity = {
 
 /**
  * Get comprehensive dashboard statistics
+ * Cached to prevent duplicate queries within the same request
  */
-export async function getDashboardStatsAction(): Promise<
+export const getDashboardStatsAction = cache(async (): Promise<
   ActionResult<DashboardStats>
-> {
+> => {
   try {
     await requireAdmin();
 
@@ -133,14 +135,15 @@ export async function getDashboardStatsAction(): Promise<
           : "Failed to fetch dashboard stats",
     };
   }
-}
+});
 
 /**
  * Get recent activity across all entities
+ * Cached to prevent duplicate queries within the same request
  */
-export async function getRecentActivityAction(
+export const getRecentActivityAction = cache(async (
   limit: number = 10,
-): Promise<ActionResult<RecentActivity[]>> {
+): Promise<ActionResult<RecentActivity[]>> => {
   try {
     await requireAdmin();
 
@@ -195,7 +198,7 @@ export async function getRecentActivityAction(
           : "Failed to fetch recent activity",
     };
   }
-}
+});
 
 /**
  * Get low stock alerts

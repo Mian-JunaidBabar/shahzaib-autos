@@ -1,3 +1,6 @@
+import { createSupabaseServerClient, getSupabaseUser } from "@/lib/auth";
+import type { User } from "@supabase/supabase-js";
+import { prisma } from "@/lib/prisma";
 /**
  * Auth Service
  *
@@ -8,9 +11,7 @@
  * NOTE: Authentication is handled EXCLUSIVELY by Supabase Auth.
  * We only store the Supabase user ID in the `admins` table to grant admin access.
  */
-import { createSupabaseServerClient, getSupabaseUser } from "@/lib/auth";
-import type { User } from "@supabase/supabase-js";
-import { prisma } from "@/lib/prisma";
+import { cache } from "react";
 
 
 export type AuthSession = {
@@ -24,8 +25,9 @@ export type AuthSession = {
 /**
  * Get the current session from Supabase Auth
  * Use this in server components and server actions
+ * Cached to prevent duplicate queries within the same request
  */
-export async function getServerSession(): Promise<AuthSession | null> {
+export const getServerSession = cache(async (): Promise<AuthSession | null> => {
   try {
     const user = await getSupabaseUser();
 
@@ -49,7 +51,7 @@ export async function getServerSession(): Promise<AuthSession | null> {
     console.error("Error getting session:", error);
     return null;
   }
-}
+});
 
 /**
  * Require authentication - throws if not authenticated
