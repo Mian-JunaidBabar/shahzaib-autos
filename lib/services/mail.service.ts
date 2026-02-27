@@ -10,9 +10,14 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email sender configuration
-// IMPORTANT: Replace with your own domain verified with Resend
+// NOTE: Resend requires either a verified domain OR use their test domain
+// To send to verified emails: verify your domain at https://resend.com/domains
+// For development: noreply@resend.dev (Resend's test domain - works for all recipients)
 const fromEmail =
-  process.env.EMAIL_FROM || "Shahzaib Autos <noreply@shahzaibautos.com>";
+  process.env.EMAIL_FROM ||
+  (process.env.NODE_ENV === "production"
+    ? process.env.ADMIN_EMAIL || "noreply@shahzaibautos.com"
+    : "noreply@resend.dev");
 
 // Admin email for notifications
 export const adminEmail =
