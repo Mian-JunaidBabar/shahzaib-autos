@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { OptimizedImage } from "@/components/optimized-image";
 import { ThemeProvider } from "@/context/theme-context";
 import { CartProvider } from "@/context/cart-context";
 import Header from "@/components/layout/header";
@@ -188,12 +188,11 @@ export default function HomePage() {
                   <div className="relative order-1 lg:order-2 group">
                     <div className="absolute -inset-1 bg-linear-to-r from-primary to-blue-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
                     <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-card shadow-2xl">
-                      <Image
+                      <OptimizedImage
                         src="https://lh3.googleusercontent.com/aida-public/AB6AXuD00zIN8_8SUI957_XQfS6bdXzkF4h4SSmjbn2D2wb45ibyAeOkX4uTwlfDsLVBtlrOlGIY5b4GthE_pePfduRbgvuxodWHJbA_QWGdadmVd3E-q5Mck8cKfpQMpsXgawOTUI0ITAZIaGyV83r5YU3oo-jIaT8CeVuzed5iBjquC8T6ElhCa25PUA35oq1nnFTyvOZ3l712lAAfel2Bq8mrZMjjjbeYV8dVPdxJdQLgKpOaHllimldqfaIVTX8iQLmEMaHthfqp7JBw"
                         alt="Cinematic shot of workshop activity"
                         fill
                         className="object-cover"
-                        priority
                       />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
                         <div className="h-16 w-16 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform cursor-pointer">
@@ -266,7 +265,7 @@ export default function HomePage() {
                     className="group rounded-xl border border-border bg-card overflow-hidden hover:border-primary/50 transition-colors"
                   >
                     <div className="aspect-4/3 w-full overflow-hidden bg-muted relative">
-                      <Image
+                      <OptimizedImage
                         src={product.image}
                         alt={product.name}
                         fill
@@ -330,7 +329,7 @@ export default function HomePage() {
                     key={story.id}
                     className="masonry-item break-inside-avoid mb-6 group relative rounded-xl overflow-hidden cursor-pointer"
                   >
-                    <Image
+                    <OptimizedImage
                       src={story.image}
                       alt={story.title}
                       width={600}

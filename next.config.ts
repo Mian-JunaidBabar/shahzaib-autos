@@ -28,6 +28,13 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
+    // Increase cache TTL for slow remote images
+    minimumCacheTTL: 3600, // 1 hour
+  },
+  // Increase timeout for fetch operations and optimize on-demand entries
+  onDemandEntries: {
+    maxInactiveAge: 60 * 60 * 1000, // 1 hour
+    pagesBufferLength: 10, // Increased buffer
   },
 };
 

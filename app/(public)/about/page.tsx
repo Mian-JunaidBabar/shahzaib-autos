@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { OptimizedImage } from "@/components/optimized-image";
 import Link from "next/link";
 
 export default function About() {
@@ -69,7 +69,7 @@ export default function About() {
             <div className="relative group">
               <div className="absolute -inset-1 bg-linear-to-r from-primary to-blue-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
               <div className="relative aspect-4/3 rounded-xl overflow-hidden border border-border bg-card shadow-2xl">
-                <Image
+                <OptimizedImage
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuD00zIN8_8SUI957_XQfS6bdXzkF4h4SSmjbn2D2wb45ibyAeOkX4uTwlfDsLVBtlrOlGIY5b4GthE_pePfduRbgvuxodWHJbA_QWGdadmVd3E-q5Mck8cKfpQMpsXgawOTUI0ITAZIaGyV83r5YU3oo-jIaT8CeVuzed5iBjquC8T6ElhCa25PUA35oq1nnFTyvOZ3l712lAAfel2Bq8mrZMjjjbeYV8dVPdxJdQLgKpOaHllimldqfaIVTX8iQLmEMaHthfqp7JBw"
                   alt="Inside Shahzaib Autos Workshop"
                   fill
@@ -177,7 +177,7 @@ export default function About() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="group relative rounded-xl overflow-hidden aspect-4/3 cursor-pointer">
-            <Image
+            <OptimizedImage
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoAbH75labLjI9IYarI3itXkkAQs2tKh0MhYLu3FpC-wPAUchj2nvP-ET-jZ65bmh8lOd-JlmtUF1QqR_qYshro76zifGO7J7Vl_Ynz4QbsMOpKd5_rfx4RVfCnDXCay2G7JqnygWg6MrIWXgS2FLTSxI612OsefrwVsVYVJRTlNrpXT6jXbDtYUJFWm6l0sE855BarVs3DMHwZjImgSv0k_7w3NRqwVz0rbcFXI4i2mHN2h4gYvCuj5e_dk2oSMFO2pQU98546QdZ"
               alt="Engine Bay Detailing"
               fill
@@ -190,7 +190,7 @@ export default function About() {
             </div>
           </div>
           <div className="group relative rounded-xl overflow-hidden aspect-4/3 cursor-pointer">
-            <Image
+            <OptimizedImage
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsNjiTVLWvrLKmOCn_eY4KoH9IEqKh8kLiGPRpnQqKKwK1NdvRZjOBzhLltRyPRVfXY01e7wMweBzddy9TsxhKqV4zx0I5mBaeeXc97cQtLMcPA_iqCJuY8Ezqt3LMwXgim5ijzKjsVKiFW3sBFrAZIWCiewsmoG9ZHD98rxNdieDu2P-NN3XB13EAQ79X2zUt0F8luVDj854-nqMhqqIP4hRZKK5JRSZr1kf5z6sNbMMXTl9RrYnzIqgInkYuoV8OhDAhlp1YYlSx"
               alt="Foam Treatment"
               fill
@@ -203,7 +203,7 @@ export default function About() {
             </div>
           </div>
           <div className="group relative rounded-xl overflow-hidden aspect-4/3 cursor-pointer">
-            <Image
+            <OptimizedImage
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuBY6_FRjny-7ukrMnaHP7SyHOd52sxr0WOXIqGH4SWrQcB4DUywiWldhuOAAZ7nHE3To6WeCrbrVvaK4P-az-Q9KFRAFv5JzZQLeuufS39qAGzrhLT_IHIOBEG062Ox7-TjUyOuwcNPR7MXwHkdunto0iyihWPkmtLA6v-meesPztESn25FeiF4FQegDCAPSJPEPcYDXBfRyxUG9zEPFMJjJc2JdGCw3jra8edLqVfjX8uP8vB2wEHNuXYdq7GtdGL2q2BtnG0fadTf"
               alt="Ceramic Coating"
               fill
