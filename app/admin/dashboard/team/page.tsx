@@ -688,29 +688,14 @@ Password: ${credentials?.password}
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="h-5 w-5" />
-              {memberToDelete?.status?.toUpperCase() === "INVITED"
-                ? "Revoke Invite"
-                : "Remove Team Member"}
+              Remove Team Member
             </DialogTitle>
             <DialogDescription className="pt-4">
-              {memberToDelete?.status?.toUpperCase() === "INVITED" ? (
-                <>
-                  Are you sure you want to revoke the invite for{" "}
-                  <span className="font-semibold">
-                    {memberToDelete?.fullName || memberToDelete?.email}
-                  </span>
-                  ? They will not be able to join the team.
-                </>
-              ) : (
-                <>
-                  Are you sure you want to remove{" "}
-                  <span className="font-semibold">
-                    {memberToDelete?.fullName || memberToDelete?.email}
-                  </span>{" "}
-                  from the admin team? They will lose all admin access
-                  immediately.
-                </>
-              )}
+              Are you sure you want to remove{" "}
+              <span className="font-semibold">
+                {memberToDelete?.fullName || memberToDelete?.email}
+              </span>{" "}
+              from the admin team? They will lose all admin access immediately.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -729,11 +714,7 @@ Password: ${credentials?.password}
               onClick={confirmRemoveMember}
               disabled={isPending}
             >
-              {isPending
-                ? "Removing..."
-                : memberToDelete?.status?.toUpperCase() === "INVITED"
-                  ? "Revoke Invite"
-                  : "Remove Member"}
+              {isPending ? "Removing..." : "Remove"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -962,7 +943,7 @@ Password: ${credentials?.password}
                         }}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Revoke Invite
+                        Remove
                       </Button>
                     </div>
                   ) : (
@@ -992,7 +973,7 @@ Password: ${credentials?.password}
                         }}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Remove Member
+                        Remove
                       </Button>
                     </div>
                   )}
