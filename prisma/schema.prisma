@@ -43,6 +43,7 @@ model AdminProfile {
   phone        String?
   role         String   @default("ADMIN")
   status       String   @default("INVITED") // INVITED, ACTIVE, INACTIVE
+  tempPassword String?  @map("temp_password") // Stored until first login, then cleared
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

@@ -32,6 +32,42 @@ export type TeamMember = {
   lastSignIn: string | null;
 };
 
+export type InviteResult = {
+  member: TeamMember;
+  credentials: {
+    fullName: string;
+    email: string;
+    password: string;
+  };
+};
+
+/**
+ * Generate a secure temporary password
+ */
+function generateTempPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const specialChars = "!@#$%&*";
+  let password = "";
+
+  // 10 alphanumeric characters
+  for (let i = 0; i < 10; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  // Add 2 special characters
+  for (let i = 0; i < 2; i++) {
+    password += specialChars.charAt(
+      Math.floor(Math.random() * specialChars.length),
+    );
+  }
+
+  // Shuffle the password
+  return password
+    .split("")
+    .sort(() => Math.random() - 0.5)
+    .join("");
+}
+
 /**
  * Get all team members with their profiles and Supabase metadata
  */
@@ -66,78 +102,92 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   });
 }
 
-import React from "react";
-import { sendEmail } from "@/lib/services/mail.service";
-import TeamInviteEmail from "@/emails/TeamInviteEmail";
-
 /**
  * Invite a new team member
- * Uses generateLink to create invite, then sends custom email via Resend
+ * Creates user with auto-verified email and temp password
+ * Admin copies credentials and shares privately (no email service needed)
  */
 export async function inviteTeamMember(input: {
   email: string;
   fullName: string;
-}): Promise<TeamMember> {
-  // Step 1: Generate invite link using Supabase Admin API
-  const { data: linkData, error: linkError } =
-    await supabaseAdmin.auth.admin.generateLink({
-      type: "invite",
-      email: input.email,
-      options: {
-        data: { full_name: input.fullName },
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/update-password`,
-      },
-    });
-
-  if (linkError) {
-    throw new Error(
-      `Failed to generate Supabase invite link: ${linkError.message}`,
-    );
-  }
-
-  if (!linkData.user || !linkData.properties?.action_link) {
-    throw new Error(
-      "No user or action link returned from Supabase link generator",
-    );
-  }
-
-  // Step 1.5: Pre-confirm the email since we're managing the invite flow ourselves
-  // This prevents "Invalid login credentials" if user sets password via our custom flow
-  await supabaseAdmin.auth.admin.updateUserById(linkData.user.id, {
-    email_confirm: true,
-  });
-
-  // Step 2: Create Admin + AdminProfile records in database
-  // Note: role defaults to "ADMIN" and status defaults to "INVITED" in schema
-  const admin = await prisma.admin.create({
-    data: {
-      supabaseUserId: linkData.user.id,
-      profile: {
-        create: {
-          id: linkData.user.id,
-          fullName: input.fullName,
-          // role and status use schema defaults: "ADMIN" and "INVITED"
-        },
-      },
-    },
+  password?: string; // Optional - will generate if not provided
+}): Promise<InviteResult> {
+  // Step 1: Check if admin record already exists for this email
+  const existingAdmins = await prisma.admin.findMany({
     include: { profile: true },
   });
+  const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+  const users = existingUsers?.users || [];
+  const existingUser = users.find(
+    (u: User) => u.email?.toLowerCase() === input.email.toLowerCase(),
+  );
 
-  // Step 3: Send invite email using Resend
-  const emailResult = await sendEmail({
-    to: input.email,
-    subject: "You've been invited to Shahzaib Autos Admin",
-    react: TeamInviteEmail({
-      inviteLink: linkData.properties.action_link,
-      adminName: input.fullName,
-    }) as React.ReactElement,
-  });
+  if (existingUser) {
+    // Check if they already have an admin record
+    const existingAdmin = existingAdmins.find(
+      (a) => a.supabaseUserId === existingUser.id,
+    );
+    if (existingAdmin) {
+      throw new Error("This email is already registered as a team member");
+    }
 
-  if (!emailResult.success) {
-    console.error("Failed to send invite email via Resend:", emailResult.error);
+    // User exists in Supabase but no admin record - clean up orphan
+    console.log("Cleaning up orphan Supabase user:", existingUser.id);
+    await supabaseAdmin.auth.admin.deleteUser(existingUser.id);
   }
 
-  return {
+  // Step 2: Use provided password or generate one
+  const tempPassword = input.password || generateTempPassword();
+
+  // Step 3: Create user in Supabase with password (auto-verified)
+  const { data: userData, error: createError } =
+    await supabaseAdmin.auth.admin.createUser({
+      email: input.email,
+      password: tempPassword,
+      email_confirm: true, // Auto-verified - no email confirmation needed
+      user_metadata: { full_name: input.fullName },
+    });
+
+  if (createError) {
+    throw new Error(
+      `Failed to create user in Supabase: ${createError.message}`,
+    );
+  }
+
+  if (!userData.user) {
+    throw new Error("No user returned from Supabase createUser");
+  }
+
+  // Step 3: Create Admin + AdminProfile with stored temp password
+  let admin;
+  try {
+    admin = await prisma.admin.create({
+      data: {
+        supabaseUserId: userData.user.id,
+        profile: {
+          create: {
+            id: userData.user.id,
+            fullName: input.fullName,
+            tempPassword: tempPassword, // Store for admin to retrieve later
+            // role and status use schema defaults: "ADMIN" and "INVITED"
+          },
+        },
+      },
+      include: { profile: true },
+    });
+  } catch (prismaError) {
+    // Rollback: delete the Supabase user if Prisma fails
+    console.error(
+      "Prisma create failed, rolling back Supabase user:",
+      prismaError,
+    );
+    await supabaseAdmin.auth.admin.deleteUser(userData.user.id);
+    throw new Error(
+      `Failed to create admin record: ${prismaError instanceof Error ? prismaError.message : "Unknown error"}`,
+    );
+  }
+
+  const member: TeamMember = {
     id: admin.id,
     supabaseUserId: admin.supabaseUserId,
     email: input.email,
@@ -149,10 +199,59 @@ export async function inviteTeamMember(input: {
     createdAt: admin.createdAt,
     lastSignIn: null,
   };
+
+  return {
+    member,
+    credentials: {
+      fullName: input.fullName,
+      email: input.email,
+      password: tempPassword,
+    },
+  };
+}
+
+/**
+ * Get stored credentials for a pending team member
+ * Only works for INVITED members (credentials cleared after first login)
+ */
+export async function getCredentials(
+  adminId: string,
+): Promise<{ fullName: string; email: string; password: string } | null> {
+  const admin = await prisma.admin.findUnique({
+    where: { id: adminId },
+    include: { profile: true },
+  });
+
+  if (!admin) throw new Error("Admin not found");
+
+  // Only return credentials for INVITED members
+  if (admin.profile?.status !== "INVITED") {
+    return null;
+  }
+
+  if (!admin.profile?.tempPassword) {
+    return null;
+  }
+
+  // Get email from Supabase
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(
+    admin.supabaseUserId,
+  );
+
+  if (!userData.user?.email) {
+    return null;
+  }
+
+  return {
+    fullName: admin.profile.fullName || "Team Member",
+    email: userData.user.email,
+    password: admin.profile.tempPassword,
+  };
 }
 
 /**
  * Update a team member's profile
+ * Clears temp password when status changes to ACTIVE
  */
 export async function updateTeamMember(
   adminId: string,
@@ -165,16 +264,22 @@ export async function updateTeamMember(
 
   if (!admin) throw new Error("Admin not found");
 
-  const updateData: Record<string, string> = {};
+  const updateData: Record<string, string | null> = {};
   if (input.role !== undefined) updateData.role = input.role;
-  if (input.status !== undefined) updateData.status = input.status;
+  if (input.status !== undefined) {
+    updateData.status = input.status;
+    // Clear temp password when member becomes ACTIVE
+    if (input.status === "ACTIVE") {
+      updateData.tempPassword = null;
+    }
+  }
   if (input.fullName !== undefined) updateData.fullName = input.fullName;
   if (input.phone !== undefined) updateData.phone = input.phone;
 
   if (admin.profile) {
     await prisma.adminProfile.update({
       where: { adminId },
-      data: updateData as any,
+      data: updateData,
     });
   } else {
     // Create profile if it doesn't exist
@@ -183,7 +288,7 @@ export async function updateTeamMember(
         id: admin.supabaseUserId,
         adminId,
         ...updateData,
-      } as any,
+      },
     });
   }
 }

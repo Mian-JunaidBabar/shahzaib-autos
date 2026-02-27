@@ -9,6 +9,11 @@ import {
   MoreVertical,
   Trash2,
   Clock,
+  Copy,
+  Check,
+  RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +55,7 @@ import {
   inviteTeamMemberAction,
   updateTeamMemberAction,
   removeTeamMemberAction,
+  getCredentialsAction,
 } from "@/app/actions/teamActions";
 import { toast } from "sonner";
 
@@ -133,12 +139,21 @@ export default function TeamPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false);
+  const [credentials, setCredentials] = useState<{
+    fullName: string;
+    email: string;
+    password: string;
+  } | null>(null);
+  const [credentialsCopied, setCredentialsCopied] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Add form state
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchMembers = async () => {
     setIsLoading(true);
@@ -174,18 +189,43 @@ export default function TeamPage() {
       const result = await inviteTeamMemberAction({
         email: newEmail,
         fullName: newName,
+        password: newPassword || undefined,
       });
 
       if (result.success && result.data) {
-        setMembers((prev) => [result.data as TeamMember, ...prev]);
+        const { member, credentials: creds } = result.data;
+        setMembers((prev) => [member as TeamMember, ...prev]);
         setShowAddModal(false);
         setNewEmail("");
         setNewName("");
-        toast.success("Team member invited! An invite email has been sent.");
+        setNewPassword("");
+
+        // Show the credentials modal
+        setCredentials(creds);
+        setCredentialsCopied(false);
+        setShowCredentialsModal(true);
       } else {
         toast.error(result.error || "Failed to invite team member");
       }
     });
+  };
+
+  const generatePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    const special = "!@#$%";
+    let password = "";
+    for (let i = 0; i < 10; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    // Add 2 special characters
+    password += special.charAt(Math.floor(Math.random() * special.length));
+    password += special.charAt(Math.floor(Math.random() * special.length));
+    // Shuffle
+    password = password
+      .split("")
+      .sort(() => Math.random() - 0.5)
+      .join("");
+    setNewPassword(password);
   };
 
   const handleToggleStatus = async (adminId: string, currentStatus: string) => {
@@ -225,6 +265,19 @@ export default function TeamPage() {
         setMemberToDelete(null);
       } else {
         toast.error(result.error || "Failed to remove team member");
+      }
+    });
+  };
+
+  const handleCopyCredentials = async (member: TeamMember) => {
+    startTransition(async () => {
+      const result = await getCredentialsAction(member.id);
+      if (result.success && result.data) {
+        setCredentials(result.data);
+        setCredentialsCopied(false);
+        setShowCredentialsModal(true);
+      } else {
+        toast.error(result.error || "Credentials no longer available");
       }
     });
   };
@@ -424,13 +477,21 @@ export default function TeamPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {member.status?.toUpperCase() === "INVITED" ? (
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleRemoveMember(member)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Revoke Invite
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => handleCopyCredentials(member)}
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy Credentials
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleRemoveMember(member)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Revoke Invite
+                              </DropdownMenuItem>
+                            </>
                           ) : (
                             <>
                               <DropdownMenuItem
@@ -469,8 +530,8 @@ export default function TeamPage() {
           <DialogHeader>
             <DialogTitle>Add Team Member</DialogTitle>
             <DialogDescription>
-              Invite a new member. They&apos;ll receive an email to set up their
-              account.
+              Create an admin account. You&apos;ll get credentials to share
+              privately.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -497,16 +558,127 @@ export default function TeamPage() {
                 onChange={(e) => setNewEmail(e.target.value)}
               />
             </div>
-            <p className="text-sm text-muted-foreground">
-              New team members will be invited as Admins by default.
-            </p>
+            <div>
+              <Label htmlFor="password" className="mb-2 block">
+                Password
+              </Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter or generate password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generatePassword}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave empty to auto-generate a secure password
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddModal(false)}>
               Cancel
             </Button>
             <Button onClick={handleAddMember} disabled={isPending}>
-              {isPending ? "Sending..." : "Send Invite"}
+              {isPending ? "Creating..." : "Create Account"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Modal */}
+      <Dialog
+        open={showCredentialsModal}
+        onOpenChange={setShowCredentialsModal}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <Check className="h-5 w-5" />
+              Account Created
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Copy and share these credentials via WhatsApp or other secure
+              channel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-muted rounded-lg font-mono text-sm whitespace-pre-wrap border">
+              {`🔐 Shahzaib Autos Admin Login
+
+Name: ${credentials?.fullName || "Team Member"}
+Email: ${credentials?.email}
+Password: ${credentials?.password}
+
+🔗 Login: ${typeof window !== "undefined" ? window.location.origin : ""}/admin/auth/login
+
+⚠️ Please change your password after first login.`}
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                const text = `🔐 Shahzaib Autos Admin Login
+
+Name: ${credentials?.fullName || "Team Member"}
+Email: ${credentials?.email}
+Password: ${credentials?.password}
+
+🔗 Login: ${window.location.origin}/admin/auth/login
+
+⚠️ Please change your password after first login.`;
+                navigator.clipboard.writeText(text);
+                setCredentialsCopied(true);
+                toast.success("Message copied to clipboard!");
+                setTimeout(() => setCredentialsCopied(false), 2000);
+              }}
+            >
+              {credentialsCopied ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Message
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Credentials are stored until they log in for the first time.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCredentialsModal(false);
+                setCredentials(null);
+              }}
+            >
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
