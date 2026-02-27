@@ -17,7 +17,6 @@ datasource db {
 // ============================================
 // NOTE: Authentication is handled EXCLUSIVELY by Supabase Auth.
 // This table only stores Supabase user IDs that have admin access.
-// DO NOT store passwords, sessions, or tokens here.
 
 model Admin {
   id              String   @id @default(uuid())
@@ -42,8 +41,8 @@ model AdminProfile {
   fullName     String?  @map("full_name")
   avatarUrl    String?  @map("avatar_url")
   phone        String?
-  role         String   @default("Admin")
-  status       String   @default("active") // active, inactive, on-leave
+  role         String   @default("ADMIN")
+  status       String   @default("INVITED") // INVITED, ACTIVE, INACTIVE
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
