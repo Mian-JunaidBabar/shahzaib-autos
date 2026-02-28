@@ -4,7 +4,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 
-
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -18,6 +17,9 @@ export const metadata: Metadata = {
   },
   description:
     "Premium car accessories and professional installation services. From detailing to custom modifications, we do it all.",
+  appleWebApp: {
+    title: "Shahzaib Autos",
+  },
 };
 
 export default function RootLayout({

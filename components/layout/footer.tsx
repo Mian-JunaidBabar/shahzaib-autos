@@ -1,5 +1,7 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import { OptimizedImage } from "@/components/optimized-image";
 
 const footerLinks = [
   { href: "/products", label: "Products" },
@@ -19,9 +21,13 @@ export default function Footer() {
               href="/"
               className="flex items-center justify-center md:justify-start gap-2 text-text-primary mb-4"
             >
-              <span className="material-symbols-outlined text-[32px]! text-text-primary">
-                directions_car
-              </span>
+              <OptimizedImage
+                src="/icon0.svg"
+                alt="Shahzaib Autos"
+                width={40}
+                height={40}
+                className="rounded"
+              />
               <h2 className="text-xl font-bold tracking-tight">
                 Shahzaib Autos
               </h2>

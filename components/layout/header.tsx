@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useCart } from "@/context/cart-context";
 import { useTheme } from "@/context/theme-context";
 import { ShoppingCart, Sun, Moon } from "lucide-react";
+import { OptimizedImage } from "@/components/optimized-image";
 import { generateWhatsAppUrl } from "@/lib/whatsapp";
 
 const navLinks = [
@@ -33,9 +34,13 @@ export default function Header() {
           href="/"
           className="flex items-center gap-2 text-text-primary hover:text-primary transition-colors"
         >
-          <span className="material-symbols-outlined text-[28px]! text-primary">
-            directions_car
-          </span>
+          <OptimizedImage
+            src="/icon0.svg"
+            alt="Shahzaib Autos"
+            width={32}
+            height={32}
+            className="rounded"
+          />
           <h2 className="text-text-primary text-lg font-bold tracking-tight">
             Shahzaib Autos
           </h2>
