@@ -1,12 +1,10 @@
-
 import { AboutOrigin } from "@/components/about/AboutOrigin";
+import { ContactCTA } from "@/components/about/ContactCTA";
 import { TeamGrid } from "@/components/about/TeamGrid";
-import { ContactForm } from "@/components/about/ContactForm";
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
-
       {/* Minimal Hero Header */}
       <div className="bg-slate-900 py-16 px-4 text-center">
         <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
@@ -21,12 +19,11 @@ export default function AboutPage() {
         <AboutOrigin />
         <TeamGrid />
 
-        {/* We include the Contact Form at the bottom of About to encourage inquiries */}
+        {/* Call‑to‑action prompting users to visit the contact page */}
         <div className="mt-12">
-          <ContactForm />
+          <ContactCTA />
         </div>
       </main>
-
     </div>
   );
 }

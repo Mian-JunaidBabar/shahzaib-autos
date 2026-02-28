@@ -84,7 +84,7 @@ export function NewArrivals() {
                   )}
                   <Link
                     href={`/products/${product.slug}`}
-                    className="absolute bottom-4 left-4 right-4 bg-primary text-white py-2 rounded-lg font-bold text-sm translate-y-12 group-hover:translate-y-0 transition-transform flex items-center justify-center gap-2"
+                    className="absolute bottom-4 left-4 right-4 bg-primary text-white dark:text-slate-900 py-2 rounded-lg font-bold text-sm translate-y-12 group-hover:translate-y-0 transition-transform flex items-center justify-center gap-2"
                   >
                     <span className="material-symbols-outlined text-lg">
                       add_shopping_cart
