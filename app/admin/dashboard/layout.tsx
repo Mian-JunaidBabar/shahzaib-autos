@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   description: "Admin panel for managing Shahzaib Autos business operations",
 };
 
+// Force dynamic rendering for all admin routes (uses cookies/session)
+export const dynamic = "force-dynamic";
+
 import { getServerSession } from "@/lib/services/auth.service";
 import { redirect } from "next/navigation";
 

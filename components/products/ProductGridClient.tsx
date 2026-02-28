@@ -11,6 +11,8 @@ export type ClientProduct = {
   image: string;
   badge?: "NEW" | "SALE" | null;
   badgeText?: string;
+  rating?: number;
+  reviews?: number;
   category?: string;
 };
 
@@ -69,7 +71,12 @@ export default function ProductGridClient({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {visible.map((product) => (
-        <ProductCard key={product.id} {...product} />
+        <ProductCard
+          key={product.id}
+          {...product}
+          rating={product.rating ?? 5}
+          reviews={product.reviews ?? 0}
+        />
       ))}
     </div>
   );
