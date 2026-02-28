@@ -22,6 +22,7 @@ export function ProductFilters() {
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [favoritesOnly, setFavoritesOnly] = useState<boolean>(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -61,6 +62,7 @@ export function ProductFilters() {
     const tagsParam = searchParams.get("tags");
     const minParam = searchParams.get("min");
     const maxParam = searchParams.get("max");
+    const favParam = searchParams.get("favorites");
 
     // Defer state updates to avoid synchronous setState warnings and cascading renders
     const t = setTimeout(() => {
@@ -79,6 +81,7 @@ export function ProductFilters() {
 
       setSelectedCategories(nextCategories);
       setSelectedTags(nextTags);
+      setFavoritesOnly(!!favParam);
       setMinPriceInput(minParam || "");
       setMaxPriceInput(maxParam || "");
     }, 0);
@@ -129,6 +132,7 @@ export function ProductFilters() {
       "search",
       "min",
       "max",
+      "favorites",
       "minPrice",
       "maxPrice",
     ].forEach((k) => params.delete(k));
@@ -147,6 +151,15 @@ export function ProductFilters() {
     setTimeout(() => {
       suppressDebouncedPushRef.current = false;
     }, 600);
+  };
+
+  const toggleFavorites = (next?: boolean) => {
+    const enabled = typeof next === "boolean" ? next : !favoritesOnly;
+    setFavoritesOnly(enabled);
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    if (enabled) params.set("favorites", "1");
+    else params.delete("favorites");
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const updateArrayParam = (key: string, values: string[]) => {
@@ -190,19 +203,32 @@ export function ProductFilters() {
           </h3>
           <div className="flex flex-wrap gap-2">
             {categories.length > 0 ? (
-              categories.map((cat) => (
+              <>
                 <button
-                  key={cat}
-                  onClick={() => toggleCategory(cat)}
+                  key="favorites-chip"
+                  onClick={() => toggleFavorites()}
                   className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 cursor-pointer hover:shadow-md ${
-                    selectedCategories.includes(cat)
+                    favoritesOnly
                       ? "bg-primary text-white border-primary shadow-sm"
                       : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary/50"
                   }`}
                 >
-                  {cat}
+                  ❤️ Favorites
                 </button>
-              ))
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => toggleCategory(cat)}
+                    className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 cursor-pointer hover:shadow-md ${
+                      selectedCategories.includes(cat)
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary/50"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </>
             ) : (
               <div className="text-sm text-slate-500">No categories</div>
             )}

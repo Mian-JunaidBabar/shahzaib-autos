@@ -1,3 +1,4 @@
+import ProductGridClient from "@/components/products/ProductGridClient";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { SortDropdown } from "@/components/products/SortDropdown";
 import { getStoreProducts } from "@/lib/services/product.service";
@@ -14,6 +15,7 @@ type SearchParams = {
   q?: string;
   min?: string;
   max?: string;
+  favorites?: string;
   sort?: string;
 };
 
@@ -40,6 +42,7 @@ function ProductsGridSkeleton() {
 // Products grid component
 async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
   const { categories, tags, q, min, max, sort } = searchParams;
+  const favoritesFlag = (searchParams as any).favorites;
 
   // Parse filter parameters
   const parsedFilters = {
@@ -92,6 +95,7 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
       reviews: 0,
       badge: badgeType,
       badgeText: badgeText || undefined,
+      category: product.category || undefined,
     };
   });
 
@@ -115,26 +119,30 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
         </p>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mappedProducts.length > 0 ? (
-          mappedProducts.map((product) => (
-            <ProductCard key={product.id} {...product} />
-          ))
-        ) : (
-          <div className="col-span-full text-center py-20">
-            <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4 block">
-              search_off
-            </span>
-            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              No products found
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400">
-              Try adjusting your filters or search query
-            </p>
-          </div>
-        )}
-      </div>
+      {/* Product Grid - render client favorites grid when favorites flag present */}
+      {favoritesFlag ? (
+        <ProductGridClient products={mappedProducts} favoritesOnly={true} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {mappedProducts.length > 0 ? (
+            mappedProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-20">
+              <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4 block">
+                search_off
+              </span>
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                No products found
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400">
+                Try adjusting your filters or search query
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -163,7 +171,7 @@ export default async function ProductsPage({
             <span className="material-symbols-outlined text-[16px]">
               chevron_right
             </span>
-            <span className="text-primary font-bold">Shop All</span>
+            <span className="text-slate-200 font-bold">Shop All</span>
           </nav>
         </div>
       </div>
