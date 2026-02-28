@@ -145,10 +145,13 @@ export function ContactForm() {
                   </span>
                 </div>
               </div>
-              <img
-                className="w-full h-full object-cover opacity-60 dark:opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700"
-                alt="Stylized map showing business location"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-jWpYE6qfni2GdR-RkpG8wCi6XaKENEFfGxZ8uySm1DXyULUu56_vh5tT8uAxV93TL3WM4OrAtc6N-vs0Okdz3X-xErhIo6mudAyzFUHxbbAx0S20upsInp07yTO-YObbq4o7hWTVye3KMoUbehoRMateJfFUDIBRxFBgv4hKxXm93cZjRFhCOGYC64U9XflGpFiDr-jJQnWcXw74Gp2f0l03AW2FXBwVkI129Zx2sS-vx6bwNr1fn3o4G52JuW6AiG7N1n4OwNUF"
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3399.4508994634107!2d74.32497027561348!3d31.566680874192755!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMzHCsDM0JzAwLjEiTiA3NMKwMTknMzkuMiJF!5e0!3m2!1sen!2s!4v1772311405643!5m2!1sen!2s"
+                className="w-full h-full border-0"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Our location"
               />
             </div>
           </div>
