@@ -96,9 +96,9 @@ export function ContactForm() {
                       Main Facility
                     </p>
                     <p className="text-sm text-slate-500 leading-relaxed">
-                      1221 Performance Way
+                      Shop no 3 Basher Centre,
                       <br />
-                      Silicon Valley, CA 94025
+                      Montgomery Road, Lahore
                     </p>
                   </div>
                 </div>
@@ -113,7 +113,19 @@ export function ContactForm() {
                     <p className="font-bold text-slate-900 dark:text-white mb-1">
                       Phone & Support
                     </p>
-                    <p className="text-sm text-slate-500">+1 (555) 890-4422</p>
+                    <p className="text-sm text-slate-500">
+                      <a href="tel:03260454233" className="hover:underline">
+                        03260454233
+                      </a>
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      <a
+                        href="mailto:owner.shahzaib.autos@gmail.com"
+                        className="hover:underline"
+                      >
+                        owner.shahzaib.autos@gmail.com
+                      </a>
+                    </p>
                   </div>
                 </div>
 

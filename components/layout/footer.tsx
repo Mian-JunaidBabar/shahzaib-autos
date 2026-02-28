@@ -51,6 +51,48 @@ export default function Footer() {
             ))}
           </div>
 
+          {/* Contact Info */}
+          <div className="text-sm text-text-muted">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="bg-white dark:bg-slate-900 p-2 rounded-full shadow-sm text-primary">
+                <span className="material-symbols-outlined text-lg">
+                  location_on
+                </span>
+              </div>
+              <div>
+                <p className="font-semibold text-text-primary">
+                  Shop no 3 Basher Centre
+                </p>
+                <p className="text-xs">Montgomery Road, Lahore</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 mb-2">
+              <div className="bg-white dark:bg-slate-900 p-2 rounded-full shadow-sm text-primary">
+                <span className="material-symbols-outlined text-lg">call</span>
+              </div>
+              <div>
+                <a href="tel:03260454233" className="hover:underline">
+                  03260454233
+                </a>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="bg-white dark:bg-slate-900 p-2 rounded-full shadow-sm text-primary">
+                <span className="material-symbols-outlined text-lg">email</span>
+              </div>
+              <div>
+                <a
+                  href="mailto:owner.shahzaib.autos@gmail.com"
+                  className="hover:underline"
+                >
+                  owner.shahzaib.autos@gmail.com
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* Social Links */}
           <div className="flex gap-4">
             <a
