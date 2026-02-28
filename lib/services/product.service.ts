@@ -11,7 +11,6 @@ import { Prisma, ProductStatus, Image } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // Types
 export type ProductWithImages = Prisma.ProductGetPayload<{
   include: { images: true; inventory: true; badge: true };
@@ -59,6 +58,130 @@ export type PaginationOptions = {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 };
+
+// New E-commerce filter types
+export type StoreFilters = {
+  q?: string; // Search query
+  categories?: string[]; // Array of category names
+  tags?: string[]; // Array of badge IDs
+  min?: number; // Min price in dollars
+  max?: number; // Max price in dollars
+  sort?: string; // Sorting option
+};
+
+/**
+ * Get top 3 most popular tags (badges) based on product usage
+ */
+export async function getTopTags(limit: number = 3) {
+  const badges = await prisma.badge.findMany({
+    where: {
+      products: {
+        some: {
+          isActive: true,
+          isArchived: false,
+        },
+      },
+    },
+    include: {
+      _count: {
+        select: {
+          products: {
+            where: {
+              isActive: true,
+              isArchived: false,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      products: {
+        _count: "desc",
+      },
+    },
+    take: limit,
+  });
+
+  return badges.map((badge) => ({
+    id: badge.id,
+    name: badge.name,
+    color: badge.color,
+    usageCount: badge._count.products,
+  }));
+}
+
+/**
+ * Advanced product filtering for e-commerce storefront
+ * Supports: search, multi-category, multi-tag, price range, sorting
+ */
+export async function getStoreProducts(filters: StoreFilters = {}) {
+  const { q, categories, tags, min, max, sort } = filters;
+
+  const where: Prisma.ProductWhereInput = {
+    isActive: true,
+    isArchived: false,
+  };
+
+  // Search: name OR description
+  if (q && q.trim()) {
+    where.OR = [
+      { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+      { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+    ];
+  }
+
+  // Multi-category filtering
+  if (categories && categories.length > 0) {
+    if (categories.length === 1) {
+      where.category = {
+        contains: categories[0],
+        mode: Prisma.QueryMode.insensitive,
+      };
+    } else {
+      where.OR = [
+        ...(where.OR || []),
+        ...categories.map((cat) => ({
+          category: { contains: cat, mode: Prisma.QueryMode.insensitive },
+        })),
+      ];
+    }
+  }
+
+  // Multi-tag filtering (badgeId)
+  if (tags && tags.length > 0) {
+    where.badgeId = { in: tags };
+  }
+
+  // Price range (convert dollars to cents)
+  if (min !== undefined || max !== undefined) {
+    where.price = {};
+    if (min !== undefined) {
+      where.price.gte = Math.round(min * 100);
+    }
+    if (max !== undefined) {
+      where.price.lte = Math.round(max * 100);
+    }
+  }
+
+  // Sorting
+  let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };
+  if (sort === "price-low") orderBy = { price: "asc" };
+  if (sort === "price-high") orderBy = { price: "desc" };
+  if (sort === "newest") orderBy = { createdAt: "desc" };
+
+  const products = await prisma.product.findMany({
+    where,
+    orderBy,
+    include: {
+      images: {
+        orderBy: { sortOrder: "asc" },
+      },
+      badge: true,
+    },
+  });
+
+  return products;
+}
 
 /**
  * Get paginated list of products

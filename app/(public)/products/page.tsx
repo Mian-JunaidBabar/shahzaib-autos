@@ -1,43 +1,68 @@
 import { ProductFilters } from "@/components/products/ProductFilters";
+import { SortDropdown } from "@/components/products/SortDropdown";
+import { getStoreProducts } from "@/lib/services/product.service";
+import ProductSearch from "@/components/products/ProductSearch";
 import { ProductCard } from "@/components/products/ProductCard";
+import { Suspense } from "react";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: { category?: string; sort?: string };
-}) {
-  const { category, sort } = searchParams;
+type SearchParams = {
+  categories?: string;
+  tags?: string;
+  q?: string;
+  min?: string;
+  max?: string;
+  sort?: string;
+};
 
-  // Build query
-  const whereClause: any = {
-    isActive: true,
-    isArchived: false,
+// Loading skeleton for products grid
+function ProductsGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden shadow-sm animate-pulse"
+        >
+          <div className="aspect-square bg-slate-200 dark:bg-slate-700" />
+          <div className="p-4 space-y-3">
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Products grid component
+async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
+  const { categories, tags, q, min, max, sort } = searchParams;
+
+  // Parse filter parameters
+  const parsedFilters = {
+    q: q || undefined,
+    categories: categories
+      ? categories
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : undefined,
+    tags: tags
+      ? tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : undefined,
+    min: min ? Number(min) : undefined,
+    max: max ? Number(max) : undefined,
+    sort: sort || undefined,
   };
 
-  if (category && category !== "all") {
-    // Basic category filtering logic if supported by your schema string match
-    whereClause.category = { contains: category, mode: "insensitive" };
-  }
-
-  let orderBy: any = { createdAt: "desc" };
-  if (sort === "price-low") orderBy = { price: "asc" };
-  if (sort === "price-high") orderBy = { price: "desc" };
-
-  // Fetch real products
-  const products = await prisma.product.findMany({
-    where: whereClause,
-    orderBy,
-    include: {
-      images: {
-        orderBy: { sortOrder: "asc" },
-      },
-      badge: true,
-    },
-  });
+  // Fetch products using the optimized service
+  const products = await getStoreProducts(parsedFilters);
 
   // Map to ProductCardProps structure
   const mappedProducts = products.map((product) => {
@@ -52,19 +77,18 @@ export default async function ProductsPage({
       badgeText = product.badge.name;
       if (badgeText.toUpperCase().includes("NEW")) badgeType = "NEW";
       else if (badgeText.toUpperCase().includes("SALE")) badgeType = "SALE";
-      // We can extend this logic if needed.
     } else if (product.salePrice) {
       badgeType = "SALE";
       badgeText = `-${Math.round((1 - product.salePrice / product.price) * 100)}%`;
     }
 
     return {
-      id: product.slug, // Use slug for vanity URL routing
+      id: product.slug,
       title: product.name,
       price: currentPrice,
       originalPrice,
       image: product.images[0]?.secureUrl || "/placeholder-image.jpg",
-      rating: 5, // Currently placeholder until review system exists
+      rating: 5,
       reviews: 0,
       badge: badgeType,
       badgeText: badgeText || undefined,
@@ -72,10 +96,62 @@ export default async function ProductsPage({
   });
 
   return (
+    <>
+      {/* Results count */}
+      <div className="mb-6">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          {mappedProducts.length > 0 ? (
+            <>
+              Showing{" "}
+              <span className="font-semibold">{mappedProducts.length}</span>{" "}
+              {mappedProducts.length === 1 ? "product" : "products"}
+              {(q || categories || tags || min || max) && (
+                <span className="ml-1 text-slate-500">with active filters</span>
+              )}
+            </>
+          ) : (
+            "No products found"
+          )}
+        </p>
+      </div>
+
+      {/* Product Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {mappedProducts.length > 0 ? (
+          mappedProducts.map((product) => (
+            <ProductCard key={product.id} {...product} />
+          ))
+        ) : (
+          <div className="col-span-full text-center py-20">
+            <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4 block">
+              search_off
+            </span>
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              No products found
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400">
+              Try adjusting your filters or search query
+            </p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+export default async function ProductsPage({
+  searchParams,
+}: {
+  // `searchParams` can be a Promise in Next.js dynamic routes; unwrap it.
+  searchParams: SearchParams | Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+
+  return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
       {/* Page Header */}
       <div className="bg-slate-900 py-16 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary via-slate-900 to-slate-900"></div>
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-primary via-slate-900 to-slate-900"></div>
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
             Premium Accessories
@@ -93,46 +169,31 @@ export default async function ProductsPage({
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-12 flex flex-col lg:flex-row gap-8">
-        {/* We keep ProductFilters as a client container if it manages URL params */}
+        {/* Left Sidebar - Filters */}
         <ProductFilters />
 
+        {/* Main Content */}
         <div className="flex-1">
-          {/* Mobile Filter Toggles & Sorting */}
+          {/* Top Bar - Search & Sorting */}
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              All Products{" "}
-              <span className="text-sm font-normal text-slate-500 ml-2">
-                ({mappedProducts.length} results)
-              </span>
-            </h2>
-            <div className="flex gap-4">
-              <button className="lg:hidden flex items-center gap-2 text-sm font-bold bg-white dark:bg-slate-800 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">
-                  tune
-                </span>{" "}
-                Filter
-              </button>
-              <select className="hidden md:block bg-white dark:bg-slate-800 text-sm font-medium px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm cursor-pointer focus:ring-primary focus:border-primary">
-                <option value="relevant">Most Relevant</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="newest">Newest Arrivals</option>
-              </select>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                All Products
+              </h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <ProductSearch />
+              <SortDropdown currentSort={sp.sort} />
             </div>
           </div>
 
-          {/* Product Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mappedProducts.length > 0 ? (
-              mappedProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-20 text-slate-500">
-                No products found matching your criteria.
-              </div>
-            )}
-          </div>
+          {/* Products Grid with Suspense */}
+          <Suspense
+            key={JSON.stringify(sp)}
+            fallback={<ProductsGridSkeleton />}
+          >
+            <ProductsGrid searchParams={sp} />
+          </Suspense>
         </div>
       </main>
 
