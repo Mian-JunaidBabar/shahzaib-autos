@@ -25,7 +25,7 @@ export function PremiumServices() {
             Our Premium Services
           </h2>
           <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            We offer more than just sales. Discover how AM Motors takes care of
+            We offer more than just sales. Discover how Shahzaib Autos takes care of
             you at every stage of your car ownership journey.
           </p>
         </div>

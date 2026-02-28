@@ -11,7 +11,7 @@ export function ProcessTimeline() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-slate-900 dark:text-white text-3xl font-black mb-4">
-            The AM-Motors Process
+            The Shahzaib Autos Process
           </h2>
           <div className="h-1.5 w-16 bg-primary mx-auto rounded-full"></div>
         </div>

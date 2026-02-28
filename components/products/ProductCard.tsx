@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { OptimizedImage } from "@/components/optimized-image";
+import { useCart } from "@/context/cart-context";
+import { toast } from "sonner";
 
 type ProductCardProps = {
-  id: string;
+  id: string; // Used as slug for URL
   title: string;
   price: number;
   originalPrice?: number;
@@ -24,11 +28,28 @@ export function ProductCard({
   badge,
   badgeText,
 }: ProductCardProps) {
+  const { addItem } = useCart();
+
+  const handleAddToCart = () => {
+    addItem({
+      id,
+      name: title,
+      price: price,
+      image,
+    });
+    // Assuming sonner toast is installed, if not, native alert.
+    try {
+      toast.success("Added to cart", { description: title });
+    } catch (e) {
+      alert("Added to cart!");
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow border border-slate-100 dark:border-slate-800 flex flex-col group">
       <Link
         href={`/products/${id}`}
-        className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800 block block"
+        className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800 block"
       >
         <OptimizedImage
           src={image}
@@ -82,15 +103,18 @@ export function ProductCard({
         <div className="mt-auto">
           <div className="flex items-baseline gap-2 mb-3">
             <p className="text-lg font-black text-primary">
-              ${price.toFixed(2)}
+              Rs. {price.toLocaleString()}
             </p>
             {originalPrice && (
               <p className="text-xs font-semibold text-slate-400 line-through">
-                ${originalPrice.toFixed(2)}
+                Rs. {originalPrice.toLocaleString()}
               </p>
             )}
           </div>
-          <button className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-primary dark:hover:bg-primary text-slate-900 dark:text-white hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 group/btn">
+          <button
+            onClick={handleAddToCart}
+            className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-primary dark:hover:bg-primary text-slate-900 dark:text-white hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 group/btn"
+          >
             <span className="material-symbols-outlined text-[18px] group-hover/btn:scale-110 transition-transform">
               add_shopping_cart
             </span>{" "}

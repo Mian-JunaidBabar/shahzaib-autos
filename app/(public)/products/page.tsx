@@ -1,58 +1,78 @@
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { ProductCard } from "@/components/products/ProductCard";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
-const mockProducts = [
-  {
-    id: "carbon-mirror",
-    title: "Carbon Fiber Mirror Caps - M Performance Style",
-    price: 299.0,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD8Pdq850izo3R-tl4RSwHXwe8Q2nS4tQhx-vOnZBodLhx2W3rU_JVPjktGd0-ydDY-wHqEGDBgCfqB4fdlmBJ3k1r9EnwWm6eJdkyZgqsfHKT2BYWN6x-kTWFpR40YVIJZgHxDbMfZ6k6KHKKmZKcc3LjgHwI-9GMGyP_6TSUuXl_8kG_JySCWZmZYxq3kapx1-LiVa7IP71eb09HS_A1AULauN-BeZs6Y8fKjNM1mRpXB_hsK2OkR-cEfZXDIVOHT2Aap2recMwCC",
-    rating: 4.5,
-    reviews: 42,
-    badge: "NEW" as const,
-  },
-  {
-    id: "vossen-wheels",
-    title: "Vossen HF-3 Forged Wheels - Gloss Black",
-    price: 840.0,
-    originalPrice: 1050.0,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAOpZvN-sCI9QEL4AWeQJUYZlWuA0DXkdf7GJct_vptd0LCBS_K_-iWCcGPS1tbozBXF5XupQc1V2u4beoU4TYQ-bXol0ygKjtSOn7luOKca83NGMg3wzneH9Kh5Ny94U0Q40R1b5IRTKjtjCnJLyD_L9VEhuKU9yeTrHIKepOCUYR0xsFF1uYNPhVEIu3nkFeBOVW44fqkBtP029fOdGUzhmIfZ0dAxr7EiLvxgOcyayaKZMUi2ovJO9f_Obw-wNHdk3r4JaIyj3X2",
-    rating: 5,
-    reviews: 128,
-    badge: "SALE" as const,
-    badgeText: "-20%",
-  },
-  {
-    id: "matrix-led",
-    title: "Matrix Laser Headlight Assembly - Pair",
-    price: 1250.0,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDPCRotVDbUPsMvQkNAHCcFErqdaBSAPl5IxkAOmSTvSddGEC3K9eD8rK1IJR4zpbu7CIJMn84JnKUPiZEf_hU6K4H-wibL-xsu-Fy0dA7M7q00d4tyGuia05lhxwmRKEKyxV4NzAJ-B5tZJmwjDo11TLbou6I07ysNp4-49eWs2gGh8thpX2cXu4TtYDWQ_bW2Eg7pRW1I5UKHzYFRmgObcuDhC741yWrHYG9kmwlen_PaH7T-IvDmrdIHEQ2KZtdUIx0rWzZsd0MO",
-    rating: 4,
-    reviews: 16,
-  },
-  {
-    id: "front-lip",
-    title: "Front Lip Spoiler - Aerodynamic Package",
-    price: 445.0,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBvgYtdn0THVgbWjabZior-Z2rn02ybPNOqHDgkniEUKTeKVo8--RQeFUxuWsEySJMbtf3AsK4ULYafO91i6v9kSY9MY9PVNqccFmpWXrdXyksYMYzqGY_1sDhB9mFWmmoBKVnzx7RCQ62wiwKODGAhwMCaF5TaSQ8DxJmMyJQve3VVKKA-sEduh5EgRABRbymf3ewRQj1Y1GQ0Mfg9hDotusUk1Q-0BE6fKo0uDOTxomdbiTzmwT7UXXVT9MqGYal90UrNIuyfm3YH",
-    rating: 4.5,
-    reviews: 89,
-    badge: "NEW" as const,
-  },
-];
+export const revalidate = 60; // Revalidate every 60 seconds
 
-export default function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: { category?: string; sort?: string };
+}) {
+  const { category, sort } = searchParams;
+
+  // Build query
+  const whereClause: any = {
+    isActive: true,
+    isArchived: false,
+  };
+
+  if (category && category !== "all") {
+    // Basic category filtering logic if supported by your schema string match
+    whereClause.category = { contains: category, mode: "insensitive" };
+  }
+
+  let orderBy: any = { createdAt: "desc" };
+  if (sort === "price-low") orderBy = { price: "asc" };
+  if (sort === "price-high") orderBy = { price: "desc" };
+
+  // Fetch real products
+  const products = await prisma.product.findMany({
+    where: whereClause,
+    orderBy,
+    include: {
+      images: {
+        orderBy: { sortOrder: "asc" },
+      },
+      badge: true,
+    },
+  });
+
+  // Map to ProductCardProps structure
+  const mappedProducts = products.map((product) => {
+    // Prisma price is in cents. Converting to dollars.
+    const currentPrice = (product.salePrice || product.price) / 100;
+    const originalPrice = product.salePrice ? product.price / 100 : undefined;
+
+    let badgeType: "NEW" | "SALE" | undefined = undefined;
+    let badgeText = "";
+
+    if (product.badge) {
+      badgeText = product.badge.name;
+      if (badgeText.toUpperCase().includes("NEW")) badgeType = "NEW";
+      else if (badgeText.toUpperCase().includes("SALE")) badgeType = "SALE";
+      // We can extend this logic if needed.
+    } else if (product.salePrice) {
+      badgeType = "SALE";
+      badgeText = `-${Math.round((1 - product.salePrice / product.price) * 100)}%`;
+    }
+
+    return {
+      id: product.slug, // Use slug for vanity URL routing
+      title: product.name,
+      price: currentPrice,
+      originalPrice,
+      image: product.images[0]?.secureUrl || "/placeholder-image.jpg",
+      rating: 5, // Currently placeholder until review system exists
+      reviews: 0,
+      badge: badgeType,
+      badgeText: badgeText || undefined,
+    };
+  });
+
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
-      <Header />
-
       {/* Page Header */}
       <div className="bg-slate-900 py-16 px-4 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary via-slate-900 to-slate-900"></div>
@@ -73,6 +93,7 @@ export default function ProductsPage() {
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-12 flex flex-col lg:flex-row gap-8">
+        {/* We keep ProductFilters as a client container if it manages URL params */}
         <ProductFilters />
 
         <div className="flex-1">
@@ -81,7 +102,7 @@ export default function ProductsPage() {
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
               All Products{" "}
               <span className="text-sm font-normal text-slate-500 ml-2">
-                (124 results)
+                ({mappedProducts.length} results)
               </span>
             </h2>
             <div className="flex gap-4">
@@ -92,19 +113,25 @@ export default function ProductsPage() {
                 Filter
               </button>
               <select className="hidden md:block bg-white dark:bg-slate-800 text-sm font-medium px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm cursor-pointer focus:ring-primary focus:border-primary">
-                <option>Most Relevant</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
-                <option>Newest Arrivals</option>
+                <option value="relevant">Most Relevant</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="newest">Newest Arrivals</option>
               </select>
             </div>
           </div>
 
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockProducts.map((product) => (
-              <ProductCard key={product.id} {...product} />
-            ))}
+            {mappedProducts.length > 0 ? (
+              mappedProducts.map((product) => (
+                <ProductCard key={product.id} {...product} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-20 text-slate-500">
+                No products found matching your criteria.
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -113,7 +140,7 @@ export default function ProductsPage() {
       <section className="bg-slate-50 dark:bg-slate-900/50 py-16 border-y border-slate-200 dark:border-slate-800 mt-12">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-center text-sm font-bold uppercase tracking-widest text-slate-500 mb-10">
-            The AM-Motors Promise
+            The Shahzaib Autos Promise
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="flex flex-col items-center text-center group">
@@ -165,8 +192,6 @@ export default function ProductsPage() {
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

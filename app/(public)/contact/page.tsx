@@ -1,12 +1,9 @@
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
 
 import { ContactForm } from "@/components/about/ContactForm";
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
-      <Header />
 
       {/* Minimal Hero Header */}
       <div className="bg-slate-900 py-16 px-4 text-center">
@@ -23,7 +20,6 @@ export default function ContactPage() {
         <ContactForm />
       </main>
 
-      <Footer />
     </div>
   );
 }

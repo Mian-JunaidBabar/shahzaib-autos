@@ -1,5 +1,3 @@
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
 
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
@@ -7,7 +5,6 @@ import { OrderSummary } from "@/components/checkout/OrderSummary";
 export default function BookingPage() {
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
-      <Header />
 
       {/* Minimal Header */}
       <div className="bg-slate-900 py-12 px-4 shadow-inner">
@@ -36,7 +33,6 @@ export default function BookingPage() {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 }

@@ -1,14 +1,18 @@
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
+import { prisma } from "@/lib/prisma";
 
-import { CheckoutForm } from "@/components/checkout/CheckoutForm";
-import { OrderSummary } from "@/components/checkout/OrderSummary";
+export const revalidate = 0; // Don't cache checkout
 
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  // Fetch active services to show as upsells in the checkout flow
+  const services = await prisma.service.findMany({
+    where: { isActive: true },
+  });
+
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
-      <Header />
-
       {/* Minimal Header */}
       <div className="bg-slate-900 py-12 px-4 shadow-inner">
         <div className="max-w-screen-xl mx-auto flex items-center justify-between">
@@ -23,18 +27,8 @@ export default function CheckoutPage() {
       </div>
 
       <main className="flex flex-col lg:flex-row flex-1 max-w-screen-xl mx-auto w-full">
-        {/* Left Column: Forms */}
-        <div className="flex-1 lg:pr-8 py-8 lg:py-12 bg-transparent">
-          <CheckoutForm />
-        </div>
-
-        {/* Right Column: Sticky Summary */}
-        <div className="w-full lg:w-[420px]">
-          <OrderSummary />
-        </div>
+        <CheckoutFlow availableServices={services} />
       </main>
-
-      <Footer />
     </div>
   );
 }

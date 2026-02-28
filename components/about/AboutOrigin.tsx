@@ -18,11 +18,11 @@ export function AboutOrigin() {
         <div className="flex-1 space-y-8">
           <div className="space-y-4">
             <h3 className="text-3xl font-black text-slate-900 dark:text-white">
-              The AM-Motors Origin
+              The Shahzaib Autos Origin
             </h3>
             <div className="h-1.5 w-16 bg-primary rounded-full"></div>
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">
-              Founded on the principles of mechanical excellence, AM-Motors has
+              Founded on the principles of mechanical excellence, Shahzaib Autos has
               evolved from a boutique restoration shop into a leading premium
               service center.
             </p>

@@ -1,22 +1,25 @@
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
-
 import { ServicesHero } from "@/components/services/ServicesHero";
 import { CoreServices } from "@/components/services/CoreServices";
 import { ProcessTimeline } from "@/components/services/ProcessTimeline";
 import { ServicesCta } from "@/components/services/ServicesCta";
+import { prisma } from "@/lib/prisma";
 
-export default function ServicesPage() {
+export const revalidate = 60;
+
+export default async function ServicesPage() {
+  const services = await prisma.service.findMany({
+    where: { isActive: true },
+    include: { images: { orderBy: { sortOrder: "asc" } } },
+  });
+
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
-      <Header />
-
       <main className="flex-1 w-full pb-24">
         {/* Cinematic Hero */}
         <ServicesHero />
 
-        {/* Zig-Zag Services Overview */}
-        <CoreServices />
+        {/* Dynamic Services Overview from DB */}
+        <CoreServices dbServices={services} />
 
         {/* Step-by-Step Flow */}
         <ProcessTimeline />
@@ -24,8 +27,6 @@ export default function ServicesPage() {
         {/* Final Conversion Banner */}
         <ServicesCta />
       </main>
-
-      <Footer />
     </div>
   );
 }
