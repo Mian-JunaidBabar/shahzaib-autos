@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shahzaib Autos — Production-ready Next.js App
 
-## Getting Started
+This repository contains the production-ready Next.js application for Shahzaib Autos — an e-commerce and service booking platform.
 
-First, run the development server:
+## Purpose
+The project powers online product listings, service bookings, admin dashboards, and order management. It uses Next.js App Router, Prisma (Postgres), Supabase for authentication, and Cloudinary for image handling.
+
+## Quick Start (Development)
+
+Install dependencies and run the dev server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Build and start production locally:
 
-## Learn More
+```bash
+npm run build
+npm run start
+```
 
-To learn more about Next.js, take a look at the following resources:
+For deployment instructions and environment variables see `DEPLOYMENT.md` and `.env.example`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Key Technologies
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Next.js (App Router)
+- React 19
+- TypeScript
+- Prisma (Postgres)
+- Supabase (Auth)
+- Cloudinary (images)
+- Tailwind CSS
 
-## Deploy on Vercel
+## Developer & Agency
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Developer: **Junaid Babar** — https://github.com/mian-junaidbabar
+- Agency: **Deep Dev Solution**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+If you'd like to contribute, please open issues or PRs. For major changes, open an issue first to discuss what you would like to change.
+
+## Security & Secrets
+
+- Do not commit `.env` files or any secrets to the repository. Use environment variables configured in your deployment platform (Vercel, Railway, Render, etc.).
+- See `DEPLOYMENT.md` for a full list of required environment variables.
+
+## License
+
+This project is private. Contact the maintainer for licensing details.
