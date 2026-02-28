@@ -8,7 +8,7 @@ export function AboutOrigin() {
             <img
               className="w-full h-full object-cover"
               alt="Interior of a luxury modern automotive garage with specialized tools"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNmNmMZGnZZzHJoISKcrOM9f4ve_UwkD7tQnSBd9UGbejJ9WgtX2WDuPRolVoz5ttXZiI5yvRVjBGPkKmkEP6H6p-1_PIzcdn58PsKgqboxlq1sh9c8z_OoyOgKkLBoXMJlNGVrvWllRmzmUjx2Ul7NyFTEhElRcMAxADyyZRPohE8iF7xmyoZIT1zkRYysr2Ve72KCyw47y_jzrNi_823bWACFBhzQnAicZuLiSvhRi_6R-bPUZGE9gK2NyeXc0MFR4849TXLCptO"
+              src="/about/about-hero.png"
             />
           </div>
           <div className="absolute -bottom-6 -right-6 md:-bottom-8 md:-right-8 w-1/2 h-1/2 bg-primary rounded-3xl z-0 -rotate-3 blur-sm opacity-20"></div>
@@ -22,9 +22,9 @@ export function AboutOrigin() {
             </h3>
             <div className="h-1.5 w-16 bg-primary rounded-full"></div>
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">
-              Founded on the principles of mechanical excellence, Shahzaib Autos has
-              evolved from a boutique restoration shop into a leading premium
-              service center.
+              Founded on the principles of mechanical excellence, Shahzaib Autos
+              has evolved from a boutique restoration shop into a leading
+              premium service center.
             </p>
           </div>
 
