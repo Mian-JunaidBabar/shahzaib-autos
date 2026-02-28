@@ -15,17 +15,18 @@ export default function Footer() {
     <footer className="bg-background border-t border-border pt-16 pb-8 transition-colors duration-300">
       <div className="px-4 md:px-8 lg:px-40">
         <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-8 mb-12">
-          {/* Logo */}
+          {/* Logo and Description */}
           <div className="text-center md:text-left">
             <Link
               href="/"
-              className="flex items-center justify-center md:justify-start text-text-primary mb-4"
+              className="flex items-center justify-center md:justify-start gap-3 text-text-primary mb-4"
+              aria-label="Shahzaib Autos home"
             >
               <OptimizedImage
                 src="/logo.svg"
                 alt="Shahzaib Autos"
-                width={150}
-                height={150}
+                width={200}
+                height={200}
                 className="rounded"
               />
             </Link>
@@ -41,7 +42,7 @@ export default function Footer() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="hover:text-text-primary transition-colors"
+                className="hover:text-text-primary transition-colors block"
               >
                 {link.label}
               </Link>
@@ -90,28 +91,28 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Social Links */}
-          <div className="flex flex-col gap-3">
+          {/* Social Links (stacked on the right) */}
+          <div className="flex flex-col items-end gap-4">
             <a
               href="#"
-              className="text-text-muted hover:text-text-primary transition-colors flex items-center gap-2"
+              className="text-text-muted hover:text-text-primary transition-colors"
+              aria-label="Website"
             >
               <span className="material-symbols-outlined">public</span>
-              <span className="text-sm">Website</span>
             </a>
             <a
               href="#"
-              className="text-text-muted hover:text-text-primary transition-colors flex items-center gap-2"
+              className="text-text-muted hover:text-text-primary transition-colors"
+              aria-label="Like"
             >
               <span className="material-symbols-outlined">thumb_up</span>
-              <span className="text-sm">Like Us</span>
             </a>
             <a
               href="#"
-              className="text-text-muted hover:text-text-primary transition-colors flex items-center gap-2"
+              className="text-text-muted hover:text-text-primary transition-colors"
+              aria-label="Gallery"
             >
               <span className="material-symbols-outlined">photo_camera</span>
-              <span className="text-sm">Gallery</span>
             </a>
           </div>
         </div>

@@ -35,11 +35,11 @@ export default function Header() {
           className="flex items-center gap-2 text-text-primary hover:text-primary transition-colors"
         >
           <OptimizedImage
-            src="/icon0.svg"
+            src="/icon.svg"
             alt="Shahzaib Autos"
-            width={32}
-            height={32}
-            className="rounded"
+            width={56}
+            height={56}
+            className="rounded h-10 md:h-14 w-auto"
           />
           <h2 className="text-text-primary text-lg font-bold tracking-tight">
             Shahzaib Autos
