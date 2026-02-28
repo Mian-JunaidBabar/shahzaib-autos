@@ -68,7 +68,7 @@ export function NewArrivals() {
                 key={product.slug || idx}
                 className="group bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all border border-slate-100 dark:border-slate-700 overflow-hidden relative"
               >
-                <span className="absolute top-6 left-6 z-10 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded">
+                <span className="absolute top-6 left-6 z-10 bg-primary text-white dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded">
                   NEW
                 </span>
                 <div className="relative aspect-square rounded-xl overflow-hidden mb-4 bg-slate-50 dark:bg-slate-900">
@@ -104,10 +104,7 @@ export function NewArrivals() {
                       ? "$" + product.price
                       : product.price}
                   </span>
-                  <div className="flex text-yellow-400">
-                    <span className="material-symbols-outlined text-sm">
-                      star
-                    </span>
+                  <div className="flex">
                     <span className="text-slate-400 text-xs ml-1 font-bold"></span>
                   </div>
                 </div>

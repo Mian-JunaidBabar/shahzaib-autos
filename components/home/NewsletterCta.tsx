@@ -23,7 +23,7 @@ export function NewsletterCta() {
               required
             />
             <button
-              className="bg-primary hover:bg-primary/90 text-white font-bold px-8 py-4 rounded-xl transition-all"
+              className="bg-primary hover:bg-primary/90 text-white dark:text-slate-900 font-bold px-8 py-4 rounded-xl transition-all"
               type="submit"
             >
               Subscribe
