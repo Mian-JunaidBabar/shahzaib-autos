@@ -15,22 +15,19 @@ export default function Footer() {
     <footer className="bg-background border-t border-border pt-16 pb-8 transition-colors duration-300">
       <div className="px-4 md:px-8 lg:px-40">
         <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-8 mb-12">
-          {/* Logo and Description */}
+          {/* Logo */}
           <div className="text-center md:text-left">
             <Link
               href="/"
-              className="flex items-center justify-center md:justify-start gap-2 text-text-primary mb-4"
+              className="flex items-center justify-center md:justify-start text-text-primary mb-4"
             >
               <OptimizedImage
-                src="/icon0.svg"
+                src="/logo.svg"
                 alt="Shahzaib Autos"
-                width={40}
-                height={40}
+                width={150}
+                height={150}
                 className="rounded"
               />
-              <h2 className="text-xl font-bold tracking-tight">
-                Shahzaib Autos
-              </h2>
             </Link>
             <p className="text-text-muted text-sm max-w-xs">
               Premium automotive solutions for the modern driver. Excellence in
@@ -39,7 +36,7 @@ export default function Footer() {
           </div>
 
           {/* Navigation Links */}
-          <div className="flex gap-8 text-sm font-medium text-text-muted">
+          <div className="flex flex-col gap-3 text-sm font-medium text-text-muted">
             {footerLinks.map((link) => (
               <Link
                 key={link.href}
@@ -94,24 +91,27 @@ export default function Footer() {
           </div>
 
           {/* Social Links */}
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3">
             <a
               href="#"
-              className="text-text-muted hover:text-text-primary transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors flex items-center gap-2"
             >
               <span className="material-symbols-outlined">public</span>
+              <span className="text-sm">Website</span>
             </a>
             <a
               href="#"
-              className="text-text-muted hover:text-text-primary transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors flex items-center gap-2"
             >
               <span className="material-symbols-outlined">thumb_up</span>
+              <span className="text-sm">Like Us</span>
             </a>
             <a
               href="#"
-              className="text-text-muted hover:text-text-primary transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors flex items-center gap-2"
             >
               <span className="material-symbols-outlined">photo_camera</span>
+              <span className="text-sm">Gallery</span>
             </a>
           </div>
         </div>
