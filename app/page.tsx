@@ -6,9 +6,11 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 
 import { HomeHero } from "@/components/home/HomeHero";
-import { FeaturedInventory } from "@/components/home/FeaturedInventory";
-import { PremiumServices } from "@/components/home/PremiumServices";
-import { CtaBanner } from "@/components/home/CtaBanner";
+import { BrandSlider } from "@/components/home/BrandSlider";
+import { NewArrivals } from "@/components/home/NewArrivals";
+import { MultimediaSection } from "@/components/home/MultimediaSection";
+import { WeeklyBestSellers } from "@/components/home/WeeklyBestSellers";
+import { NewsletterCta } from "@/components/home/NewsletterCta";
 
 export default function HomePage() {
   return (
@@ -18,9 +20,11 @@ export default function HomePage() {
           <Header />
           <main>
             <HomeHero />
-            <FeaturedInventory />
-            <PremiumServices />
-            <CtaBanner />
+            <BrandSlider />
+            <NewArrivals />
+            <MultimediaSection />
+            <WeeklyBestSellers />
+            <NewsletterCta />
           </main>
           <Footer />
         </div>
