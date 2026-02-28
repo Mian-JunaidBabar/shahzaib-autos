@@ -1,199 +1,172 @@
-import {
-  getStorefrontProducts,
-  getAllCategories,
-  getPriceRange,
-  type SortOption,
-} from "@/lib/services/storefront.service";
-import {
-  ProductCard,
-  ProductFilters,
-  ActiveFilters,
-  SearchBar,
-  SortSelect,
-  Pagination,
-} from "@/components/store";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
-import { Suspense } from "react";
+import Header from "@/components/layout/header";
+import Footer from "@/components/layout/footer";
+import { ProductFilters } from "@/components/products/ProductFilters";
+import { ProductCard } from "@/components/products/ProductCard";
 import Link from "next/link";
 
-// Mark this page as dynamic to prevent static generation during build
-export const dynamic = "force-dynamic";
+const mockProducts = [
+  {
+    id: "carbon-mirror",
+    title: "Carbon Fiber Mirror Caps - M Performance Style",
+    price: 299.0,
+    image:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuD8Pdq850izo3R-tl4RSwHXwe8Q2nS4tQhx-vOnZBodLhx2W3rU_JVPjktGd0-ydDY-wHqEGDBgCfqB4fdlmBJ3k1r9EnwWm6eJdkyZgqsfHKT2BYWN6x-kTWFpR40YVIJZgHxDbMfZ6k6KHKKmZKcc3LjgHwI-9GMGyP_6TSUuXl_8kG_JySCWZmZYxq3kapx1-LiVa7IP71eb09HS_A1AULauN-BeZs6Y8fKjNM1mRpXB_hsK2OkR-cEfZXDIVOHT2Aap2recMwCC",
+    rating: 4.5,
+    reviews: 42,
+    badge: "NEW" as const,
+  },
+  {
+    id: "vossen-wheels",
+    title: "Vossen HF-3 Forged Wheels - Gloss Black",
+    price: 840.0,
+    originalPrice: 1050.0,
+    image:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuAOpZvN-sCI9QEL4AWeQJUYZlWuA0DXkdf7GJct_vptd0LCBS_K_-iWCcGPS1tbozBXF5XupQc1V2u4beoU4TYQ-bXol0ygKjtSOn7luOKca83NGMg3wzneH9Kh5Ny94U0Q40R1b5IRTKjtjCnJLyD_L9VEhuKU9yeTrHIKepOCUYR0xsFF1uYNPhVEIu3nkFeBOVW44fqkBtP029fOdGUzhmIfZ0dAxr7EiLvxgOcyayaKZMUi2ovJO9f_Obw-wNHdk3r4JaIyj3X2",
+    rating: 5,
+    reviews: 128,
+    badge: "SALE" as const,
+    badgeText: "-20%",
+  },
+  {
+    id: "matrix-led",
+    title: "Matrix Laser Headlight Assembly - Pair",
+    price: 1250.0,
+    image:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuDPCRotVDbUPsMvQkNAHCcFErqdaBSAPl5IxkAOmSTvSddGEC3K9eD8rK1IJR4zpbu7CIJMn84JnKUPiZEf_hU6K4H-wibL-xsu-Fy0dA7M7q00d4tyGuia05lhxwmRKEKyxV4NzAJ-B5tZJmwjDo11TLbou6I07ysNp4-49eWs2gGh8thpX2cXu4TtYDWQ_bW2Eg7pRW1I5UKHzYFRmgObcuDhC741yWrHYG9kmwlen_PaH7T-IvDmrdIHEQ2KZtdUIx0rWzZsd0MO",
+    rating: 4,
+    reviews: 16,
+  },
+  {
+    id: "front-lip",
+    title: "Front Lip Spoiler - Aerodynamic Package",
+    price: 445.0,
+    image:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuBvgYtdn0THVgbWjabZior-Z2rn02ybPNOqHDgkniEUKTeKVo8--RQeFUxuWsEySJMbtf3AsK4ULYafO91i6v9kSY9MY9PVNqccFmpWXrdXyksYMYzqGY_1sDhB9mFWmmoBKVnzx7RCQ62wiwKODGAhwMCaF5TaSQ8DxJmMyJQve3VVKKA-sEduh5EgRABRbymf3ewRQj1Y1GQ0Mfg9hDotusUk1Q-0BE6fKo0uDOTxomdbiTzmwT7UXXVT9MqGYal90UrNIuyfm3YH",
+    rating: 4.5,
+    reviews: 89,
+    badge: "NEW" as const,
+  },
+];
 
-type SearchParams = Promise<{
-  query?: string;
-  category?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  sort?: SortOption;
-  page?: string;
-}>;
-
-export const metadata = {
-  title: "Products | Shahzaib Autos",
-  description:
-    "Browse our premium car accessories including interior comfort, exterior styling, and vehicle protection products.",
-};
-
-// Loading skeleton for products grid
-function ProductGridSkeleton() {
+export default function ProductsPage() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex flex-col space-y-3">
-          <Skeleton className="aspect-square rounded-lg" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-        </div>
-      ))}
-    </div>
-  );
-}
+    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
+      <Header />
 
-// Products grid component
-async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
-  const params = await searchParams;
-
-  const { products, pagination } = await getStorefrontProducts({
-    query: params.query,
-    category: params.category,
-    minPrice: params.minPrice ? parseInt(params.minPrice) : undefined,
-    maxPrice: params.maxPrice ? parseInt(params.maxPrice) : undefined,
-    sort: params.sort,
-    page: params.page ? parseInt(params.page) : 1,
-    limit: 12,
-  });
-
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No products found</h3>
-        <p className="text-muted-foreground">
-          Try adjusting your search or filter criteria.
-        </p>
-        <Link
-          href="/products"
-          className="inline-block mt-4 text-primary hover:underline"
-        >
-          Clear all filters
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
-
-      <Pagination
-        currentPage={pagination.page}
-        totalPages={pagination.totalPages}
-        total={pagination.total}
-      />
-    </>
-  );
-}
-
-// Component to fetch filter data
-async function FilterDataWrapper({
-  children,
-}: {
-  children: (data: {
-    categories: string[];
-    priceRange: { min: number; max: number };
-  }) => React.ReactNode;
-}) {
-  const [categories, priceRange] = await Promise.all([
-    getAllCategories(),
-    getPriceRange(),
-  ]);
-
-  return children({ categories, priceRange });
-}
-
-export default function ProductsPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  return (
-    <>
-      {/* Header Section */}
-      <section className="border-b bg-muted/30 pt-8 pb-8">
-        <div className="container px-4 md:px-8 lg:px-16 max-w-7xl mx-auto">
-          {/* Breadcrumb */}
-          <nav className="flex items-center text-sm text-muted-foreground mb-4">
-            <Link href="/" className="hover:text-primary transition-colors">
+      {/* Page Header */}
+      <div className="bg-slate-900 py-16 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary via-slate-900 to-slate-900"></div>
+        <div className="max-w-7xl mx-auto relative z-10 text-center">
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
+            Premium Accessories
+          </h1>
+          <nav className="flex items-center justify-center gap-2 text-sm font-medium text-slate-400">
+            <Link href="/" className="hover:text-white transition-colors">
               Home
             </Link>
-            <span className="mx-2">/</span>
-            <span className="text-foreground font-medium">Products</span>
+            <span className="material-symbols-outlined text-[16px]">
+              chevron_right
+            </span>
+            <span className="text-primary font-bold">Shop All</span>
           </nav>
+        </div>
+      </div>
 
-          {/* Title */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Car Accessories
-              </h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl">
-                Premium upgrades for interior comfort, exterior styling, and
-                vehicle protection. Professional installation available.
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-12 flex flex-col lg:flex-row gap-8">
+        <ProductFilters />
+
+        <div className="flex-1">
+          {/* Mobile Filter Toggles & Sorting */}
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              All Products{" "}
+              <span className="text-sm font-normal text-slate-500 ml-2">
+                (124 results)
+              </span>
+            </h2>
+            <div className="flex gap-4">
+              <button className="lg:hidden flex items-center gap-2 text-sm font-bold bg-white dark:bg-slate-800 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">
+                  tune
+                </span>{" "}
+                Filter
+              </button>
+              <select className="hidden md:block bg-white dark:bg-slate-800 text-sm font-medium px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm cursor-pointer focus:ring-primary focus:border-primary">
+                <option>Most Relevant</option>
+                <option>Price: Low to High</option>
+                <option>Price: High to Low</option>
+                <option>Newest Arrivals</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Product Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mockProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* Trust Banner */}
+      <section className="bg-slate-50 dark:bg-slate-900/50 py-16 border-y border-slate-200 dark:border-slate-800 mt-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-center text-sm font-bold uppercase tracking-widest text-slate-500 mb-10">
+            The AM-Motors Promise
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="flex flex-col items-center text-center group">
+              <div className="size-16 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm mb-4 group-hover:-translate-y-2 transition-transform duration-300">
+                <span className="material-symbols-outlined text-3xl text-primary">
+                  local_shipping
+                </span>
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">
+                Free Shipping
+              </h4>
+              <p className="text-xs text-slate-500">On all orders over $500</p>
+            </div>
+            <div className="flex flex-col items-center text-center group">
+              <div className="size-16 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm mb-4 group-hover:-translate-y-2 transition-transform duration-300">
+                <span className="material-symbols-outlined text-3xl text-primary">
+                  verified
+                </span>
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">
+                Genuine Parts
+              </h4>
+              <p className="text-xs text-slate-500">100% Original Guaranteed</p>
+            </div>
+            <div className="flex flex-col items-center text-center group">
+              <div className="size-16 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm mb-4 group-hover:-translate-y-2 transition-transform duration-300">
+                <span className="material-symbols-outlined text-3xl text-primary">
+                  support_agent
+                </span>
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">
+                24/7 Support
+              </h4>
+              <p className="text-xs text-slate-500">Expert help anytime</p>
+            </div>
+            <div className="flex flex-col items-center text-center group">
+              <div className="size-16 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm mb-4 group-hover:-translate-y-2 transition-transform duration-300">
+                <span className="material-symbols-outlined text-3xl text-primary">
+                  assignment_return
+                </span>
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">
+                Money-back
+              </h4>
+              <p className="text-xs text-slate-500">
+                30-day hassle-free returns
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Filters & Products */}
-      <section className="container px-4 md:px-8 lg:px-16 max-w-7xl mx-auto py-8">
-        {/* Top Controls - Search & Sort */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-start mb-6">
-          <Suspense fallback={<Skeleton className="h-10 flex-1 md:w-64" />}>
-            <SearchBar />
-          </Suspense>
-
-          <Suspense fallback={<Skeleton className="h-10 w-45" />}>
-            <SortSelect />
-          </Suspense>
-        </div>
-
-        {/* Active Filters */}
-        <div className="mb-6">
-          <Suspense fallback={null}>
-            <ActiveFilters />
-          </Suspense>
-        </div>
-
-        {/* Layout with Sidebar Filters & Products */}
-        <div className="flex gap-8">
-          {/* Sidebar Filters (handles mobile via Sheet, desktop sidebar) */}
-          <Suspense
-            fallback={<Skeleton className="hidden lg:block w-64 h-96" />}
-          >
-            <FilterDataWrapper>
-              {({ categories, priceRange }) => (
-                <ProductFilters
-                  categories={categories}
-                  priceRange={priceRange}
-                />
-              )}
-            </FilterDataWrapper>
-          </Suspense>
-
-          {/* Products Grid */}
-          <div className="flex-1">
-            <Suspense fallback={<ProductGridSkeleton />}>
-              <ProductsGrid searchParams={searchParams} />
-            </Suspense>
-          </div>
-        </div>
-      </section>
-    </>
+      <Footer />
+    </div>
   );
 }
