@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 
@@ -26,6 +26,7 @@ export function ProductFilters() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const suppressDebouncedPushRef = useRef<boolean>(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -61,30 +62,34 @@ export function ProductFilters() {
     const minParam = searchParams.get("min");
     const maxParam = searchParams.get("max");
 
-    setSelectedCategories(
-      categoryParam
+    // Defer state updates to avoid synchronous setState warnings and cascading renders
+    const t = setTimeout(() => {
+      const nextCategories = categoryParam
         ? categoryParam
             .split(",")
             .map((c) => c.trim())
             .filter(Boolean)
-        : [],
-    );
-
-    setSelectedTags(
-      tagsParam
+        : [];
+      const nextTags = tagsParam
         ? tagsParam
             .split(",")
             .map((t) => t.trim())
             .filter(Boolean)
-        : [],
-    );
+        : [];
 
-    setMinPriceInput(minParam || "");
-    setMaxPriceInput(maxParam || "");
+      setSelectedCategories(nextCategories);
+      setSelectedTags(nextTags);
+      setMinPriceInput(minParam || "");
+      setMaxPriceInput(maxParam || "");
+    }, 0);
+
+    return () => clearTimeout(t);
   }, [searchParams]);
 
   // Update URL when debounced price values change
   useEffect(() => {
+    // If we're suppressing debounced pushes (e.g., right after Reset), do nothing
+    if (suppressDebouncedPushRef.current) return;
     const params = new URLSearchParams(Array.from(searchParams.entries()));
 
     if (debouncedMinPrice) {
@@ -109,7 +114,40 @@ export function ProductFilters() {
     ) {
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     }
-  }, [debouncedMinPrice, debouncedMaxPrice]);
+  }, [debouncedMinPrice, debouncedMaxPrice, pathname, router, searchParams]);
+
+  const resetFilters = () => {
+    // Remove known filter params but keep others (like sort)
+    // Prevent the debounced effect from re-adding params while we reset
+    suppressDebouncedPushRef.current = true;
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    [
+      "categories",
+      "category",
+      "tags",
+      "q",
+      "search",
+      "min",
+      "max",
+      "minPrice",
+      "maxPrice",
+    ].forEach((k) => params.delete(k));
+
+    // Update router and local state
+    router.push(
+      `${pathname}${params.toString() ? `?${params.toString()}` : ""}`,
+      { scroll: false },
+    );
+    setSelectedCategories([]);
+    setSelectedTags([]);
+    setMinPriceInput("");
+    setMaxPriceInput("");
+
+    // Release suppression after debounce window to allow normal behavior
+    setTimeout(() => {
+      suppressDebouncedPushRef.current = false;
+    }, 600);
+  };
 
   const updateArrayParam = (key: string, values: string[]) => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
@@ -202,23 +240,38 @@ export function ProductFilters() {
           </h3>
           <div className="flex gap-2">
             <input
-              type="number"
+              inputMode="decimal"
+              pattern="[0-9]*"
+              aria-label="Minimum price"
+              min={0}
+              step="0.01"
+              type="text"
               placeholder="Min"
               value={minPriceInput}
               onChange={(e) => setMinPriceInput(e.target.value)}
               className="w-1/2 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
             />
             <input
-              type="number"
+              inputMode="decimal"
+              pattern="[0-9]*"
+              aria-label="Maximum price"
+              min={0}
+              step="0.01"
+              type="text"
               placeholder="Max"
               value={maxPriceInput}
               onChange={(e) => setMaxPriceInput(e.target.value)}
               className="w-1/2 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
             />
           </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Filters auto-apply as you type
-          </p>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              onClick={resetFilters}
+              className="ml-auto text-sm px-3 py-1.5 border rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+            >
+              Reset filters
+            </button>
+          </div>
         </div>
 
         {/* Top 3 Tags */}

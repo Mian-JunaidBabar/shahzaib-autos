@@ -1,5 +1,5 @@
 import { deleteImage, extractPublicId } from "@/lib/cloudinary";
-import { Prisma, ProductStatus, Image } from "@prisma/client";
+import { Prisma, ProductStatus } from "@prisma/client";
 /**
  * Product Service
  *
@@ -153,14 +153,36 @@ export async function getStoreProducts(filters: StoreFilters = {}) {
   }
 
   // Price range (convert dollars to cents)
-  if (min !== undefined || max !== undefined) {
-    where.price = {};
-    if (min !== undefined) {
-      where.price.gte = Math.round(min * 100);
-    }
-    if (max !== undefined) {
-      where.price.lte = Math.round(max * 100);
-    }
+  // Price range (convert dollars to cents)
+  // Use effective price: salePrice if present, otherwise price
+  const priceFilters: Prisma.ProductWhereInput[] = [];
+  if (min !== undefined) {
+    const minCents = Math.round(min * 100);
+    priceFilters.push({
+      OR: [
+        { salePrice: { gte: minCents } },
+        { salePrice: null, price: { gte: minCents } },
+      ],
+    });
+  }
+  if (max !== undefined) {
+    const maxCents = Math.round(max * 100);
+    priceFilters.push({
+      OR: [
+        { salePrice: { lte: maxCents } },
+        { salePrice: null, price: { lte: maxCents } },
+      ],
+    });
+  }
+
+  if (priceFilters.length > 0) {
+    const existingAnd: Prisma.ProductWhereInput[] = Array.isArray(where.AND)
+      ? (where.AND as Prisma.ProductWhereInput[])
+      : where.AND
+        ? [where.AND as Prisma.ProductWhereInput]
+        : [];
+
+    where.AND = [...existingAnd, ...priceFilters];
   }
 
   // Sorting
@@ -374,7 +396,7 @@ export async function updateProduct(
     stock,
     lowStockAt,
     lowStockThreshold,
-    id: _inputId, // Exclude id from update data
+    // id from input intentionally ignored
     keepImagePublicIds,
     salePrice,
     costPrice,
