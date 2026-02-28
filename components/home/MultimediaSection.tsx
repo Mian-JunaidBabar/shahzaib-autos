@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function MultimediaSection() {
   const features = [
     {
@@ -86,9 +88,12 @@ export function MultimediaSection() {
                 Real-time OBD Integration
               </li>
             </ul>
-            <button className="mt-4 px-8 py-4 bg-primary text-white font-bold rounded-xl shadow-lg hover:shadow-primary/50 transition-shadow">
+            <Link
+              href="/products"
+              className="mt-4 px-8 py-4 bg-primary text-white font-bold rounded-xl shadow-lg hover:shadow-primary/50 transition-shadow inline-block"
+            >
               Explore Multimedia
-            </button>
+            </Link>
           </div>
         </div>
       </div>

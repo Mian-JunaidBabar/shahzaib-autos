@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function CtaBanner() {
   return (
     <section className="bg-primary py-16 px-4">
@@ -10,9 +12,12 @@ export function CtaBanner() {
             Schedule your personalized test drive today and feel the difference.
           </p>
         </div>
-        <button className="bg-white text-primary px-10 py-4 rounded-xl font-black text-lg shadow-lg hover:shadow-2xl transition-all whitespace-nowrap">
+        <Link
+          href="/booking"
+          className="bg-white dark:bg-slate-800 text-primary dark:text-white px-10 py-4 rounded-xl font-black text-lg shadow-lg hover:shadow-2xl transition-all whitespace-nowrap"
+        >
           Schedule a Test Drive
-        </button>
+        </Link>
       </div>
     </section>
   );
