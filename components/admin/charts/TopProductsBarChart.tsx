@@ -74,7 +74,7 @@ export function TopProductsBarChart({ data }: { data: ProductData[] }) {
           />
           <Bar
             dataKey="quantity"
-            fill="#0ea5e9"
+            fill="#2563eb"
             radius={[0, 4, 4, 0]}
             barSize={24}
           />

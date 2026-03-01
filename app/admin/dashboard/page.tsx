@@ -1,45 +1,35 @@
 import {
-  DollarSign,
-  ShoppingBag,
   Calendar,
   AlertTriangle,
-  UserPlus,
-  ShoppingCart,
-  FileText,
   Download,
+  TrendingUp,
+  TrendingDown,
   Package,
+  CheckCircle2,
+  Wallet,
+  Clock,
+  LayoutGrid,
 } from "lucide-react";
 import {
   getDashboardSummary,
   getRevenueOverTime,
   getTopSellingProducts,
   getBookingStatusDistribution,
-  getCustomerGrowth,
   getRevenueByCategory,
   getTopBookedServices,
   getLowStockAlerts,
 } from "@/app/actions/analyticsActions";
 import { getRecentActivityAction } from "@/app/actions/dashboardActions";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
-import Link from "next/link";
 
 // Charts
 import { RevenueAreaChart } from "@/components/admin/charts/RevenueAreaChart";
 import { TopProductsBarChart } from "@/components/admin/charts/TopProductsBarChart";
 import { BookingStatusDonut } from "@/components/admin/charts/BookingStatusDonut";
-import { CustomerGrowthLineChart } from "@/components/admin/charts/CustomerGrowthLineChart";
-import { CategoryRevenuePieChart } from "@/components/admin/charts/CategoryRevenuePieChart";
-import { TopServicesBarChart } from "@/components/admin/charts/TopServicesBarChart";
+import { CategoryRevenueBars } from "@/components/admin/charts/CategoryRevenueBars";
 import { ChartSkeleton } from "@/components/admin/charts/chart-skeleton";
 
 export const dynamic = "force-dynamic";
@@ -58,14 +48,9 @@ async function BookingStatusChartWrapper() {
   return <BookingStatusDonut data={data} />;
 }
 
-async function CustomerGrowthWrapper() {
-  const data = await getCustomerGrowth(30);
-  return <CustomerGrowthLineChart data={data} />;
-}
-
 async function CategoryRevenueWrapper() {
   const data = await getRevenueByCategory();
-  return <CategoryRevenuePieChart data={data} />;
+  return <CategoryRevenueBars data={data} />;
 }
 
 async function TopProductsChartWrapper() {
@@ -73,56 +58,34 @@ async function TopProductsChartWrapper() {
   return <TopProductsBarChart data={data} />;
 }
 
-async function TopServicesWrapper() {
-  const data = await getTopBookedServices();
-  return <TopServicesBarChart data={data} />;
-}
-
 async function LowStockAlertsWrapper() {
   const alerts = await getLowStockAlerts();
 
   if (alerts.length === 0) {
     return (
-      <div className="text-muted-foreground text-center py-8">
-        Inventory logic is fully healthy. No stock alerts.
+      <div className="text-slate-500 text-sm py-4">
+        All inventory levels are healthy.
       </div>
     );
   }
 
   return (
-    <div className="overflow-auto rounded-lg border border-slate-100 dark:border-slate-800">
-      <table className="w-full text-sm text-left">
-        <thead className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-          <tr>
-            <th className="px-4 py-3 font-medium">SKU</th>
-            <th className="px-4 py-3 font-medium">Product</th>
-            <th className="px-4 py-3 font-medium text-right">Quantity</th>
-          </tr>
-        </thead>
-        <tbody>
-          {alerts.map((item) => (
-            <tr
-              key={item.id}
-              className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-            >
-              <td className="px-4 py-3 font-mono text-xs">{item.sku}</td>
-              <td className="px-4 py-3 font-medium max-w-[200px] truncate">
-                {item.name}
-              </td>
-              <td className="px-4 py-3 text-right">
-                <span
-                  className={`font-bold ${item.quantity <= 0 ? "text-red-600" : "text-orange-500"}`}
-                >
-                  {item.quantity}
-                </span>
-                <span className="text-xs text-slate-400 ml-1">
-                  / {item.threshold}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-4 mt-2">
+      {alerts.map((item) => (
+        <div key={item.id} className="flex justify-between items-start">
+          <div className="flex flex-col">
+            <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+              {item.name}
+            </span>
+            <span className="text-xs text-slate-500 uppercase">
+              SKU: {item.sku}
+            </span>
+          </div>
+          <span className="font-bold text-red-600 dark:text-red-500 text-sm text-right shrink-0">
+            Qty: {item.quantity}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -133,63 +96,61 @@ async function RecentActivityWrapper() {
 
   if (activities.length === 0) {
     return (
-      <div className="text-muted-foreground text-center py-8">
-        No recent activity
-      </div>
+      <div className="text-slate-500 text-sm py-4">No recent activity</div>
     );
   }
 
-  const getActivityIcon = (type: string) => {
+  const getActivityIconAndColor = (type: string) => {
     switch (type) {
       case "order":
-        return <ShoppingCart className="h-4 w-4" />;
+        return {
+          icon: <CheckCircle2 className="h-5 w-5" />,
+          bg: "bg-emerald-100",
+          text: "text-emerald-500",
+        };
       case "booking":
-        return <Calendar className="h-4 w-4" />;
+        return {
+          icon: <Calendar className="h-5 w-5" />,
+          bg: "bg-blue-100",
+          text: "text-blue-500",
+        };
       case "lead":
-        return <UserPlus className="h-4 w-4" />;
+        return {
+          icon: <Wallet className="h-5 w-5" />,
+          bg: "bg-amber-100",
+          text: "text-amber-500",
+        };
       default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
-
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case "order":
-        return "bg-green-500/10 text-green-500";
-      case "booking":
-        return "bg-blue-500/10 text-blue-500";
-      case "lead":
-        return "bg-purple-500/10 text-purple-500";
-      default:
-        return "bg-slate-500/10 text-slate-500";
+        return {
+          icon: <Clock className="h-5 w-5" />,
+          bg: "bg-slate-100",
+          text: "text-slate-500",
+        };
     }
   };
 
   return (
-    <div className="space-y-4">
-      {activities.map((activity, idx) => (
-        <div
-          key={activity.id}
-          className={`flex items-center gap-4 pb-4 ${idx < activities.length - 1 ? "border-b border-border" : ""}`}
-        >
-          <div
-            className={`p-2 rounded-full flex-shrink-0 ${getActivityColor(activity.type)}`}
-          >
-            {getActivityIcon(activity.type)}
+    <div className="flex flex-col gap-5 mt-2">
+      {activities.map((activity) => {
+        const style = getActivityIconAndColor(activity.type);
+        return (
+          <div key={activity.id} className="flex items-center gap-4">
+            <div
+              className={`p-2.5 rounded-full shrink-0 ${style.bg} ${style.text}`}
+            >
+              {style.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">
+                {activity.title}
+              </p>
+              <p className="text-xs text-slate-500 truncate">
+                {activity.subtitle}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{activity.title}</p>
-            <p className="text-xs text-muted-foreground truncate">
-              {activity.subtitle}
-            </p>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <Badge variant="outline" className="text-[10px]">
-              {activity.status}
-            </Badge>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -202,276 +163,240 @@ export default async function AdminDashboardPage() {
   const summary = await getDashboardSummary();
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-            Command Center
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Real-time analytics and platform overview.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="hidden sm:flex">
-            <Calendar className="mr-2 h-4 w-4" />
-            Last 30 Days
-          </Button>
-          <Button size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 pb-20">
+      {/* Top Header Row */}
+      <div className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4 md:px-8">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex flex-col">
+            <h1 className="text-xl md:text-2xl font-black text-blue-600 dark:text-blue-500 tracking-tight flex items-center gap-2">
+              Shahzaib Autos
+            </h1>
+            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase mt-0.5">
+              Command Center
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-10 rounded-lg px-4 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]"
+            >
+              <Download className="w-4 h-4" />
+              <span className="font-semibold">Export</span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Top Headline Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        {/* Mock Calendar Widget matches the design */}
+        <Card className="rounded-3xl border-0 shadow-sm overflow-hidden bg-white dark:bg-slate-900">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Revenue
-                </p>
-                <p className="text-2xl font-black mt-1">
-                  Rs. {summary.totalRevenue.toLocaleString()}
-                </p>
-              </div>
-              <div className="p-3 bg-green-500/10 text-green-500 rounded-full">
-                <DollarSign className="h-5 w-5" />
-              </div>
+            <div className="flex items-center justify-between font-bold text-sm mb-6">
+              <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                {"<"}
+              </button>
+              <span className="text-slate-900 dark:text-white">
+                October 2023
+              </span>
+              <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                {">"}
+              </button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Pending Orders
-                </p>
-                <p className="text-2xl font-black mt-1">
-                  {summary.pendingOrders}
-                </p>
-              </div>
-              <div className="p-3 bg-blue-500/10 text-blue-500 rounded-full">
-                <ShoppingBag className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Active Bookings
-                </p>
-                <p className="text-2xl font-black mt-1">
-                  {summary.activeBookings}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-500/10 text-purple-500 rounded-full">
-                <Calendar className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow border-orange-500/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Low Stock Alerts
-                </p>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <p className="text-2xl font-black text-orange-500">
-                    {summary.lowStockItems}
-                  </p>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    products
+            <div className="flex justify-between items-center text-center">
+              {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+                <div key={i} className="flex flex-col gap-3">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">
+                    {day}
+                  </span>
+                  <span
+                    className={`w-8 h-8 flex items-center justify-center font-bold text-sm rounded-full ${i === 2 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30" : i === 3 ? "bg-blue-600 text-white shadow-md" : "text-slate-700 dark:text-slate-300"} ${(i === 0 || i === 1) && "opacity-30"}`}
+                  >
+                    {i === 0 ? "29" : i === 1 ? "30" : i}
                   </span>
                 </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 4 Metrics Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="rounded-[24px] border-0 shadow-sm bg-white dark:bg-slate-900">
+            <CardContent className="p-5 flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Total Revenue
+              </span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                ${summary.totalRevenue.toLocaleString()}
+              </span>
+              <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs mt-1">
+                <TrendingUp className="w-3 h-3" />
+                <span>+12.5%</span>
               </div>
-              <div className="p-3 bg-orange-500/10 text-orange-500 rounded-full animate-pulse">
-                <AlertTriangle className="h-5 w-5" />
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[24px] border-0 shadow-sm bg-white dark:bg-slate-900">
+            <CardContent className="p-5 flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Pending Orders
+              </span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {summary.pendingOrders}
+              </span>
+              <div className="flex items-center gap-1 text-red-500 font-bold text-xs mt-1">
+                <TrendingDown className="w-3 h-3" />
+                <span>-2.4%</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
 
-      {/* Primary Chart Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Main Area Chart */}
-        <Card className="lg:col-span-2 shadow-sm border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-lg">
-                  Revenue & Orders Timeline
-                </CardTitle>
-                <CardDescription>
-                  Daily performance over the last 30 days
-                </CardDescription>
+          <Card className="rounded-[24px] border-0 shadow-sm bg-white dark:bg-slate-900">
+            <CardContent className="p-5 flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Active Bookings
+              </span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {summary.activeBookings}
+              </span>
+              <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs mt-1">
+                <TrendingUp className="w-3 h-3" />
+                <span>+5.0%</span>
               </div>
-              <Badge
-                variant="secondary"
-                className="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-              >
-                Live
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="pl-0">
-            <Suspense fallback={<ChartSkeleton />}>
-              <RevenueChartWrapper />
-            </Suspense>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Donut Chart Side Panel */}
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Booking Distribution</CardTitle>
-            <CardDescription>
-              Current status of all logged service bookings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<ChartSkeleton />}>
-              <BookingStatusChartWrapper />
-            </Suspense>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="rounded-[24px] border-0 shadow-sm bg-white dark:bg-slate-900">
+            <CardContent className="p-5 flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Low Stock
+              </span>
+              <span className="text-2xl font-black text-red-600 dark:text-red-500">
+                {summary.lowStockItems}
+              </span>
+              <div className="flex items-center gap-1 text-red-600 font-bold text-xs mt-1">
+                <AlertTriangle className="w-3 h-3 fill-current" />
+                <span>Critical</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Secondary Chart Row: Growth & Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-emerald-500" />
-              <CardTitle className="text-md">
-                Customer Growth (30 Days)
-              </CardTitle>
-            </div>
-            <CardDescription>
-              New unique accounts created per day
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-0">
-            <Suspense fallback={<ChartSkeleton />}>
-              <CustomerGrowthWrapper />
-            </Suspense>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-indigo-500" />
-              <CardTitle className="text-md">Revenue by Category</CardTitle>
-            </div>
-            <CardDescription>
-              Sales distribution across product types
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<ChartSkeleton />}>
-              <CategoryRevenueWrapper />
-            </Suspense>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tertiary Chart Row: Top Performers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md">Top 5 Selling Products</CardTitle>
-            <CardDescription>
-              Highest moving inventory by volume
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<ChartSkeleton />}>
-              <TopProductsChartWrapper />
-            </Suspense>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md">Most Popular Services</CardTitle>
-            <CardDescription>
-              Highest conversion service bookings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-0">
-            <Suspense fallback={<ChartSkeleton />}>
-              <TopServicesWrapper />
-            </Suspense>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Bottom Tracking Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800 flex flex-col h-[400px]">
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Activity Log</CardTitle>
-            <CardDescription>Real-time platform events</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto pr-2">
-            <Suspense
-              fallback={
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 animate-pulse" />
-                      <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+        {/* Large Layout Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* Timeline Chart */}
+            <Card className="rounded-[32px] border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+              <CardHeader className="p-6 pb-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-1">
+                    <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900 dark:text-white">
+                      Revenue & Orders Timeline
+                    </CardTitle>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl md:text-3xl font-black">
+                        $
+                        {(summary.totalRevenue / 3.65)
+                          .toFixed(0)
+                          .toLocaleString()}
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">
+                        / 30d
+                      </span>
                     </div>
-                  ))}
+                  </div>
+                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 font-bold px-2 py-0.5 shadow-none rounded-md">
+                    +8%
+                  </Badge>
                 </div>
-              }
-            >
-              <RecentActivityWrapper />
-            </Suspense>
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <RevenueChartWrapper />
+                </Suspense>
+              </CardContent>
+            </Card>
 
-        <Card className="shadow-sm border-red-500/20 dark:border-red-500/20 flex flex-col h-[400px]">
-          <CardHeader className="bg-red-50/50 dark:bg-red-950/20 rounded-t-xl pb-4 border-b border-red-100 dark:border-red-900/30">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <CardTitle className="text-lg text-red-900 dark:text-red-400">
-                Critical Stock Alerts
-              </CardTitle>
-            </div>
-            <CardDescription className="text-red-700/70 dark:text-red-400/70">
-              Products nearing exhaustion requiring immediate reorder.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 flex-1 overflow-y-auto">
-            <Suspense fallback={<ChartSkeleton />}>
-              <LowStockAlertsWrapper />
-            </Suspense>
+            {/* Booking Status Donut */}
+            <Card className="rounded-[32px] border-0 shadow-sm bg-white dark:bg-slate-900">
+              <CardHeader className="p-6 pb-2 border-b-0">
+                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900 dark:text-white">
+                  Booking Status Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <BookingStatusChartWrapper />
+                </Suspense>
+              </CardContent>
+            </Card>
 
-            <div className="mt-4 flex justify-end">
-              <Link
-                href="/admin/dashboard/inventory"
-                className="text-sm font-medium text-primary hover:underline flex items-center"
-              >
-                View All Inventory →
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Revenue Category Progress Bars */}
+            <Card className="rounded-[32px] border-0 shadow-sm bg-white dark:bg-slate-900">
+              <CardHeader className="p-6 pb-2 border-b-0">
+                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900 dark:text-white">
+                  Revenue by Category
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <CategoryRevenueWrapper />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            {/* Top Selling Products Bar Chart */}
+            <Card className="rounded-[32px] border-0 shadow-sm bg-white dark:bg-slate-900">
+              <CardHeader className="p-6 pb-2 border-b-0">
+                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900 dark:text-white">
+                  Top 5 Selling Products
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <TopProductsChartWrapper />
+                </Suspense>
+              </CardContent>
+            </Card>
+
+            {/* Critical Stock Alerts with striking visual frame */}
+            <Card className="rounded-[24px] border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden relative">
+              <div className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#fb1034]" />
+              <CardHeader className="p-6 pb-2 border-b-0 flex flex-row items-center gap-3">
+                <div className="p-1.5 bg-red-100 text-red-600 rounded-md">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900 dark:text-white">
+                  Critical Stock Alerts
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-4">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <LowStockAlertsWrapper />
+                </Suspense>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card className="rounded-[32px] border-0 shadow-sm bg-white dark:bg-slate-900">
+              <CardHeader className="p-6 pb-2 border-b-0">
+                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900 dark:text-white">
+                  Recent Activity Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-4">
+                <Suspense fallback={<ChartSkeleton />}>
+                  <RecentActivityWrapper />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -15,12 +15,12 @@ type StatusData = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: "#f59e0b", // Amber/Yellow
-  CONFIRMED: "#3b82f6", // Blue
-  IN_PROGRESS: "#8b5cf6", // Purple
-  COMPLETED: "#22c55e", // Green
-  CANCELLED: "#ef4444", // Red
-  NO_SHOW: "#64748b", // Gray
+  PENDING: "#eab308", // Yellow (amber-500)
+  CONFIRMED: "#2563eb", // Blue (blue-600)
+  IN_PROGRESS: "#2563eb", // Blue
+  COMPLETED: "#2563eb", // Blue
+  CANCELLED: "#cbd5e1", // Gray (slate-300)
+  NO_SHOW: "#cbd5e1", // Gray
 };
 
 export function BookingStatusDonut({ data }: { data: StatusData[] }) {
