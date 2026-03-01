@@ -1,5 +1,6 @@
 import { deleteImage, extractPublicId } from "@/lib/cloudinary";
-import { Prisma, Image } from "@prisma/client";
+import type { Service, Image } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 /**
  * Service Service
  *
@@ -12,9 +13,9 @@ import { Prisma, Image } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // Types
-export type ServiceWithImages = Prisma.ServiceGetPayload<{
-  include: { images: true };
-}>;
+export type ServiceWithImages = Service & {
+  images: Image[];
+};
 
 export type CreateServiceInput = {
   title: string;

@@ -400,7 +400,7 @@ export async function createPublicBookingAction(input: {
     await NotificationService.SmsNotification.sendBookingReminder(
       booking.customerPhone,
       booking.date.toLocaleDateString(),
-      booking.timeSlot || ""
+      booking.timeSlot || "",
     );
 
     // Revalidate admin pages
@@ -447,6 +447,8 @@ export async function getAvailableSlotsAction(
   }
 }
 
+import type { OperatingHours } from "@/lib/services/slot.service";
+
 /**
  * Get Booking Settings (Public)
  * Safe method that returns only necessary limits (no sensitive info)
@@ -457,7 +459,7 @@ export async function getPublicBookingSettingsAction(): Promise<
     bufferTime: number;
     advanceBookingDays: number;
     allowSameDayBooking: boolean;
-    operatingHours: any;
+    operatingHours: OperatingHours[];
   }>
 > {
   try {
@@ -466,7 +468,8 @@ export async function getPublicBookingSettingsAction(): Promise<
     });
 
     if (!bookingSettings) {
-      const { getDefaultOperatingHours } = await import("@/lib/services/slot.service");
+      const { getDefaultOperatingHours } =
+        await import("@/lib/services/slot.service");
       return {
         success: true,
         data: {
@@ -475,7 +478,7 @@ export async function getPublicBookingSettingsAction(): Promise<
           advanceBookingDays: 30,
           allowSameDayBooking: true,
           operatingHours: getDefaultOperatingHours(),
-        }
+        },
       };
     }
 
@@ -486,7 +489,8 @@ export async function getPublicBookingSettingsAction(): Promise<
         bufferTime: bookingSettings.bufferTime,
         advanceBookingDays: bookingSettings.advanceBookingDays,
         allowSameDayBooking: bookingSettings.allowSameDayBooking,
-        operatingHours: bookingSettings.operatingHours,
+        operatingHours:
+          bookingSettings.operatingHours as unknown as OperatingHours[],
       },
     };
   } catch (error) {

@@ -8,7 +8,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as ProductService from "@/lib/services/product.service";
 import {
@@ -30,10 +29,11 @@ export type ActionResult<T = void> = {
  * Helper: Extract user-friendly error message from Prisma errors
  */
 function getPrismaErrorMessage(error: unknown): string {
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    // Handle unique constraint violations (P2002)
-    if (error.code === "P2002") {
-      const field = (error.meta?.target as string[])?.[0] || "field";
+  // Prisma errors expose a numeric/string `code` and optional `meta`.
+  const e = error as { code?: string; meta?: { target?: string[] } };
+  if (e && typeof e.code === "string") {
+    if (e.code === "P2002") {
+      const field = (e.meta?.target as string[])?.[0] || "field";
       const fieldLabels: Record<string, string> = {
         sku: "SKU",
         slug: "URL slug",
@@ -43,13 +43,11 @@ function getPrismaErrorMessage(error: unknown): string {
       return `This ${label} is already in use. Please choose another.`;
     }
 
-    // Handle foreign key constraint failures (P2003)
-    if (error.code === "P2003") {
+    if (e.code === "P2003") {
       return "This operation references data that doesn't exist.";
     }
 
-    // Handle record not found (P2025)
-    if (error.code === "P2025") {
+    if (e.code === "P2025") {
       return "The record you're trying to update or delete doesn't exist.";
     }
   }

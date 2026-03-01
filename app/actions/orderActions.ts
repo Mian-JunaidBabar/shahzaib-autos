@@ -79,7 +79,7 @@ export async function createPublicOrderAction(
 
     // Fetch service prices if serviceIds provided
     let serviceTotal = 0;
-    let selectedServices: any[] = [];
+    let selectedServices: { id: string; title: string; price: number }[] = [];
     if (serviceIds && serviceIds.length > 0) {
       selectedServices = await prisma.service.findMany({
         where: {

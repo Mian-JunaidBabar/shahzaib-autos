@@ -1,3 +1,4 @@
+import type { Order, OrderItem, Product, Customer } from "@prisma/client";
 import { OrderStatus, Prisma } from "@prisma/client";
 /**
  * Order Service
@@ -10,9 +11,10 @@ import { OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // Types
-export type OrderWithItems = Prisma.OrderGetPayload<{
-  include: { items: { include: { product: true } }; customer: true };
-}>;
+export type OrderWithItems = Order & {
+  items: (OrderItem & { product: Product })[];
+  customer: Customer | null;
+};
 
 export type CreateOrderInput = {
   customerName: string;

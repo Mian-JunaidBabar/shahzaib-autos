@@ -42,7 +42,8 @@ function ProductsGridSkeleton() {
 // Products grid component
 async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
   const { categories, tags, q, min, max, sort } = searchParams;
-  const favoritesFlag = (searchParams as any).favorites;
+  const favoritesFlag = (searchParams as SearchParams & { favorites?: string })
+    .favorites;
 
   // Parse filter parameters
   const parsedFilters = {

@@ -10,7 +10,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 import { createBrowserClient } from "@supabase/ssr";
 
-
 // Singleton instance
 let supabaseInstance: SupabaseClient | null = null;
 
@@ -48,6 +47,7 @@ export function getSupabaseClient(): SupabaseClient {
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_target, prop) {
     const client = createSupabaseBrowserClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (client as any)[prop];
   },
 });

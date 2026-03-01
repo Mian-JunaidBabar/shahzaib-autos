@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-
 export function ContactCTA() {
   return (
     <section className="p-4 py-20 max-w-7xl mx-auto w-full">
@@ -12,7 +11,7 @@ export function ContactCTA() {
               Need Assistance?
             </h3>
             <p className="text-slate-600 dark:text-slate-400">
-              We're here to help. Head over to our contact page for any
+              We&apos;re here to help. Head over to our contact page for any
               questions or to schedule a service.
             </p>
             <Link

@@ -96,9 +96,10 @@ export default function UpdatePasswordPage() {
         router.push("/admin/dashboard");
         router.refresh();
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.message || "Failed to update password");
+      const message = error instanceof Error ? error.message : "Failed to update password";
+      toast.error(message);
       setIsSubmitting(false);
     }
   };

@@ -3,21 +3,31 @@
 import { useState } from "react";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
+import type { CartItem } from "@/lib/whatsapp";
+import type { ServiceDTO } from "@/lib/types/dto";
+
+interface CustomerFormData {
+  fullName: string;
+  email: string;
+  phone: string;
+  vehicleModel: string;
+  address: string;
+}
 
 export default function BookingPage() {
-  const [customerData, setCustomerData] = useState<any>({
+  const [customerData, setCustomerData] = useState<CustomerFormData>({
     fullName: "",
     email: "",
     phone: "",
     vehicleModel: "",
     address: "",
   });
-  const [availableServices] = useState<any[]>([]);
+  const [availableServices] = useState<ServiceDTO[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [bookingDate, setBookingDate] = useState<string>("");
-  const [cartItems] = useState<any[]>([]);
+  const [cartItems] = useState<CartItem[]>([]);
   const [cartTotal] = useState<number>(0);
-  const [selectedServices] = useState<any[]>([]);
+  const [selectedServices] = useState<ServiceDTO[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onServiceToggle = (id: string) => {

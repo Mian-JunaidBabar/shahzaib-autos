@@ -15,7 +15,7 @@ export interface CloudinaryUploadResponse {
   width: number;
   height: number;
   bytes: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -93,7 +93,7 @@ export interface CloudinaryUploadOptions {
   /** Folder path in Cloudinary */
   folder?: string;
   /** Additional parameters */
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -142,7 +142,7 @@ export interface CloudinaryTransformOptions {
   /** Gravity for crop */
   gravity?: string;
   /** Additional parameters */
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -173,7 +173,7 @@ export interface ImageMetadata {
   publicId: string;
   uploadedAt: Date;
   /** Optional: additional custom metadata */
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

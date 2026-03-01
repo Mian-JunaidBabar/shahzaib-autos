@@ -1,4 +1,5 @@
 import { LeadStatus, LeadSource, Prisma } from "@prisma/client";
+import type { Lead as PrismaLead } from "@prisma/client";
 /**
  * Lead Service
  *
@@ -8,9 +9,8 @@ import { LeadStatus, LeadSource, Prisma } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // Types
-export type Lead = Prisma.LeadGetPayload<{}>;
+export type Lead = PrismaLead;
 
 export type CreateLeadInput = {
   name: string;

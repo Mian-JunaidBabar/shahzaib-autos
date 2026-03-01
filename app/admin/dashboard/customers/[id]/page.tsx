@@ -151,6 +151,7 @@ export default function CustomerDetailPage({
 
   useEffect(() => {
     fetchCustomer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleToggleVip = async () => {

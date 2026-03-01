@@ -12,7 +12,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 type Props = {
@@ -20,50 +19,29 @@ type Props = {
   priceRange: { min: number; max: number };
 };
 
-export function ProductFilters({ categories, priceRange }: Props) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [open, setOpen] = useState(false);
-
-  const currentCategory = searchParams.get("category") || "";
-  const currentMinPrice = searchParams.get("minPrice") || "";
-  const currentMaxPrice = searchParams.get("maxPrice") || "";
-
-  const hasActiveFilters =
-    currentCategory || currentMinPrice || currentMaxPrice;
-
-  const updateFilters = (updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === "") {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    });
-
-    // Reset to page 1 when filters change
-    params.delete("page");
-
-    router.push(`/products?${params.toString()}`);
-    setOpen(false);
-  };
-
-  const clearAllFilters = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("category");
-    params.delete("minPrice");
-    params.delete("maxPrice");
-    params.delete("page");
-    router.push(`/products?${params.toString()}`);
-    setOpen(false);
-  };
-
-  const formatPrice = (cents: number) =>
-    `Rs. ${(cents / 100).toLocaleString("en-PK")}`;
-
-  const FilterContent = () => (
+// Filter content component extracted to avoid creating during render
+function FilterContent({
+  categories,
+  currentCategory,
+  currentMinPrice,
+  currentMaxPrice,
+  priceRange,
+  hasActiveFilters,
+  updateFilters,
+  clearAllFilters,
+  formatPrice,
+}: {
+  categories: string[];
+  currentCategory: string;
+  currentMinPrice: string;
+  currentMaxPrice: string;
+  priceRange: { min: number; max: number };
+  hasActiveFilters: boolean;
+  updateFilters: (updates: Record<string, string | null>) => void;
+  clearAllFilters: () => void;
+  formatPrice: (cents: number) => string;
+}) {
+  return (
     <div className="space-y-6">
       {/* Categories */}
       <div>
@@ -142,6 +120,51 @@ export function ProductFilters({ categories, priceRange }: Props) {
       )}
     </div>
   );
+}
+
+export function ProductFilters({ categories, priceRange }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(false);
+
+  const currentCategory = searchParams.get("category") || "";
+  const currentMinPrice = searchParams.get("minPrice") || "";
+  const currentMaxPrice = searchParams.get("maxPrice") || "";
+
+  const hasActiveFilters = Boolean(
+    currentCategory || currentMinPrice || currentMaxPrice
+  );
+
+  const updateFilters = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === "") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+
+    // Reset to page 1 when filters change
+    params.delete("page");
+
+    router.push(`/products?${params.toString()}`);
+    setOpen(false);
+  };
+
+  const clearAllFilters = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("category");
+    params.delete("minPrice");
+    params.delete("maxPrice");
+    params.delete("page");
+    router.push(`/products?${params.toString()}`);
+    setOpen(false);
+  };
+
+  const formatPrice = (cents: number) =>
+    `Rs. ${(cents / 100).toLocaleString("en-PK")}`;
 
   return (
     <>
@@ -149,7 +172,17 @@ export function ProductFilters({ categories, priceRange }: Props) {
       <div className="hidden lg:block w-64 shrink-0">
         <div className="sticky top-4 bg-card rounded-lg border p-4">
           <h3 className="font-semibold text-lg mb-4">Filters</h3>
-          <FilterContent />
+          <FilterContent
+            categories={categories}
+            currentCategory={currentCategory}
+            currentMinPrice={currentMinPrice}
+            currentMaxPrice={currentMaxPrice}
+            priceRange={priceRange}
+            hasActiveFilters={hasActiveFilters}
+            updateFilters={updateFilters}
+            clearAllFilters={clearAllFilters}
+            formatPrice={formatPrice}
+          />
         </div>
       </div>
 
@@ -172,7 +205,17 @@ export function ProductFilters({ categories, priceRange }: Props) {
               <SheetTitle>Filters</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <FilterContent />
+              <FilterContent
+                categories={categories}
+                currentCategory={currentCategory}
+                currentMinPrice={currentMinPrice}
+                currentMaxPrice={currentMaxPrice}
+                priceRange={priceRange}
+                hasActiveFilters={hasActiveFilters}
+                updateFilters={updateFilters}
+                clearAllFilters={clearAllFilters}
+                formatPrice={formatPrice}
+              />
             </div>
           </SheetContent>
         </Sheet>

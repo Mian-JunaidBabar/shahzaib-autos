@@ -1,12 +1,23 @@
+import type { ServiceDTO } from "@/lib/types/dto";
+import type { CartItem } from "@/lib/whatsapp";
+
+interface OrderSummaryProps {
+  cartItems: CartItem[];
+  cartTotal: number;
+  selectedServices: Array<Pick<ServiceDTO, "id" | "title" | "price">>;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+}
+
 export function OrderSummary({
   cartItems,
   cartTotal,
   selectedServices,
   onSubmit,
   isSubmitting,
-}: any) {
+}: OrderSummaryProps) {
   const servicesTotal = selectedServices.reduce(
-    (sum: number, service: any) => sum + service.price,
+    (sum, service) => sum + service.price,
     0,
   );
   const total = cartTotal + servicesTotal;
@@ -30,7 +41,7 @@ export function OrderSummary({
           ) : (
             <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
               {/* Cart Items */}
-              {cartItems.map((item: any, idx: number) => (
+              {cartItems.map((item, idx) => (
                 <div
                   key={`${item.id}-${idx}`}
                   className="flex gap-4 p-3 rounded-2xl bg-white/5 border border-white/10 items-center hover:bg-white/10 transition-colors"
@@ -57,7 +68,7 @@ export function OrderSummary({
               ))}
 
               {/* Selected Services */}
-              {selectedServices.map((service: any) => (
+              {selectedServices.map((service) => (
                 <div
                   key={service.id}
                   className="flex gap-4 p-3 rounded-2xl bg-primary/10 border border-primary/20 items-center"

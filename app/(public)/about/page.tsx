@@ -11,7 +11,8 @@ export default function AboutPage() {
           About Us
         </h1>
         <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          The engineers behind the world's most exclusive automotive upgrades.
+          The engineers behind the world&apos;s most exclusive automotive
+          upgrades.
         </p>
       </div>
 

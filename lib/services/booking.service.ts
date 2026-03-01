@@ -1,3 +1,4 @@
+import type { Booking, Customer, BookingActivityLog } from "@prisma/client";
 import { BookingStatus, Prisma } from "@prisma/client";
 /**
  * Booking Service
@@ -9,12 +10,13 @@ import { BookingStatus, Prisma } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
-const prismaClient = prisma as any;
+const prismaClient = prisma;
 
 // Types
-export type BookingWithCustomer = Prisma.BookingGetPayload<{
-  include: { customer: true; activityLog: true };
-}>;
+export type BookingWithCustomer = Booking & {
+  customer: Customer | null;
+  activityLog?: BookingActivityLog[];
+};
 
 export type CreateBookingInput = {
   customerName: string;

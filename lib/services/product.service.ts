@@ -1,5 +1,6 @@
+import type { Product, Image, Inventory, Badge } from "@prisma/client";
 import { deleteImage, extractPublicId } from "@/lib/cloudinary";
-import { Prisma, ProductStatus } from "@prisma/client";
+import { ProductStatus, Prisma } from "@prisma/client";
 /**
  * Product Service
  *
@@ -11,10 +12,13 @@ import { Prisma, ProductStatus } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
+
 // Types
-export type ProductWithImages = Prisma.ProductGetPayload<{
-  include: { images: true; inventory: true; badge: true };
-}>;
+export type ProductWithImages = Product & {
+  images: Image[];
+  inventory: Inventory | null;
+  badge: Badge | null;
+};
 
 export type CreateProductInput = {
   name: string;

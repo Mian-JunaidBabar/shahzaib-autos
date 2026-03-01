@@ -8,6 +8,15 @@ import {
   getAvailableSlotsAction,
   getPublicBookingSettingsAction,
 } from "@/app/actions/bookingActions";
+import type { OperatingHours } from "@/lib/services/slot.service";
+
+interface BookingSettings {
+  slotDuration: number;
+  bufferTime: number;
+  advanceBookingDays: number;
+  allowSameDayBooking: boolean;
+  operatingHours: OperatingHours[];
+}
 import { toast } from "sonner";
 import {
   Calendar,
@@ -66,7 +75,7 @@ export function BookingForm() {
   const hasPreselectedRef = useRef(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<BookingSettings | null>(null);
 
   // Dynamic Dates
   const [minDate, setMinDate] = useState("");
@@ -181,7 +190,7 @@ export function BookingForm() {
       if (!isNaN(selectedDate.getTime())) {
         const selectedDay = selectedDate.getDay();
         const dayConfig = settings.operatingHours.find(
-          (h: any) => h.dayOfWeek === selectedDay,
+          (h) => h.dayOfWeek === selectedDay,
         );
         if (dayConfig && !dayConfig.isOpen) {
           toast.error("We are closed on this day. Please select another date.");

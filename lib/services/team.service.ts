@@ -11,7 +11,6 @@ import type { User } from "@supabase/supabase-js";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // Admin Supabase client (uses SERVICE_ROLE_KEY for user management)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -97,6 +96,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 
   return admins.map((admin) => {
     const supaUser = userMap.get(admin.supabaseUserId);
+    const profile = admin.profile as { phone?: string | null } | null;
     return {
       id: admin.id,
       supabaseUserId: admin.supabaseUserId,
@@ -104,7 +104,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       fullName:
         admin.profile?.fullName || supaUser?.user_metadata?.full_name || null,
       avatarUrl: admin.profile?.avatarUrl || null,
-      phone: (admin.profile as any)?.phone || null,
+      phone: profile?.phone || null,
       role: admin.profile?.role || "ADMIN",
       status: admin.profile?.status || "INVITED",
       createdAt: admin.createdAt,

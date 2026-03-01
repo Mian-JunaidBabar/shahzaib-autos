@@ -19,18 +19,22 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("theme") as Theme | null;
+      if (savedTheme) return savedTheme;
+      if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+        return "light";
+      }
+    }
+    return "dark";
+  });
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // This setState is intentional for mount detection and doesn't cause cascading renders
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    // Check for saved theme preference or system preference
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    if (savedTheme) {
-      setThemeState(savedTheme);
-    } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-      setThemeState("light");
-    }
   }, []);
 
   useEffect(() => {

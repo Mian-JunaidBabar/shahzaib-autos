@@ -9,13 +9,16 @@ import { useState, useEffect, useRef, useCallback } from "react";
 export function SearchBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("query") || "";
-  const [value, setValue] = useState(initialQuery);
+  const [value, setValue] = useState(() => searchParams.get("query") || "");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync with URL changes
   useEffect(() => {
-    setValue(searchParams.get("query") || "");
+    const query = searchParams.get("query") || "";
+    if (query !== value) {
+      setValue(query);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const updateSearch = useCallback(

@@ -43,7 +43,9 @@ export function AdminStaleOrderWarning({
   };
 
   const formatAge = (date: Date) => {
+    // Email templates are rendered once when sent, so Date.now() is acceptable here
     const hours = Math.floor(
+      // eslint-disable-next-line react-hooks/purity
       (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60),
     );
     if (hours < 24) return `${hours} hours ago`;

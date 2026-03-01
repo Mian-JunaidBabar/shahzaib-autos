@@ -1,11 +1,14 @@
-import { saveProductImage, deleteProductImage, getProductImages, } from "@/app/actions/imageActions";
+import {
+  saveProductImage,
+  deleteProductImage,
+  getProductImages,
+} from "@/app/actions/imageActions";
 /**
  * Cloudinary Image Upload System - Test Utilities
  *
  * Use these functions to verify your Cloudinary setup is working correctly
  */
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
-
 
 /**
  * Test environment variables are properly configured
@@ -41,7 +44,7 @@ export function testEnvironmentVariables(): {
 export async function testCloudinaryUpload(file: File): Promise<{
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
   error?: string;
 }> {
   try {

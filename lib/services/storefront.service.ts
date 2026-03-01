@@ -1,20 +1,19 @@
+import type { Product, Image, Inventory, Badge } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 /**
  * Storefront Service
  *
  * Public-facing product queries for the store.
  * Optimized for customer experience with proper filtering and sorting.
  */
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // Types
-export type StorefrontProduct = Prisma.ProductGetPayload<{
-  include: {
-    images: true;
-    inventory: true;
-    badge: true;
-  };
-}>;
+export type StorefrontProduct = Product & {
+  images: Image[];
+  inventory: Inventory | null;
+  badge?: Badge | null;
+};
 
 export type SortOption = "newest" | "price_asc" | "price_desc" | "name_asc";
 

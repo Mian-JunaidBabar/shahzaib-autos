@@ -9,6 +9,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import { prisma } from "@/lib/prisma";
 
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -77,7 +78,14 @@ export async function uploadImage(
   const buffer = Buffer.from(arrayBuffer);
 
   // Upload to Cloudinary
-  const result = await new Promise<any>((resolve, reject) => {
+  const result = await new Promise<{
+    public_id: string;
+    secure_url: string;
+    width: number;
+    height: number;
+    format: string;
+    [key: string]: unknown;
+  }>((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
         {

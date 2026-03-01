@@ -49,13 +49,19 @@ const saveCartToStorage = (items: CartItem[]) => {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   // Initialize with empty array to prevent hydration mismatch
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    // Initialize from localStorage if available (client-side only)
+    if (typeof window !== "undefined") {
+      return loadCartFromStorage();
+    }
+    return [];
+  });
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Load cart from localStorage on mount (client-side only)
+  // Mark as hydrated after mount
   useEffect(() => {
-    const storedCart = loadCartFromStorage();
-    setItems(storedCart);
+    // This setState is intentional for mount detection and doesn't cause cascading renders
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsHydrated(true);
   }, []);
 

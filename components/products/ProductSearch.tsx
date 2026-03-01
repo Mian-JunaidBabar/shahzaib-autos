@@ -8,7 +8,7 @@ export default function ProductSearch() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
   const debouncedSearch = useDebounce(searchInput, 500);
 
@@ -18,12 +18,13 @@ export default function ProductSearch() {
     if (currentQuery !== searchInput) {
       setSearchInput(currentQuery || "");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // Update URL when debounced value changes
   useEffect(() => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
-    
+
     if (debouncedSearch) {
       params.set("q", debouncedSearch);
     } else {

@@ -30,16 +30,28 @@ export function ProductCard({
   category,
 }: ProductCardProps) {
   const { addItem } = useCart();
-  const [isFav, setIsFav] = useState(false);
+  const [isFav, setIsFav] = useState(() => {
+    try {
+      const raw = localStorage.getItem("favorites");
+      const arr: string[] = raw ? JSON.parse(raw) : [];
+      return arr.includes(id);
+    } catch {
+      return false;
+    }
+  });
 
+  // Update when id changes
   useEffect(() => {
     try {
       const raw = localStorage.getItem("favorites");
       const arr: string[] = raw ? JSON.parse(raw) : [];
-      setIsFav(arr.includes(id));
+      if (arr.includes(id) !== isFav) {
+        setIsFav(arr.includes(id));
+      }
     } catch {
-      setIsFav(false);
+      // Ignore errors
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleAddToCart = () => {
@@ -74,7 +86,7 @@ export function ProductCard({
         new StorageEvent("storage", {
           key: "favorites",
           newValue: JSON.stringify(next),
-        } as any),
+        }),
       );
     } catch (err) {
       console.error("favorite toggle error", err);

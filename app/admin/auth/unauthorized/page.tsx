@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { AlertTriangle, Home, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function UnauthorizedPage() {
   return (
@@ -15,7 +15,7 @@ export default function UnauthorizedPage() {
         </h1>
 
         <p className="text-xl text-muted-foreground">
-          Oops! It looks like you don't have permission to access the admin
+          Oops! It looks like you don&apos;t have permission to access the admin
           dashboard.
         </p>
 

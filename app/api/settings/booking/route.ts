@@ -1,23 +1,24 @@
+import type { BookingSettings, Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/services/auth.service";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-const prismaClient = prisma as any;
 
 export async function GET() {
   try {
     const { getDefaultOperatingHours } =
       await import("@/lib/services/slot.service");
 
-    let settings: any = await prismaClient.bookingSettings.findUnique({
-      where: { id: 1 },
-    });
+    let settings: BookingSettings | null =
+      await prisma.bookingSettings.findUnique({
+        where: { id: 1 },
+      });
 
     if (!settings) {
-      settings = await prismaClient.bookingSettings.create({
+      settings = await prisma.bookingSettings.create({
         data: {
           id: 1,
-          operatingHours: getDefaultOperatingHours(),
+          operatingHours:
+            getDefaultOperatingHours() as unknown as Prisma.InputJsonValue,
         },
       });
     }
@@ -47,7 +48,7 @@ export async function PUT(request: NextRequest) {
       operatingHours,
     } = body;
 
-    const settings = await prismaClient.bookingSettings.upsert({
+    const settings = await prisma.bookingSettings.upsert({
       where: { id: 1 },
       update: {
         ...(slotDuration && { slotDuration }),

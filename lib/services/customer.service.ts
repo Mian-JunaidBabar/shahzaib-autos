@@ -1,3 +1,4 @@
+import type { Customer, Order, Booking } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 /**
  * Customer Service
@@ -9,11 +10,12 @@ import { Prisma } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // Types
-export type CustomerWithHistory = Prisma.CustomerGetPayload<{
-  include: { orders: true; bookings: true };
-}>;
+export type CustomerWithHistory = Customer & {
+  orders?: Order[];
+  bookings?: Booking[];
+  _count?: { orders: number; bookings: number };
+};
 
 export type CreateCustomerInput = {
   name: string;

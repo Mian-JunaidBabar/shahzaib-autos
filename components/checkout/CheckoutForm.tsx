@@ -1,3 +1,27 @@
+"use client";
+
+import type { ServiceDTO } from "@/lib/types/dto";
+
+interface CustomerData {
+  fullName: string;
+  email: string;
+  phone: string;
+  vehicleModel: string;
+  address: string;
+}
+
+interface CheckoutFormProps {
+  customerData: CustomerData;
+  setCustomerData: (
+    data: CustomerData | ((prev: CustomerData) => CustomerData),
+  ) => void;
+  availableServices: Array<Pick<ServiceDTO, "id" | "title" | "price">>;
+  selectedServiceIds: string[];
+  onServiceToggle: (id: string) => void;
+  bookingDate: string;
+  setBookingDate: (date: string) => void;
+}
+
 export function CheckoutForm({
   customerData,
   setCustomerData,
@@ -6,10 +30,12 @@ export function CheckoutForm({
   onServiceToggle,
   bookingDate,
   setBookingDate,
-}: any) {
-  const handleInputChange = (e: any) => {
+}: CheckoutFormProps) {
+  const handleInputChange = (e: {
+    target: { name: string; value: string };
+  }) => {
     const { name, value } = e.target;
-    setCustomerData((prev: any) => ({ ...prev, [name]: value }));
+    setCustomerData((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -77,7 +103,7 @@ export function CheckoutForm({
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-medium">
             Select any installation or tuning services to add to your order.
           </p>
-          {availableServices.map((service: any) => (
+          {availableServices.map((service) => (
             <label
               key={service.id}
               className="flex items-center gap-3 p-3 rounded-xl hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 cursor-pointer transition-colors group"

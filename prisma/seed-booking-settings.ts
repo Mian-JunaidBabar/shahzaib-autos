@@ -1,4 +1,5 @@
 import { getDefaultOperatingHours } from "@/lib/services/slot.service";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export async function seedBookingSettings() {
@@ -21,7 +22,8 @@ export async function seedBookingSettings() {
         bufferTime: 15, // 15 minutes between bookings
         advanceBookingDays: 30, // Can book up to 30 days in advance
         allowSameDayBooking: true, // Allow same-day bookings
-        operatingHours: getDefaultOperatingHours() as any,
+        operatingHours:
+          getDefaultOperatingHours() as unknown as Prisma.InputJsonValue,
       },
     });
 

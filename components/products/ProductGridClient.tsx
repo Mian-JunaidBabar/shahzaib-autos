@@ -23,15 +23,17 @@ export default function ProductGridClient({
   products: ClientProduct[];
   favoritesOnly?: boolean;
 }) {
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  useEffect(() => {
+  const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem("favorites");
-      setFavorites(raw ? JSON.parse(raw) : []);
-    } catch (e) {
-      setFavorites([]);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
     }
+  });
+
+  useEffect(() => {
+    // Listen for external storage changes
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === "favorites") {

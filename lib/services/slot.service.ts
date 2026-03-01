@@ -1,10 +1,12 @@
+import type { BookingSettings, Prisma } from "@prisma/client";
 /**
  * Slot Generation Service
  * Generates available time slots based on operating hours, existing bookings, and buffer time
  */
 import { prisma } from "@/lib/prisma";
 
-const prismaClient = prisma as any;
+
+const prismaClient = prisma;
 
 export interface OperatingHours {
   dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
@@ -85,22 +87,23 @@ export async function getAvailableSlots(
 ): Promise<string[]> {
   try {
     // Fetch booking settings
-    let settings: any = await prismaClient.bookingSettings.findUnique({
+    let settings = (await prismaClient.bookingSettings.findUnique({
       where: { id: 1 },
-    });
+    })) as BookingSettings | null;
 
     if (!settings) {
       // Create default settings if they don't exist
       settings = await prismaClient.bookingSettings.create({
         data: {
           id: 1,
-          operatingHours: getDefaultOperatingHours(),
+          operatingHours:
+            getDefaultOperatingHours() as unknown as Prisma.InputJsonValue,
         },
       });
     }
 
     const operatingHours =
-      (settings.operatingHours as OperatingHours[]) ||
+      (settings.operatingHours as unknown as OperatingHours[]) ||
       getDefaultOperatingHours();
     const slotDuration = settings.slotDuration;
     const bufferTime = settings.bufferTime;
@@ -155,7 +158,7 @@ export async function getAvailableSlots(
       const bookingTimeMinutes = timeToMinutes(booking.timeSlot);
       const slotEndMinutes = bookingTimeMinutes + slotDuration + bufferTime;
 
-      for (let slot of allSlots) {
+      for (const slot of allSlots) {
         const slotTimeMinutes = timeToMinutes(slot);
         // If slot starts before booking ends (with buffer), it conflicts
         if (
