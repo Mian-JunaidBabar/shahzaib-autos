@@ -19,9 +19,9 @@ const navLinks = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { getItemCount } = useCart();
+  const { items } = useCart();
   const { theme, toggleTheme } = useTheme();
-  const itemCount = getItemCount();
+  const distinctCount = items.length;
   const whatsappUrl = generateWhatsAppUrl(
     "Hi! I'm interested in your products.",
   );
@@ -82,9 +82,11 @@ export default function Header() {
             className="relative p-2 text-text-muted hover:text-text-primary transition-colors"
           >
             <ShoppingCart className="h-5 w-5" />
-            {itemCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-primary text-white text-xs font-bold">
-                {itemCount > 9 ? "9+" : itemCount}
+            {distinctCount > 0 && (
+              <span
+                className={`absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-primary text-xs font-bold ${theme === "dark" ? "text-slate-900" : "text-white"}`}
+              >
+                {distinctCount > 9 ? "9+" : distinctCount}
               </span>
             )}
           </Link>
@@ -133,7 +135,7 @@ export default function Header() {
               className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-primary transition-colors"
             >
               <ShoppingCart className="h-4 w-4" />
-              Cart {itemCount > 0 && `(${itemCount})`}
+              Cart {distinctCount > 0 && `(${distinctCount})`}
             </Link>
             <button
               onClick={() => {
