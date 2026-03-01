@@ -12,12 +12,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  ),
   title: {
-    default: "Shahzaib Autos",
     template: "%s | Shahzaib Autos",
+    default: "Shahzaib Autos - Premium Automotive Accessories & Services",
   },
   description:
-    "Premium car accessories and professional installation services. From detailing to custom modifications, we do it all.",
+    "Upgrade your ride with premium car accessories, 7D mats, LEDs, and professional workshop services at Shahzaib Autos.",
   appleWebApp: {
     title: "Shahzaib Autos",
   },

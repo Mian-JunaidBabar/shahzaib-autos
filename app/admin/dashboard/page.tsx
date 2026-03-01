@@ -19,6 +19,12 @@ import {
   getTopBookedServices,
   getLowStockAlerts,
 } from "@/app/actions/analyticsActions";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Overview | Admin",
+};
+
 import { getRecentActivityAction } from "@/app/actions/dashboardActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

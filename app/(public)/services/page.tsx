@@ -3,6 +3,11 @@ import { CoreServices } from "@/components/services/CoreServices";
 import { ProcessTimeline } from "@/components/services/ProcessTimeline";
 import { ServicesCta } from "@/components/services/ServicesCta";
 import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Professional Auto Services",
+};
 
 export const revalidate = 60;
 

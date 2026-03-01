@@ -43,15 +43,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const displayPrice = (product.salePrice ?? product.price) / 100;
   const primaryImage = product.images[0]?.secureUrl ?? "/placeholder.jpg";
 
+  const rawDescription =
+    product.description ||
+    `Shop ${product.name} at Shahzaib Autos. Premium quality car accessories.`;
+  const seoDescription =
+    rawDescription.length > 160
+      ? rawDescription.substring(0, 157) + "..."
+      : rawDescription;
+
   return {
-    title: `${product.name} | Shahzaib Autos`,
-    description:
-      product.description ||
-      `Shop ${product.name} at Shahzaib Autos. Premium quality car accessories.`,
+    title: product.name,
+    description: seoDescription,
     openGraph: {
       title: product.name,
-      description:
-        product.description || `Shop ${product.name} at Shahzaib Autos.`,
+      description: seoDescription,
       images: [{ url: primaryImage, alt: product.name }],
       type: "website",
     },

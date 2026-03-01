@@ -1,6 +1,11 @@
 import { AboutOrigin } from "@/components/about/AboutOrigin";
 import { ContactCTA } from "@/components/about/ContactCTA";
 import { TeamGrid } from "@/components/about/TeamGrid";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Us",
+};
 
 export default function AboutPage() {
   return (

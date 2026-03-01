@@ -2,6 +2,11 @@ import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Secure Checkout",
+};
 
 export const revalidate = 0; // Don't cache checkout
 
