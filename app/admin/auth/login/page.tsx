@@ -14,6 +14,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [signing, setSigning] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -26,7 +27,16 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError("");
 
-    const result = await login(email, password);
+    // Trim user input to avoid accidental leading/trailing spaces
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    // reflect immediate signing state locally until login resolves
+    setSigning(true);
+
+    const result = await login(trimmedEmail, trimmedPassword);
+
+    setSigning(false);
 
     if (result.success) {
       router.push("/admin/dashboard");
@@ -66,6 +76,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={(e) => setEmail(e.target.value.trim())}
                 className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="admin@shahzaibautos.com"
                 required
@@ -82,6 +93,7 @@ export default function AdminLoginPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onBlur={(e) => setPassword(e.target.value.trim())}
                   className="w-full px-3 py-2 pr-10 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="••••••••"
                   required
@@ -105,10 +117,10 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || signing}
             className="w-full bg-primary text-primary-foreground py-2.5 px-4 rounded-md font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading || signing ? "Signing in..." : "Sign In"}
           </button>
 
           <div className="mt-6 pt-6 border-t border-border">
