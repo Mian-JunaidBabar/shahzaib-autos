@@ -64,141 +64,139 @@ export type RecentActivity = {
  * Get comprehensive dashboard statistics
  * Cached to prevent duplicate queries within the same request
  */
-export const getDashboardStatsAction = cache(async (): Promise<
-  ActionResult<DashboardStats>
-> => {
-  try {
-    await requireAdmin();
+export const getDashboardStatsAction = cache(
+  async (): Promise<ActionResult<DashboardStats>> => {
+    try {
+      await requireAdmin();
 
-    // Fetch all stats in parallel
-    const [
-      orderStats,
-      bookingStats,
-      leadStats,
-      customerStats,
-      productCounts,
-      lowStockProducts,
-    ] = await Promise.all([
-      OrderService.getOrderStats(),
-      BookingService.getBookingStats(),
-      LeadService.getLeadStats(),
-      CustomerService.getCustomerStats(),
-      prisma.product.groupBy({
-        by: ["isActive"],
-        _count: true,
-      }),
-      ProductService.getLowStockProducts(),
-    ]);
+      // Fetch all stats in parallel
+      const [
+        orderStats,
+        bookingStats,
+        leadStats,
+        customerStats,
+        productCounts,
+        lowStockProducts,
+      ] = await Promise.all([
+        OrderService.getOrderStats(),
+        BookingService.getBookingStats(),
+        LeadService.getLeadStats(),
+        CustomerService.getCustomerStats(),
+        prisma.product.groupBy({
+          by: ["isActive"],
+          _count: true,
+        }),
+        ProductService.getLowStockProducts(),
+      ]);
 
-    // Calculate product stats
-    const activeProducts = productCounts.find((p) => p.isActive)?._count || 0;
-    const inactiveProducts =
-      productCounts.find((p) => !p.isActive)?._count || 0;
+      // Calculate product stats
+      const activeProducts = productCounts.find((p) => p.isActive)?._count || 0;
+      const inactiveProducts =
+        productCounts.find((p) => !p.isActive)?._count || 0;
 
-    return {
-      success: true,
-      data: {
-        products: {
-          total: activeProducts + inactiveProducts,
-          active: activeProducts,
-          lowStock: lowStockProducts.length,
+      return {
+        success: true,
+        data: {
+          products: {
+            total: activeProducts + inactiveProducts,
+            active: activeProducts,
+            lowStock: lowStockProducts.length,
+          },
+          orders: {
+            total: orderStats.total,
+            new: orderStats.newOrders,
+            revenue: orderStats.totalRevenue,
+          },
+          bookings: {
+            total: bookingStats.total,
+            upcoming: bookingStats.upcomingBookings,
+            today: bookingStats.todayBookings,
+            pending: bookingStats.pendingBookings,
+          },
+          leads: {
+            total: leadStats.total,
+            new: leadStats.newLeads,
+          },
+          customers: {
+            total: customerStats.total,
+            vip: customerStats.vipCount,
+            new: customerStats.recentCount,
+          },
         },
-        orders: {
-          total: orderStats.total,
-          new: orderStats.newOrders,
-          revenue: orderStats.totalRevenue,
-        },
-        bookings: {
-          total: bookingStats.total,
-          upcoming: bookingStats.upcomingBookings,
-          today: bookingStats.todayBookings,
-          pending: bookingStats.pendingBookings,
-        },
-        leads: {
-          total: leadStats.total,
-          new: leadStats.newLeads,
-        },
-        customers: {
-          total: customerStats.total,
-          vip: customerStats.vipCount,
-          new: customerStats.recentCount,
-        },
-      },
-    };
-  } catch (error) {
-    console.error("getDashboardStatsAction error:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch dashboard stats",
-    };
-  }
-});
+      };
+    } catch (error) {
+      console.error("getDashboardStatsAction error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch dashboard stats",
+      };
+    }
+  },
+);
 
 /**
  * Get recent activity across all entities
  * Cached to prevent duplicate queries within the same request
  */
-export const getRecentActivityAction = cache(async (
-  limit: number = 10,
-): Promise<ActionResult<RecentActivity[]>> => {
-  try {
-    await requireAdmin();
+export const getRecentActivityAction = cache(
+  async (limit: number = 10): Promise<ActionResult<RecentActivity[]>> => {
+    try {
+      await requireAdmin();
 
-    // Fetch recent items from each category
-    const [recentOrders, recentBookings, recentLeads] = await Promise.all([
-      OrderService.getRecentOrders(limit),
-      BookingService.getUpcomingBookings(limit),
-      LeadService.getRecentLeads(limit),
-    ]);
+      // Fetch recent items from each category (sequential to avoid DB pool exhaustion)
+      const recentOrders = await OrderService.getRecentOrders(limit);
+      const recentBookings = await BookingService.getUpcomingBookings(limit);
+      const recentLeads = await LeadService.getRecentLeads(limit);
 
-    // Combine and format
-    const activity: RecentActivity[] = [
-      ...recentOrders.map((order) => ({
-        type: "order" as const,
-        id: order.id,
-        title: `Order ${order.orderNumber}`,
-        subtitle: `${order.customerName} - PKR ${order.total.toLocaleString()}`,
-        status: order.status,
-        createdAt: order.createdAt,
-      })),
-      ...recentBookings.map((booking) => ({
-        type: "booking" as const,
-        id: booking.id,
-        title: `Booking ${booking.bookingNumber}`,
-        subtitle: `${booking.customerName} - ${booking.serviceType}`,
-        status: booking.status,
-        createdAt: booking.createdAt,
-      })),
-      ...recentLeads.map((lead) => ({
-        type: "lead" as const,
-        id: lead.id,
-        title: `Lead from ${lead.name}`,
-        subtitle:
-          lead.message.substring(0, 50) +
-          (lead.message.length > 50 ? "..." : ""),
-        status: lead.status,
-        createdAt: lead.createdAt,
-      })),
-    ];
+      // Combine and format
+      const activity: RecentActivity[] = [
+        ...recentOrders.map((order) => ({
+          type: "order" as const,
+          id: order.id,
+          title: `Order ${order.orderNumber}`,
+          subtitle: `${order.customerName} - PKR ${order.total.toLocaleString()}`,
+          status: order.status,
+          createdAt: order.createdAt,
+        })),
+        ...recentBookings.map((booking) => ({
+          type: "booking" as const,
+          id: booking.id,
+          title: `Booking ${booking.bookingNumber}`,
+          subtitle: `${booking.customerName} - ${booking.serviceType}`,
+          status: booking.status,
+          createdAt: booking.createdAt,
+        })),
+        ...recentLeads.map((lead) => ({
+          type: "lead" as const,
+          id: lead.id,
+          title: `Lead from ${lead.name}`,
+          subtitle:
+            lead.message.substring(0, 50) +
+            (lead.message.length > 50 ? "..." : ""),
+          status: lead.status,
+          createdAt: lead.createdAt,
+        })),
+      ];
 
-    // Sort by createdAt desc and limit
-    activity.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      // Sort by createdAt desc and limit
+      activity.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-    return { success: true, data: activity.slice(0, limit) };
-  } catch (error) {
-    console.error("getRecentActivityAction error:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch recent activity",
-    };
-  }
-});
+      return { success: true, data: activity.slice(0, limit) };
+    } catch (error) {
+      console.error("getRecentActivityAction error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch recent activity",
+      };
+    }
+  },
+);
 
 /**
  * Get low stock alerts
