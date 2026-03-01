@@ -134,7 +134,11 @@ export function CheckoutForm({
             return (
               <label
                 key={service.id}
-                className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all duration-200 group hover:shadow-sm ${isSelected ? "border-primary bg-primary/5 dark:bg-primary/10" : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900"}`}
+                className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all duration-200 group hover:shadow-sm ${
+                  isSelected
+                    ? "bg-slate-900 border-slate-800 text-white dark:bg-primary/10 dark:border-primary/50 dark:text-primary"
+                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900"
+                }`}
               >
                 <div className="flex items-center gap-4">
                   <input
@@ -143,14 +147,29 @@ export function CheckoutForm({
                     onChange={() => onServiceToggle(service.id)}
                     className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
                   />
-                  <span
-                    className={`font-medium ${isSelected ? "text-primary font-bold" : "text-slate-800 dark:text-slate-200"}`}
-                  >
-                    {service.title}
-                  </span>
+                  <div className="flex flex-col">
+                    <span
+                      className={`font-medium ${
+                        isSelected
+                          ? "text-white dark:text-primary-light"
+                          : "text-slate-800 dark:text-slate-200"
+                      }`}
+                    >
+                      {service.title}
+                    </span>
+                    {isSelected && (
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
+                        Added to order
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <span
-                  className={`font-bold ${isSelected ? "text-primary" : "text-slate-600 dark:text-slate-400"}`}
+                  className={`font-bold ${
+                    isSelected
+                      ? "text-white dark:text-primary"
+                      : "text-slate-600 dark:text-slate-400"
+                  }`}
                 >
                   + Rs. {service.price.toLocaleString()}
                 </span>

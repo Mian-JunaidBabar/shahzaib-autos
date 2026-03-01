@@ -1,6 +1,6 @@
+import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0; // Don't cache checkout
@@ -15,18 +15,18 @@ export default async function CheckoutPage() {
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
       {/* Minimal Header */}
       <div className="bg-slate-900 py-12 px-4 shadow-inner">
-        <div className="max-w-screen-xl mx-auto flex items-center justify-between">
+        <div className="max-w-xl mx-auto flex items-center justify-between">
           <h1 className="text-3xl font-black text-white">Secure Checkout</h1>
           <div className="flex items-center gap-2 text-slate-400">
             <span className="material-symbols-outlined text-[18px]">lock</span>
             <span className="text-sm font-bold uppercase tracking-widest">
-              Encrypted
+              Secure &amp; Private
             </span>
           </div>
         </div>
       </div>
 
-      <main className="flex flex-col lg:flex-row flex-1 max-w-screen-xl mx-auto w-full">
+      <main className="flex flex-col lg:flex-row flex-1 max-w-full mx-auto w-full">
         <CheckoutFlow availableServices={services} />
       </main>
     </div>

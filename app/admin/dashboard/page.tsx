@@ -308,7 +308,7 @@ export default async function AdminDashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 font-bold px-2 py-0.5 shadow-none rounded-md">
+                  <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100 border-0 font-bold px-2 py-0.5 shadow-none rounded-md">
                     +8%
                   </Badge>
                 </div>

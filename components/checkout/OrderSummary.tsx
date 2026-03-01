@@ -27,7 +27,7 @@ export function OrderSummary({
   const total = cartTotal + servicesTotal;
 
   return (
-    <aside className="w-full bg-slate-900 text-white lg:min-h-[calc(100vh-80px)] p-6 lg:p-10 sticky top-0 rounded-2xl lg:rounded-none lg:rounded-tl-[3rem] shadow-2xl flex flex-col z-10 border border-slate-800">
+    <aside className="w-full bg-slate-900 text-white p-6 lg:p-10 rounded-2xl shadow-2xl flex flex-col border border-slate-800 mt-8 lg:mt-8 lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
       <div className="flex flex-col flex-1">
         {/* Header */}
         <div className="mb-8">
@@ -76,13 +76,13 @@ export function OrderSummary({
             {selectedServices.map((service) => (
               <div
                 key={service.id}
-                className="flex justify-between items-center p-4 rounded-xl bg-primary/10 border border-primary/20 transition-colors hover:bg-primary/20"
+                className="flex justify-between items-center p-4 rounded-xl bg-slate-900 border border-slate-800 text-white transition-colors hover:bg-slate-800/90 dark:bg-primary/10 dark:border-primary/20 dark:text-primary hover:dark:bg-primary/20"
               >
                 <div className="flex-1 pr-4">
-                  <p className="text-white font-semibold text-sm mb-1 leading-tight text-primary-light">
+                  <p className="font-semibold text-sm mb-1 leading-tight text-white dark:text-primary-light">
                     {service.title}
                   </p>
-                  <p className="text-primary/80 text-xs font-medium flex items-center gap-1">
+                  <p className="text-slate-300 dark:text-primary/80 text-xs font-medium flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">
                       build
                     </span>
@@ -90,7 +90,7 @@ export function OrderSummary({
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-primary font-bold text-sm">
+                  <p className="font-bold text-sm text-white dark:text-primary">
                     Rs. {service.price.toLocaleString()}
                   </p>
                 </div>

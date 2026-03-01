@@ -56,7 +56,7 @@ export default function BookingPage() {
               verified_user
             </span>
             <span className="text-sm font-bold uppercase tracking-widest">
-              Guaranteed
+              Trusted Service
             </span>
           </div>
         </div>
