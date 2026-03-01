@@ -14,6 +14,11 @@ const connectionString = rawConnectionString
     : rawConnectionString + "?uselibpqcompat=true&sslmode=require"
   : rawConnectionString;
 
+// Default pool size; can be overridden with DB_POOL_MAX or DB_MAX_CLIENTS
+const defaultPoolMax = Number(
+  process.env.DB_POOL_MAX ?? process.env.DB_MAX_CLIENTS ?? 1,
+);
+
 const pool = connectionString
   ? new Pool({
       connectionString,
@@ -23,6 +28,7 @@ const pool = connectionString
         process.env.NODE_ENV !== "production"
           ? { rejectUnauthorized: false }
           : { rejectUnauthorized: true },
+      max: defaultPoolMax,
     })
   : undefined;
 
