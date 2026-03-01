@@ -57,20 +57,18 @@ export async function getCustomers(
     where.isVip = isVip;
   }
 
-  const [customers, total] = await Promise.all([
-    prisma.customer.findMany({
-      where,
-      include: {
-        _count: {
-          select: { orders: true, bookings: true },
-        },
+  const customers = await prisma.customer.findMany({
+    where,
+    include: {
+      _count: {
+        select: { orders: true, bookings: true },
       },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.customer.count({ where }),
-  ]);
+    },
+    orderBy: { createdAt: "desc" },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  const total = await prisma.customer.count({ where });
 
   return {
     customers,
@@ -168,17 +166,15 @@ export async function toggleVipStatus(
  * Get customer statistics
  */
 export async function getCustomerStats() {
-  const [total, vipCount, recentCount] = await Promise.all([
-    prisma.customer.count(),
-    prisma.customer.count({ where: { isVip: true } }),
-    prisma.customer.count({
-      where: {
-        createdAt: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-        },
+  const total = await prisma.customer.count();
+  const vipCount = await prisma.customer.count({ where: { isVip: true } });
+  const recentCount = await prisma.customer.count({
+    where: {
+      createdAt: {
+        gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       },
-    }),
-  ]);
+    },
+  });
 
   return {
     total,

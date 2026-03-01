@@ -12,7 +12,6 @@ import { ProductStatus, Prisma } from "@prisma/client";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // Types
 export type ProductWithImages = Product & {
   images: Image[];
@@ -264,22 +263,20 @@ export async function getProducts(
     };
   }
 
-  const [products, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: {
-        images: {
-          orderBy: { sortOrder: "asc" },
-        },
-        inventory: true,
-        badge: true,
+  const products = await prisma.product.findMany({
+    where,
+    include: {
+      images: {
+        orderBy: { sortOrder: "asc" },
       },
-      orderBy: { [sortBy]: sortOrder },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.product.count({ where }),
-  ]);
+      inventory: true,
+      badge: true,
+    },
+    orderBy: { [sortBy]: sortOrder },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  const total = await prisma.product.count({ where });
 
   return {
     products,

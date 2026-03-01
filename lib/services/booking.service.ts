@@ -97,16 +97,14 @@ export async function getBookings(
     where.serviceType = serviceType;
   }
 
-  const [bookings, total] = await Promise.all([
-    prismaClient.booking.findMany({
-      where,
-      include: { customer: true, activityLog: true },
-      orderBy: { date: "asc" },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prismaClient.booking.count({ where }),
-  ]);
+  const bookings = await prismaClient.booking.findMany({
+    where,
+    include: { customer: true, activityLog: true },
+    orderBy: { date: "asc" },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  const total = await prismaClient.booking.count({ where });
 
   return {
     bookings,
@@ -224,25 +222,23 @@ export async function getBookingStats() {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const [total, byStatus, todayCount, upcomingCount] = await Promise.all([
-    prismaClient.booking.count(),
-    prismaClient.booking.groupBy({
-      by: ["status"],
-      _count: true,
-    }),
-    prismaClient.booking.count({
-      where: {
-        date: { gte: today, lt: tomorrow },
-        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-      },
-    }),
-    prismaClient.booking.count({
-      where: {
-        date: { gte: today },
-        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-      },
-    }),
-  ]);
+  const total = await prismaClient.booking.count();
+  const byStatus = await prismaClient.booking.groupBy({
+    by: ["status"],
+    _count: true,
+  });
+  const todayCount = await prismaClient.booking.count({
+    where: {
+      date: { gte: today, lt: tomorrow },
+      status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+    },
+  });
+  const upcomingCount = await prismaClient.booking.count({
+    where: {
+      date: { gte: today },
+      status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+    },
+  });
 
   return {
     total,

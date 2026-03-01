@@ -97,18 +97,16 @@ export async function getServices(
   orderBy[sortField as keyof Prisma.ServiceOrderByWithRelationInput] =
     sortOrder;
 
-  const [services, total] = await Promise.all([
-    prisma.service.findMany({
-      where,
-      include: {
-        images: { orderBy: { sortOrder: "asc" } },
-      },
-      orderBy,
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.service.count({ where }),
-  ]);
+  const services = await prisma.service.findMany({
+    where,
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+    },
+    orderBy,
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  const total = await prisma.service.count({ where });
 
   return {
     services,
@@ -368,11 +366,9 @@ export async function toggleServiceActive(id: string) {
  * Get service statistics
  */
 export async function getServiceStats() {
-  const [total, active, inactive] = await Promise.all([
-    prisma.service.count(),
-    prisma.service.count({ where: { isActive: true } }),
-    prisma.service.count({ where: { isActive: false } }),
-  ]);
+  const total = await prisma.service.count();
+  const active = await prisma.service.count({ where: { isActive: true } });
+  const inactive = await prisma.service.count({ where: { isActive: false } });
 
   return { total, active, inactive };
 }

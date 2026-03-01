@@ -118,20 +118,18 @@ export async function getStorefrontProducts(
       break;
   }
 
-  const [products, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: {
-        images: { orderBy: { sortOrder: "asc" } },
-        inventory: true,
-        badge: true,
-      },
-      orderBy,
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.product.count({ where }),
-  ]);
+  const products = await prisma.product.findMany({
+    where,
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+      inventory: true,
+      badge: true,
+    },
+    orderBy,
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  const total = await prisma.product.count({ where });
 
   return {
     products,

@@ -71,15 +71,13 @@ export async function getLeads(
     };
   }
 
-  const [leads, total] = await Promise.all([
-    prisma.lead.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.lead.count({ where }),
-  ]);
+  const leads = await prisma.lead.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  const total = await prisma.lead.count({ where });
 
   return {
     leads,
@@ -152,17 +150,15 @@ export async function deleteLead(id: string): Promise<void> {
  * Get lead statistics
  */
 export async function getLeadStats() {
-  const [total, byStatus, bySource] = await Promise.all([
-    prisma.lead.count(),
-    prisma.lead.groupBy({
-      by: ["status"],
-      _count: true,
-    }),
-    prisma.lead.groupBy({
-      by: ["source"],
-      _count: true,
-    }),
-  ]);
+  const total = await prisma.lead.count();
+  const byStatus = await prisma.lead.groupBy({
+    by: ["status"],
+    _count: true,
+  });
+  const bySource = await prisma.lead.groupBy({
+    by: ["source"],
+    _count: true,
+  });
 
   return {
     total,

@@ -69,25 +69,16 @@ export const getDashboardStatsAction = cache(
     try {
       await requireAdmin();
 
-      // Fetch all stats in parallel
-      const [
-        orderStats,
-        bookingStats,
-        leadStats,
-        customerStats,
-        productCounts,
-        lowStockProducts,
-      ] = await Promise.all([
-        OrderService.getOrderStats(),
-        BookingService.getBookingStats(),
-        LeadService.getLeadStats(),
-        CustomerService.getCustomerStats(),
-        prisma.product.groupBy({
-          by: ["isActive"],
-          _count: true,
-        }),
-        ProductService.getLowStockProducts(),
-      ]);
+      // Fetch all stats sequentially to avoid DB pool exhaustion
+      const orderStats = await OrderService.getOrderStats();
+      const bookingStats = await BookingService.getBookingStats();
+      const leadStats = await LeadService.getLeadStats();
+      const customerStats = await CustomerService.getCustomerStats();
+      const productCounts = await prisma.product.groupBy({
+        by: ["isActive"],
+        _count: true,
+      });
+      const lowStockProducts = await ProductService.getLowStockProducts();
 
       // Calculate product stats
       const activeProducts = productCounts.find((p) => p.isActive)?._count || 0;
@@ -234,18 +225,16 @@ export async function generateDailySummaryAction(): Promise<
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [todayOrders, todayBookings, todayLeads] = await Promise.all([
-      prisma.order.findMany({
-        where: { createdAt: { gte: today } },
-        select: { total: true },
-      }),
-      prisma.booking.count({
-        where: { createdAt: { gte: today } },
-      }),
-      prisma.lead.count({
-        where: { createdAt: { gte: today } },
-      }),
-    ]);
+    const todayOrders = await prisma.order.findMany({
+      where: { createdAt: { gte: today } },
+      select: { total: true },
+    });
+    const todayBookings = await prisma.booking.count({
+      where: { createdAt: { gte: today } },
+    });
+    const todayLeads = await prisma.lead.count({
+      where: { createdAt: { gte: today } },
+    });
 
     const ordersTotal = todayOrders.reduce((sum, o) => sum + o.total, 0);
 

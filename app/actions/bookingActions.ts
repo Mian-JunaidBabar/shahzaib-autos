@@ -361,20 +361,19 @@ export async function createPublicBookingAction(input: {
   }>
 > {
   try {
-    // Get service titles
-    const services = await Promise.all(
-      input.serviceIds.map((id) =>
-        prisma.service.findUnique({
-          where: { id },
-          select: { title: true },
-        }),
-      ),
-    );
+    // Get service titles (sequential to avoid DB pool exhaustion)
+    const services = [];
+    for (const id of input.serviceIds) {
+      const service = await prisma.service.findUnique({
+        where: { id },
+        select: { title: true },
+      });
+      if (service) {
+        services.push(service);
+      }
+    }
 
-    const serviceType = services
-      .filter((s) => s !== null)
-      .map((s) => s!.title)
-      .join(", ");
+    const serviceType = services.map((s) => s.title).join(", ");
 
     // Create booking
     const booking = await BookingService.createBooking({

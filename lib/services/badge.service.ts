@@ -5,6 +5,7 @@
  */
 import { prisma } from "@/lib/prisma";
 
+
 export interface BadgeInput {
   name: string;
   color: string;
@@ -111,12 +112,14 @@ export async function getBadgesWithUsage() {
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
 
-  const badgesWithUsage = await Promise.all(
-    badges.map(async (badge) => ({
+  const badgesWithUsage = [];
+  for (const badge of badges) {
+    const usageCount = await getBadgeUsageCount(badge.id);
+    badgesWithUsage.push({
       ...badge,
-      usageCount: await getBadgeUsageCount(badge.id),
-    }))
-  );
+      usageCount,
+    });
+  }
 
   return badgesWithUsage;
 }

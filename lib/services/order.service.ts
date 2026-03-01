@@ -92,19 +92,17 @@ export async function getOrders(
     where.customerId = customerId;
   }
 
-  const [orders, total] = await Promise.all([
-    prisma.order.findMany({
-      where,
-      include: {
-        items: { include: { product: true } },
-        customer: true,
-      },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.order.count({ where }),
-  ]);
+  const orders = await prisma.order.findMany({
+    where,
+    include: {
+      items: { include: { product: true } },
+      customer: true,
+    },
+    orderBy: { createdAt: "desc" },
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+  const total = await prisma.order.count({ where });
 
   return {
     orders,
@@ -229,17 +227,15 @@ export async function updateOrderStatus(
  * Get order statistics
  */
 export async function getOrderStats() {
-  const [total, byStatus, revenue] = await Promise.all([
-    prisma.order.count(),
-    prisma.order.groupBy({
-      by: ["status"],
-      _count: true,
-    }),
-    prisma.order.aggregate({
-      where: { status: { in: [OrderStatus.DELIVERED, OrderStatus.SHIPPED] } },
-      _sum: { total: true },
-    }),
-  ]);
+  const total = await prisma.order.count();
+  const byStatus = await prisma.order.groupBy({
+    by: ["status"],
+    _count: true,
+  });
+  const revenue = await prisma.order.aggregate({
+    where: { status: { in: [OrderStatus.DELIVERED, OrderStatus.SHIPPED] } },
+    _sum: { total: true },
+  });
 
   return {
     total,

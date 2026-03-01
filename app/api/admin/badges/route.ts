@@ -6,13 +6,15 @@ export async function GET() {
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
 
-  const badgesWithUsage = await Promise.all(
-    badges.map(async (b) => ({
+  const badgesWithUsage = [];
+  for (const b of badges) {
+    const usageCount = await prisma.product.count({ where: { badgeId: b.id } });
+    badgesWithUsage.push({
       id: b.id,
       name: b.name,
-      usageCount: await prisma.product.count({ where: { badgeId: b.id } }),
-    })),
-  );
+      usageCount,
+    });
+  }
 
   return NextResponse.json(badgesWithUsage);
 }
