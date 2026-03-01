@@ -110,3 +110,100 @@ export async function getDashboardSummary() {
         lowStockItems,
     };
 }
+
+export async function getCustomerGrowth(days: number = 30) {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  const customers = await prisma.customer.findMany({
+    where: {
+      createdAt: { gte: cutoffDate },
+    },
+    select: { createdAt: true }
+  });
+
+  const groupedData: Record<string, number> = {};
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    groupedData[dateStr] = 0;
+  }
+
+  customers.forEach(customer => {
+    const dateStr = customer.createdAt.toISOString().split("T")[0];
+    if (dateStr in groupedData) {
+      groupedData[dateStr] += 1;
+    }
+  });
+
+  return Object.entries(groupedData).map(([date, newCustomers]) => ({
+    date,
+    newCustomers,
+  }));
+}
+
+export async function getRevenueByCategory() {
+  const orderItems = await prisma.orderItem.findMany({
+    include: {
+      product: { select: { category: true, price: true } }
+    }
+  });
+
+  const categoryTotals: Record<string, number> = {};
+
+  orderItems.forEach(item => {
+    const cat = item.product?.category || 'Uncategorized';
+    if (!categoryTotals[cat]) categoryTotals[cat] = 0;
+    categoryTotals[cat] += (item.price * item.quantity) / 100;
+  });
+
+  return Object.entries(categoryTotals).map(([name, value]) => ({
+    name,
+    value
+  })).sort((a, b) => b.value - a.value).slice(0, 5);
+}
+
+export async function getTopBookedServices() {
+  const services = await prisma.booking.groupBy({
+    by: ['serviceType'],
+    _count: {
+      id: true
+    },
+    orderBy: {
+      _count: {
+        id: 'desc'
+      }
+    },
+    take: 5
+  });
+
+  return services.map(s => ({
+    name: s.serviceType,
+    bookings: s._count.id
+  }));
+}
+
+export async function getLowStockAlerts() {
+  const alerts = await prisma.inventory.findMany({
+    where: {
+      quantity: { lte: 10 }
+    },
+    include: {
+      product: { select: { name: true, sku: true } }
+    },
+    take: 5,
+    orderBy: {
+      quantity: 'asc'
+    }
+  });
+
+  return alerts.map(a => ({
+    id: a.id,
+    name: a.product.name,
+    sku: a.product.sku,
+    quantity: a.quantity,
+    threshold: a.lowStockAt
+  }));
+}
