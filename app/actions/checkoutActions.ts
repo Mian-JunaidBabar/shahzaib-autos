@@ -77,6 +77,8 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
       let dbOrder = null;
       let dbBooking = null;
       let totalCents = 0;
+      let bookingServiceString = "";
+      let servicesSubtotal = 0;
 
       // 2. Create Order & Items if cartItems exist
       if (cartItems.length > 0) {
@@ -136,9 +138,7 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
       }
 
       // 3. Create Booking if selectedServices exist
-      let bookingServiceString = "";
       if (selectedServices.length > 0) {
-        let servicesSubtotal = 0;
         bookingServiceString = selectedServices.map((s) => s.title).join(", ");
 
         const serviceIds = selectedServices.map((s) => s.id);
