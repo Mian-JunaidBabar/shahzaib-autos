@@ -1,17 +1,37 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { startOfDay, endOfDay, eachDayOfInterval, format } from "date-fns";
 
-export async function getRevenueOverTime(days: number = 30) {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
+// Date range type used by all analytics functions
+export type DateRange = {
+  startDate: Date;
+  endDate: Date;
+};
 
-  // Raw query for grouping by date could be complex with Prisma if dates have times,
-  // Let's fetch the orders and aggregate in JS for now as it's safe and flexible
+// Helper to get default date range (last 30 days) - internal only
+function getDefaultDateRange(): DateRange {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 29);
+  return {
+    startDate: startOfDay(startDate),
+    endDate: endOfDay(endDate),
+  };
+}
+
+export async function getRevenueOverTime(range?: DateRange) {
+  const { startDate, endDate } = range || getDefaultDateRange();
+
+  // Ensure proper day boundaries
+  const start = startOfDay(startDate);
+  const end = endOfDay(endDate);
+
+  // Fetch orders within the date range
   const orders = await prisma.order.findMany({
     where: {
       status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] },
-      createdAt: { gte: cutoffDate },
+      createdAt: { gte: start, lte: end },
     },
     select: {
       total: true,
@@ -23,15 +43,14 @@ export async function getRevenueOverTime(days: number = 30) {
   const groupedData: Record<string, { revenue: number; orders: number }> = {};
 
   // Initialize all dates in the range to ensure zero fill
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
+  const allDays = eachDayOfInterval({ start, end });
+  allDays.forEach((day) => {
+    const dateStr = format(day, "yyyy-MM-dd");
     groupedData[dateStr] = { revenue: 0, orders: 0 };
-  }
+  });
 
   orders.forEach((order) => {
-    const dateStr = order.createdAt.toISOString().split("T")[0];
+    const dateStr = format(order.createdAt, "yyyy-MM-dd");
     if (groupedData[dateStr]) {
       groupedData[dateStr].revenue += order.total / 100; // Convert cents to dollars/rupees display unit
       groupedData[dateStr].orders += 1;
@@ -45,9 +64,19 @@ export async function getRevenueOverTime(days: number = 30) {
   }));
 }
 
-export async function getTopSellingProducts() {
+export async function getTopSellingProducts(range?: DateRange) {
+  const { startDate, endDate } = range || getDefaultDateRange();
+  const start = startOfDay(startDate);
+  const end = endOfDay(endDate);
+
+  // Find order items from orders within the date range
   const topItems = await prisma.orderItem.groupBy({
     by: ["productId", "name"],
+    where: {
+      order: {
+        createdAt: { gte: start, lte: end },
+      },
+    },
     _sum: {
       quantity: true,
     },
@@ -66,9 +95,16 @@ export async function getTopSellingProducts() {
   }));
 }
 
-export async function getBookingStatusDistribution() {
+export async function getBookingStatusDistribution(range?: DateRange) {
+  const { startDate, endDate } = range || getDefaultDateRange();
+  const start = startOfDay(startDate);
+  const end = endOfDay(endDate);
+
   const distribution = await prisma.booking.groupBy({
     by: ["status"],
+    where: {
+      createdAt: { gte: start, lte: end },
+    },
     _count: {
       id: true,
     },
@@ -80,11 +116,16 @@ export async function getBookingStatusDistribution() {
   }));
 }
 
-export async function getDashboardSummary() {
+export async function getDashboardSummary(range?: DateRange) {
+  const { startDate, endDate } = range || getDefaultDateRange();
+  const start = startOfDay(startDate);
+  const end = endOfDay(endDate);
+
   // Run queries sequentially to avoid opening many DB sessions at once
   const totalRevenueResult = await prisma.order.aggregate({
     where: {
       status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] },
+      createdAt: { gte: start, lte: end },
     },
     _sum: {
       total: true,
@@ -92,11 +133,17 @@ export async function getDashboardSummary() {
   });
 
   const pendingOrders = await prisma.order.count({
-    where: { status: { in: ["NEW", "PROCESSING"] } },
+    where: {
+      status: { in: ["NEW", "PROCESSING"] },
+      createdAt: { gte: start, lte: end },
+    },
   });
 
   const activeBookings = await prisma.booking.count({
-    where: { status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS"] } },
+    where: {
+      status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS"] },
+      createdAt: { gte: start, lte: end },
+    },
   });
 
   const lowStockItems = await prisma.inventory.count({
@@ -146,8 +193,17 @@ export async function getCustomerGrowth(days: number = 30) {
   }));
 }
 
-export async function getRevenueByCategory() {
+export async function getRevenueByCategory(range?: DateRange) {
+  const { startDate, endDate } = range || getDefaultDateRange();
+  const start = startOfDay(startDate);
+  const end = endOfDay(endDate);
+
   const orderItems = await prisma.orderItem.findMany({
+    where: {
+      order: {
+        createdAt: { gte: start, lte: end },
+      },
+    },
     include: {
       product: { select: { category: true, price: true } },
     },

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Bar,
   BarChart,
@@ -8,6 +9,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  Cell,
 } from "recharts";
 
 type ProductData = {
@@ -17,13 +19,21 @@ type ProductData = {
 };
 
 export function TopProductsBarChart({ data }: { data: ProductData[] }) {
+  const router = useRouter();
+
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-slate-500">
+      <div className="flex items-center justify-center h-75 text-slate-500">
         No product data available.
       </div>
     );
   }
+
+  const handleBarClick = (productData: ProductData) => {
+    if (productData.productId) {
+      router.push(`/admin/dashboard/inventory/${productData.productId}`);
+    }
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -35,6 +45,7 @@ export function TopProductsBarChart({ data }: { data: ProductData[] }) {
           <span className="text-primary font-black">
             Sold: {payload[0].value} units
           </span>
+          <p className="text-xs text-slate-500 mt-1">Click to view details</p>
         </div>
       );
     }
@@ -42,7 +53,7 @@ export function TopProductsBarChart({ data }: { data: ProductData[] }) {
   };
 
   return (
-    <div className="h-[300px] w-full text-xs">
+    <div className="h-75 w-full text-xs">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -70,14 +81,23 @@ export function TopProductsBarChart({ data }: { data: ProductData[] }) {
           />
           <Tooltip
             content={<CustomTooltip />}
-            cursor={{ fill: "transparent" }}
+            cursor={{ fill: "rgba(37, 99, 235, 0.1)" }}
           />
           <Bar
             dataKey="quantity"
             fill="#2563eb"
             radius={[0, 4, 4, 0]}
             barSize={24}
-          />
+            style={{ cursor: "pointer" }}
+            onClick={(data) => handleBarClick(data)}
+          >
+            {data.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                className="hover:fill-blue-700 transition-colors"
+              />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -1,25 +1,9 @@
-import {
-  getDashboardSummary,
-  getRevenueOverTime,
-  getTopSellingProducts,
-  getBookingStatusDistribution,
-  getRevenueByCategory,
-  getTopBookedServices,
-  getLowStockAlerts,
-} from "@/app/actions/analyticsActions";
-import {
-  Calendar,
-  AlertTriangle,
-  Download,
-  TrendingUp,
-  TrendingDown,
-  Package,
-  CheckCircle2,
-  Wallet,
-  Clock,
-  LayoutGrid,
-} from "lucide-react";
+import { getDashboardSummary, getRevenueOverTime, getTopSellingProducts, getBookingStatusDistribution, getRevenueByCategory, getTopBookedServices, getLowStockAlerts, type DateRange, } from "@/app/actions/analyticsActions";
+import { Calendar, AlertTriangle, Download, TrendingUp, TrendingDown, Package, CheckCircle2, Wallet, Clock, LayoutGrid, } from "lucide-react";
+import { startOfDay, endOfDay, subDays } from "date-fns";
 import type { Metadata } from "next";
+import Link from "next/link";
+
 
 export const metadata: Metadata = {
   title: "Overview | Admin",
@@ -37,30 +21,66 @@ import { TopProductsBarChart } from "@/components/admin/charts/TopProductsBarCha
 import { BookingStatusDonut } from "@/components/admin/charts/BookingStatusDonut";
 import { CategoryRevenueBars } from "@/components/admin/charts/CategoryRevenueBars";
 import { ChartSkeleton } from "@/components/admin/charts/chart-skeleton";
+import { DashboardDateFilter } from "@/components/admin/dashboard-date-filter";
 
 export const dynamic = "force-dynamic";
 
+// Helper to parse date range from search params
+function parseDateRange(searchParams: {
+  from?: string;
+  to?: string;
+}): DateRange {
+  const today = new Date();
+  const defaultStart = startOfDay(subDays(today, 29));
+  const defaultEnd = endOfDay(today);
+
+  try {
+    const from = searchParams.from ? new Date(searchParams.from) : defaultStart;
+    const to = searchParams.to ? new Date(searchParams.to) : defaultEnd;
+
+    // Validate dates
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+      return { startDate: defaultStart, endDate: defaultEnd };
+    }
+
+    return {
+      startDate: startOfDay(from),
+      endDate: endOfDay(to),
+    };
+  } catch {
+    return { startDate: defaultStart, endDate: defaultEnd };
+  }
+}
+
 // ----------------------------------------------------------------------
-// DATA WRAPPERS WITH SUSPENSE
+// DATA WRAPPERS WITH SUSPENSE (Date-aware)
 // ----------------------------------------------------------------------
 
-async function RevenueChartWrapper() {
-  const data = await getRevenueOverTime(30);
+async function RevenueChartWrapper({ dateRange }: { dateRange: DateRange }) {
+  const data = await getRevenueOverTime(dateRange);
   return <RevenueAreaChart data={data} />;
 }
 
-async function BookingStatusChartWrapper() {
-  const data = await getBookingStatusDistribution();
+async function BookingStatusChartWrapper({
+  dateRange,
+}: {
+  dateRange: DateRange;
+}) {
+  const data = await getBookingStatusDistribution(dateRange);
   return <BookingStatusDonut data={data} />;
 }
 
-async function CategoryRevenueWrapper() {
-  const data = await getRevenueByCategory();
+async function CategoryRevenueWrapper({ dateRange }: { dateRange: DateRange }) {
+  const data = await getRevenueByCategory(dateRange);
   return <CategoryRevenueBars data={data} />;
 }
 
-async function TopProductsChartWrapper() {
-  const data = await getTopSellingProducts();
+async function TopProductsChartWrapper({
+  dateRange,
+}: {
+  dateRange: DateRange;
+}) {
+  const data = await getTopSellingProducts(dateRange);
   return <TopProductsBarChart data={data} />;
 }
 
@@ -78,7 +98,11 @@ async function LowStockAlertsWrapper() {
   return (
     <div className="flex flex-col gap-4 mt-2">
       {alerts.map((item) => (
-        <div key={item.id} className="flex justify-between items-start">
+        <Link
+          key={item.id}
+          href={`/admin/dashboard/inventory/${item.id}`}
+          className="flex justify-between items-start hover:bg-slate-50 p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
+        >
           <div className="flex flex-col">
             <span className="font-bold text-slate-900 text-sm">
               {item.name}
@@ -87,10 +111,10 @@ async function LowStockAlertsWrapper() {
               SKU: {item.sku}
             </span>
           </div>
-          <span className="font-bold text-red-600 dark:text-red-500 text-sm text-right shrink-0">
+          <span className="font-bold text-red-600 text-sm text-right shrink-0">
             Qty: {item.quantity}
           </span>
-        </div>
+        </Link>
       ))}
     </div>
   );
@@ -135,12 +159,29 @@ async function RecentActivityWrapper() {
     }
   };
 
+  const getActivityLink = (type: string, id: string) => {
+    switch (type) {
+      case "order":
+        return `/admin/dashboard/orders/${id}`;
+      case "booking":
+        return `/admin/dashboard/bookings/${id}`;
+      case "lead":
+        return `/admin/dashboard/leads/${id}`;
+      default:
+        return "#";
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-5 mt-2">
+    <div className="flex flex-col gap-3 mt-2">
       {activities.map((activity) => {
         const style = getActivityIconAndColor(activity.type);
         return (
-          <div key={activity.id} className="flex items-center gap-4">
+          <Link
+            key={activity.id}
+            href={getActivityLink(activity.type, activity.id)}
+            className="flex items-center gap-4 hover:bg-slate-50 p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
+          >
             <div
               className={`p-2.5 rounded-full shrink-0 ${style.bg} ${style.text}`}
             >
@@ -154,7 +195,7 @@ async function RecentActivityWrapper() {
                 {activity.subtitle}
               </p>
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>
@@ -165,14 +206,20 @@ async function RecentActivityWrapper() {
 // MAIN DASHBOARD PAGE
 // ----------------------------------------------------------------------
 
-export default async function AdminDashboardPage() {
-  const summary = await getDashboardSummary();
+type PageProps = {
+  searchParams: Promise<{ from?: string; to?: string }>;
+};
+
+export default async function AdminDashboardPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const dateRange = parseDateRange(params);
+  const summary = await getDashboardSummary(dateRange);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       {/* Top Header Row */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-4 md:px-8">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col">
             <h1 className="text-xl md:text-2xl font-black text-blue-600 tracking-tight flex items-center gap-2">
               Shahzaib Autos
@@ -182,9 +229,7 @@ export default async function AdminDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-500">
-              <Calendar className="w-5 h-5" />
-            </div>
+            <DashboardDateFilter />
             <Button
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-10 rounded-lg px-4 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]"
@@ -197,38 +242,9 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-6">
-        {/* Mock Calendar Widget matches the design */}
-        <Card className="rounded-3xl border-0 shadow-sm overflow-hidden bg-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between font-bold text-sm mb-6">
-              <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                {"<"}
-              </button>
-              <span className="text-slate-900">October 2023</span>
-              <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                {">"}
-              </button>
-            </div>
-            <div className="flex justify-between items-center text-center">
-              {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-                <div key={i} className="flex flex-col gap-3">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">
-                    {day}
-                  </span>
-                  <span
-                    className={`w-8 h-8 flex items-center justify-center font-bold text-sm rounded-full ${i === 2 ? "bg-blue-100 text-blue-700" : i === 3 ? "bg-blue-600 text-white shadow-md" : "text-slate-700"} ${(i === 0 || i === 1) && "opacity-30"}`}
-                  >
-                    {i === 0 ? "29" : i === 1 ? "30" : i}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* 4 Metrics Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="rounded-[24px] border-0 shadow-sm bg-white">
+          <Card className="rounded-3xl border-0 shadow-sm bg-white">
             <CardContent className="p-5 flex flex-col gap-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Total Revenue
@@ -243,57 +259,66 @@ export default async function AdminDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[24px] border-0 shadow-sm bg-white">
-            <CardContent className="p-5 flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Pending Orders
-              </span>
-              <span className="text-2xl font-black text-slate-900">
-                {summary.pendingOrders}
-              </span>
-              <div className="flex items-center gap-1 text-red-500 font-bold text-xs mt-1">
-                <TrendingDown className="w-3 h-3" />
-                <span>-2.4%</span>
-              </div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/dashboard/orders?status=NEW" className="block">
+            <Card className="rounded-3xl border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
+              <CardContent className="p-5 flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Pending Orders
+                </span>
+                <span className="text-2xl font-black text-slate-900">
+                  {summary.pendingOrders}
+                </span>
+                <div className="flex items-center gap-1 text-red-500 font-bold text-xs mt-1">
+                  <TrendingDown className="w-3 h-3" />
+                  <span>-2.4%</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="rounded-[24px] border-0 shadow-sm bg-white">
-            <CardContent className="p-5 flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Active Bookings
-              </span>
-              <span className="text-2xl font-black text-slate-900">
-                {summary.activeBookings}
-              </span>
-              <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs mt-1">
-                <TrendingUp className="w-3 h-3" />
-                <span>+5.0%</span>
-              </div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/dashboard/bookings" className="block">
+            <Card className="rounded-3xl border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
+              <CardContent className="p-5 flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Active Bookings
+                </span>
+                <span className="text-2xl font-black text-slate-900">
+                  {summary.activeBookings}
+                </span>
+                <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs mt-1">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>+5.0%</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="rounded-[24px] border-0 shadow-sm bg-white">
-            <CardContent className="p-5 flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Low Stock
-              </span>
-              <span className="text-2xl font-black text-red-600">
-                {summary.lowStockItems}
-              </span>
-              <div className="flex items-center gap-1 text-red-600 font-bold text-xs mt-1">
-                <AlertTriangle className="w-3 h-3 fill-current" />
-                <span>Critical</span>
-              </div>
-            </CardContent>
-          </Card>
+          <Link
+            href="/admin/dashboard/inventory?sort=low_stock"
+            className="block"
+          >
+            <Card className="rounded-3xl border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
+              <CardContent className="p-5 flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Low Stock
+                </span>
+                <span className="text-2xl font-black text-red-600">
+                  {summary.lowStockItems}
+                </span>
+                <div className="flex items-center gap-1 text-red-600 font-bold text-xs mt-1">
+                  <AlertTriangle className="w-3 h-3 fill-current" />
+                  <span>Critical</span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Large Layout Area */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             {/* Timeline Chart */}
-            <Card className="rounded-[32px] border-0 shadow-sm bg-white overflow-hidden">
+            <Card className="rounded-4xl border-0 shadow-sm bg-white overflow-hidden">
               <CardHeader className="p-6 pb-2">
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col gap-1">
@@ -319,13 +344,13 @@ export default async function AdminDashboardPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <Suspense fallback={<ChartSkeleton />}>
-                  <RevenueChartWrapper />
+                  <RevenueChartWrapper dateRange={dateRange} />
                 </Suspense>
               </CardContent>
             </Card>
 
             {/* Booking Status Donut */}
-            <Card className="rounded-[32px] border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm bg-white">
               <CardHeader className="p-6 pb-2 border-b-0">
                 <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
                   Booking Status Distribution
@@ -333,13 +358,13 @@ export default async function AdminDashboardPage() {
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 <Suspense fallback={<ChartSkeleton />}>
-                  <BookingStatusChartWrapper />
+                  <BookingStatusChartWrapper dateRange={dateRange} />
                 </Suspense>
               </CardContent>
             </Card>
 
             {/* Revenue Category Progress Bars */}
-            <Card className="rounded-[32px] border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm bg-white">
               <CardHeader className="p-6 pb-2 border-b-0">
                 <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
                   Revenue by Category
@@ -347,7 +372,7 @@ export default async function AdminDashboardPage() {
               </CardHeader>
               <CardContent className="p-6">
                 <Suspense fallback={<ChartSkeleton />}>
-                  <CategoryRevenueWrapper />
+                  <CategoryRevenueWrapper dateRange={dateRange} />
                 </Suspense>
               </CardContent>
             </Card>
@@ -355,7 +380,7 @@ export default async function AdminDashboardPage() {
 
           <div className="space-y-6">
             {/* Top Selling Products Bar Chart */}
-            <Card className="rounded-[32px] border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm bg-white">
               <CardHeader className="p-6 pb-2 border-b-0">
                 <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
                   Top 5 Selling Products
@@ -363,14 +388,14 @@ export default async function AdminDashboardPage() {
               </CardHeader>
               <CardContent className="p-6">
                 <Suspense fallback={<ChartSkeleton />}>
-                  <TopProductsChartWrapper />
+                  <TopProductsChartWrapper dateRange={dateRange} />
                 </Suspense>
               </CardContent>
             </Card>
 
             {/* Critical Stock Alerts with striking visual frame */}
-            <Card className="rounded-[24px] border-0 shadow-sm bg-white overflow-hidden relative">
-              <div className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#fb1034]" />
+            <Card className="rounded-3xl border-0 shadow-sm bg-white overflow-hidden relative">
+              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#fb1034]" />
               <CardHeader className="p-6 pb-2 border-b-0 flex flex-row items-center gap-3">
                 <div className="p-1.5 bg-red-100 text-red-600 rounded-md">
                   <LayoutGrid className="w-4 h-4" />
@@ -387,7 +412,7 @@ export default async function AdminDashboardPage() {
             </Card>
 
             {/* Recent Activity */}
-            <Card className="rounded-[32px] border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm bg-white">
               <CardHeader className="p-6 pb-2 border-b-0">
                 <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
                   Recent Activity Log
