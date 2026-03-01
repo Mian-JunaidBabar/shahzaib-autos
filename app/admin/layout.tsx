@@ -10,10 +10,17 @@ export default function AdminRootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
+    <html>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-screen bg-background text-foreground">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
             (function() {
               try {
                 var theme = localStorage.getItem('admin-theme') || 'dark';
@@ -27,12 +34,13 @@ export default function AdminRootLayout({
               } catch (e) {}
             })();
           `,
-        }}
-      />
-      <ThemeProvider>
-        <AuthProvider>{children}</AuthProvider>
-      </ThemeProvider>
-      <Toaster position="top-right" />
-    </div>
+          }}
+        />
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
+        <Toaster position="top-right" />
+      </body>
+    </html>
   );
 }

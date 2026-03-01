@@ -34,8 +34,9 @@ export default function Header() {
           href="/"
           className="flex items-center gap-2 text-text-primary hover:text-primary transition-colors"
         >
+          {/* Use a dark variant of the icon when the theme is dark for better contrast */}
           <OptimizedImage
-            src="/icon.svg"
+            src={theme === "dark" ? "/icon-dark.svg" : "/icon.svg"}
             alt="Shahzaib Autos"
             width={56}
             height={56}
