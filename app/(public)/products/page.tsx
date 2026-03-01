@@ -4,9 +4,9 @@ import { SortDropdown } from "@/components/products/SortDropdown";
 import { getStoreProducts } from "@/lib/services/product.service";
 import ProductSearch from "@/components/products/ProductSearch";
 import { ProductCard } from "@/components/products/ProductCard";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Shop Premium Car Accessories",
