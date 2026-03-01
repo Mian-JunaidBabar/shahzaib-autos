@@ -1,9 +1,28 @@
-import { getDashboardSummary, getRevenueOverTime, getTopSellingProducts, getBookingStatusDistribution, getRevenueByCategory, getTopBookedServices, getLowStockAlerts, type DateRange, } from "@/app/actions/analyticsActions";
-import { Calendar, AlertTriangle, Download, TrendingUp, TrendingDown, Package, CheckCircle2, Wallet, Clock, LayoutGrid, } from "lucide-react";
+import {
+  getDashboardSummary,
+  getRevenueOverTime,
+  getTopSellingProducts,
+  getBookingStatusDistribution,
+  getRevenueByCategory,
+  getTopBookedServices,
+  getLowStockAlerts,
+  type DateRange,
+} from "@/app/actions/analyticsActions";
+import {
+  Calendar,
+  AlertTriangle,
+  Download,
+  TrendingUp,
+  TrendingDown,
+  Package,
+  CheckCircle2,
+  Wallet,
+  Clock,
+  LayoutGrid,
+} from "lucide-react";
 import { startOfDay, endOfDay, subDays } from "date-fns";
 import type { Metadata } from "next";
 import Link from "next/link";
-
 
 export const metadata: Metadata = {
   title: "Overview | Admin",
@@ -216,9 +235,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const summary = await getDashboardSummary(dateRange);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20">
+    <div className="min-h-screen bg-[#f8fafc] pb-20 -mx-4 md:-mx-8 -mt-4 md:-mt-8">
       {/* Top Header Row */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-4 md:px-8">
+      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-4 md:px-8">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col">
             <h1 className="text-xl md:text-2xl font-black text-blue-600 tracking-tight flex items-center gap-2">
@@ -241,7 +260,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6 mt-6 md:mt-8">
         {/* 4 Metrics Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="rounded-3xl border-0 shadow-sm bg-white">

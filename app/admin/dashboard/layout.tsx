@@ -37,7 +37,7 @@ export default async function AdminDashboardLayout({
         <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <AdminHeader />
-          <main className="flex-1 overflow-y-auto m-0 p-0 light">
+          <main className="flex-1 overflow-y-auto light p-4 md:p-8">
             {children}
           </main>
         </div>
