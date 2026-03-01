@@ -33,186 +33,209 @@ export function CheckoutForm({
   setBookingDate,
   fieldErrors,
 }: CheckoutFormProps) {
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setCustomerData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const inputClasses = (error?: string) =>
+    `mt-1 block w-full rounded-xl px-4 h-14 border ${error ? "border-red-400 bg-red-50 focus:ring-red-200" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:border-primary focus:ring-1 focus:ring-primary"} text-slate-900 dark:text-white outline-none transition-all shadow-sm`;
+
   return (
-    <div className="flex-1 p-4 lg:p-8 space-y-10 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-      {/* Contact Information */}
-      <section className="space-y-6">
-        <h3 className="text-slate-900 dark:text-white text-xl font-black">
-          Contact Information
-        </h3>
+    <div className="flex-1 p-0 lg:p-4 space-y-6">
+      {/* Section: Contact Information */}
+      <section className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 mb-6">
+          <span className="material-symbols-outlined text-primary">person</span>
+          <h2 className="text-xl font-bold dark:text-white">
+            Contact Information
+          </h2>
+        </div>
 
         <div className="space-y-4">
-          <div className="flex flex-col">
-            <label
-              htmlFor="fullName"
-              className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
-            >
+          <label className="block">
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">
               Full Name *
-            </label>
+            </span>
             <input
-              id="fullName"
               name="fullName"
               value={customerData.fullName}
               onChange={handleInputChange}
-              className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.fullName ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
+              className={inputClasses(fieldErrors?.fullName)}
               placeholder="Junaid Babar"
               type="text"
             />
             {fieldErrors?.fullName && (
-              <p className="mt-2 text-xs text-red-600">
+              <p className="mt-1 text-xs text-red-600 ml-1">
                 {fieldErrors.fullName}
               </p>
             )}
-          </div>
+          </label>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <label
-                htmlFor="email"
-                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
-              >
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">
                 Email Address
-              </label>
+              </span>
               <input
-                id="email"
                 name="email"
                 value={customerData.email}
                 onChange={handleInputChange}
-                className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.email ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
+                className={inputClasses(fieldErrors?.email)}
                 placeholder="alex@shahzaib-autos.com"
                 type="email"
               />
               {fieldErrors?.email && (
-                <p className="mt-2 text-xs text-red-600">{fieldErrors.email}</p>
+                <p className="mt-1 text-xs text-red-600 ml-1">
+                  {fieldErrors.email}
+                </p>
               )}
-            </div>
-
-            <div className="flex flex-col">
-              <label
-                htmlFor="phone"
-                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
-              >
-                Phone Number (For WhatsApp) *
-              </label>
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">
+                Phone Number *
+              </span>
               <input
-                id="phone"
                 name="phone"
                 value={customerData.phone}
                 onChange={handleInputChange}
-                className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.phone ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
+                className={inputClasses(fieldErrors?.phone)}
                 placeholder="+92 300 0000000"
                 type="tel"
               />
               {fieldErrors?.phone && (
-                <p className="mt-2 text-xs text-red-600">{fieldErrors.phone}</p>
+                <p className="mt-1 text-xs text-red-600 ml-1">
+                  {fieldErrors.phone}
+                </p>
               )}
-            </div>
+            </label>
           </div>
         </div>
       </section>
 
-      {/* Service Details & Upsell */}
-      <section className="space-y-6">
-        <h3 className="text-slate-900 dark:text-white text-xl font-black flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">
-            add_circle
-          </span>
-          Add Professional Services?
-        </h3>
-
-        <div className="space-y-3 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-medium">
-            Select any installation or tuning services to add to your order.
-          </p>
-          {availableServices.map((service) => (
-            <label
-              key={service.id}
-              className="flex items-center gap-3 p-3 rounded-xl hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 cursor-pointer transition-colors group"
-            >
-              <input
-                type="checkbox"
-                checked={selectedServiceIds.includes(service.id)}
-                onChange={() => onServiceToggle(service.id)}
-                className="size-5 rounded border-slate-300 text-primary focus:ring-primary group-hover:border-primary transition-colors cursor-pointer"
-              />
-              <span className="font-bold flex-1 text-slate-800 dark:text-slate-200">
-                {service.title}
-              </span>
-              <span className="text-sm font-black text-primary">
-                + Rs. {service.price.toLocaleString()}
-              </span>
-            </label>
-          ))}
+      {/* Section: Professional Services (Upsell) */}
+      <section className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 mb-6">
+          <span className="material-symbols-outlined text-primary">build</span>
+          <h2 className="text-xl font-bold dark:text-white">
+            Professional Services
+          </h2>
         </div>
 
-        {selectedServiceIds.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 animate-in slide-in-from-top-4 fade-in duration-300">
-            <div className="flex flex-col">
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-medium">
+            Select any installation or tuning services to expertly add to your
+            order.
+          </p>
+          {availableServices.map((service) => {
+            const isSelected = selectedServiceIds.includes(service.id);
+            return (
               <label
-                htmlFor="vehicleModel"
-                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
+                key={service.id}
+                className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all duration-200 group hover:shadow-sm ${isSelected ? "border-primary bg-primary/5 dark:bg-primary/10" : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900"}`}
               >
-                Vehicle Details
+                <div className="flex items-center gap-4">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => onServiceToggle(service.id)}
+                    className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                  <span
+                    className={`font-medium ${isSelected ? "text-primary font-bold" : "text-slate-800 dark:text-slate-200"}`}
+                  >
+                    {service.title}
+                  </span>
+                </div>
+                <span
+                  className={`font-bold ${isSelected ? "text-primary" : "text-slate-600 dark:text-slate-400"}`}
+                >
+                  + Rs. {service.price.toLocaleString()}
+                </span>
               </label>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Section: Vehicle & Date (Conditional) */}
+      {selectedServiceIds.length > 0 && (
+        <section className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="material-symbols-outlined text-primary">
+              directions_car
+            </span>
+            <h2 className="text-xl font-bold dark:text-white">
+              Vehicle Details
+            </h2>
+          </div>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">
+                Car Make & Model
+              </span>
               <input
-                id="vehicleModel"
                 name="vehicleModel"
                 value={customerData.vehicleModel}
                 onChange={handleInputChange}
-                className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.vehicleModel ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
-                placeholder="e.g. Honda Civic RS 2024"
+                className={inputClasses(fieldErrors?.vehicleModel)}
+                placeholder="Honda Civic RS 2024"
+                type="text"
               />
               {fieldErrors?.vehicleModel && (
-                <p className="mt-2 text-xs text-red-600">
+                <p className="mt-1 text-xs text-red-600 ml-1">
                   {fieldErrors.vehicleModel}
                 </p>
               )}
-            </div>
-
-            <div className="flex flex-col">
-              <label
-                htmlFor="bookingDate"
-                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
-              >
-                Preferred Booking Date
-              </label>
-              <input
-                id="bookingDate"
-                name="bookingDate"
-                type="date"
-                value={bookingDate}
-                onChange={(e) => setBookingDate(e.target.value)}
-                className="w-full h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm text-slate-900 dark:text-white"
-              />
-            </div>
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">
+                Preferred Date
+              </span>
+              <div className="relative">
+                <input
+                  name="bookingDate"
+                  type="date"
+                  value={bookingDate}
+                  onChange={(e) => setBookingDate(e.target.value)}
+                  className={inputClasses(undefined) + " w-full"}
+                />
+              </div>
+            </label>
           </div>
-        )}
+        </section>
+      )}
 
-        <div className="flex flex-col">
-          <label
-            htmlFor="address"
-            className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
-          >
-            Delivery / Service Address
-          </label>
-          <input
-            id="address"
+      {/* Section: Delivery Address */}
+      <section className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 mb-6">
+          <span className="material-symbols-outlined text-primary">
+            location_on
+          </span>
+          <h2 className="text-xl font-bold dark:text-white">
+            Service Location
+          </h2>
+        </div>
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 ml-1">
+            Full Address / Delivery Details
+          </span>
+          <textarea
             name="address"
             value={customerData.address}
             onChange={handleInputChange}
-            className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.address ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
-            placeholder="Shop #1, Shahzaib Autos..."
-            type="text"
-          />
+            className={`mt-1 block w-full rounded-xl p-4 border ${fieldErrors?.address ? "border-red-400 bg-red-50 focus:ring-red-200" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:border-primary focus:ring-1 focus:ring-primary"} text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none`}
+            placeholder="Shop #1, Shahzaib Autos Block..."
+            rows={3}
+          ></textarea>
           {fieldErrors?.address && (
-            <p className="mt-2 text-xs text-red-600">{fieldErrors.address}</p>
+            <p className="mt-1 text-xs text-red-600 ml-1">
+              {fieldErrors.address}
+            </p>
           )}
-        </div>
+        </label>
       </section>
     </div>
   );

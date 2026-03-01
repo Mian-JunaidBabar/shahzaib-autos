@@ -104,9 +104,9 @@ export function CheckoutFlow({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 max-w-xl mx-auto w-full">
+    <div className="flex flex-col lg:flex-row flex-1 w-full gap-8 lg:gap-12 mx-auto justify-center">
       {/* Left Column: Forms */}
-      <div className="flex-1 lg:pr-8 py-8 lg:py-12 bg-transparent">
+      <div className="flex-1 max-w-3xl py-8 lg:py-12 bg-transparent">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl">
             {error}
@@ -125,7 +125,7 @@ export function CheckoutFlow({
       </div>
 
       {/* Right Column: Sticky Summary */}
-      <div className="w-full lg:w-105">
+      <div className="w-full lg:w-[450px]">
         <OrderSummary
           cartItems={items}
           cartTotal={getTotal()}
