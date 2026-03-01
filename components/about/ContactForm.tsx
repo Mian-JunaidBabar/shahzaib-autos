@@ -1,7 +1,7 @@
 export function ContactForm() {
   return (
     <section className="p-4 py-20 max-w-7xl mx-auto w-full">
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-4xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           {/* Contact Form */}
           <div className="p-8 md:p-12 space-y-8">
@@ -9,51 +9,36 @@ export function ContactForm() {
               Get In Touch
             </h3>
             <form className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  <label
+                    htmlFor="fullName"
+                    className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2"
+                  >
                     Full Name
                   </label>
                   <input
-                    className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50"
-                    placeholder="John Doe"
+                    id="fullName"
+                    name="fullName"
+                    className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50 placeholder:text-slate-700 dark:placeholder:text-slate-400"
+                    placeholder="name"
                     type="text"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    Email Address
+                  <label
+                    htmlFor="contact"
+                    className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2"
+                  >
+                    Email or Mobile Number
                   </label>
                   <input
-                    className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50"
-                    placeholder="john@example.com"
-                    type="email"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    Vehicle Model
-                  </label>
-                  <input
-                    className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50"
-                    placeholder="e.g. BMW M4"
+                    id="contact"
+                    name="contact"
+                    className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50 placeholder:text-slate-700 dark:placeholder:text-slate-400"
+                    placeholder="123456789 or example@gmail.com"
                     type="text"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                    Service Needed
-                  </label>
-                  <select className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50 cursor-pointer">
-                    <option>Maintenance</option>
-                    <option>Repair</option>
-                    <option>Performance Tuning</option>
-                    <option>Audio Upgrade</option>
-                    <option>Other</option>
-                  </select>
                 </div>
               </div>
 
@@ -62,18 +47,18 @@ export function ContactForm() {
                   Message
                 </label>
                 <textarea
-                  className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50"
-                  placeholder="Tell us about your requirements..."
+                  className="w-full rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent px-4 py-3 bg-slate-50 placeholder:text-slate-700 dark:placeholder:text-slate-400"
+                  placeholder="message"
                   rows={4}
                 ></textarea>
               </div>
 
               <button
-                type="button"
-                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90 dark:hover:bg-black text-white dark:text-slate-900 font-bold py-4 px-6 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
               >
-                <span className="material-symbols-outlined">send</span> Send
-                Message
+                <span className="material-symbols-outlined">send</span>
+                Send Message
               </button>
             </form>
           </div>

@@ -64,7 +64,7 @@ export function CheckoutForm({
               value={customerData.fullName}
               onChange={handleInputChange}
               className={inputClasses(fieldErrors?.fullName)}
-              placeholder="Junaid Babar"
+              placeholder="name"
               type="text"
             />
             {fieldErrors?.fullName && (
@@ -84,7 +84,7 @@ export function CheckoutForm({
                 value={customerData.email}
                 onChange={handleInputChange}
                 className={inputClasses(fieldErrors?.email)}
-                placeholder="alex@shahzaib-autos.com"
+                placeholder="example@gmail.com"
                 type="email"
               />
               {fieldErrors?.email && (
@@ -102,7 +102,7 @@ export function CheckoutForm({
                 value={customerData.phone}
                 onChange={handleInputChange}
                 className={inputClasses(fieldErrors?.phone)}
-                placeholder="+92 300 0000000"
+                placeholder="123456789"
                 type="tel"
               />
               {fieldErrors?.phone && (
@@ -181,7 +181,7 @@ export function CheckoutForm({
                 value={customerData.vehicleModel}
                 onChange={handleInputChange}
                 className={inputClasses(fieldErrors?.vehicleModel)}
-                placeholder="Honda Civic RS 2024"
+                placeholder="vehicle model"
                 type="text"
               />
               {fieldErrors?.vehicleModel && (
@@ -227,7 +227,7 @@ export function CheckoutForm({
             value={customerData.address}
             onChange={handleInputChange}
             className={`mt-1 block w-full rounded-xl p-4 border ${fieldErrors?.address ? "border-red-400 bg-red-50 focus:ring-red-200" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:border-primary focus:ring-1 focus:ring-primary"} text-slate-900 dark:text-white outline-none transition-all shadow-sm resize-none`}
-            placeholder="Shop #1, Shahzaib Autos Block..."
+            placeholder="address"
             rows={3}
           ></textarea>
           {fieldErrors?.address && (
