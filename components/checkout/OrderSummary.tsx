@@ -1,3 +1,5 @@
+"use client";
+
 import type { ServiceDTO } from "@/lib/types/dto";
 import type { CartItem } from "@/lib/whatsapp";
 
@@ -7,6 +9,7 @@ interface OrderSummaryProps {
   selectedServices: Array<Pick<ServiceDTO, "id" | "title" | "price">>;
   onSubmit: () => void;
   isSubmitting: boolean;
+  pageError?: string;
 }
 
 export function OrderSummary({
@@ -15,6 +18,7 @@ export function OrderSummary({
   selectedServices,
   onSubmit,
   isSubmitting,
+  pageError,
 }: OrderSummaryProps) {
   const servicesTotal = selectedServices.reduce(
     (sum, service) => sum + service.price,
@@ -39,29 +43,24 @@ export function OrderSummary({
               Your cart and booking queue are empty.
             </div>
           ) : (
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
               {/* Cart Items */}
               {cartItems.map((item, idx) => (
                 <div
                   key={`${item.id}-${idx}`}
-                  className="flex gap-4 p-3 rounded-2xl bg-white/5 border border-white/10 items-center hover:bg-white/10 transition-colors"
+                  className="flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/10"
                 >
-                  <div className="size-16 bg-slate-800 rounded-xl overflow-hidden shrink-0 border border-white/5">
-                    <img
-                      alt={item.name}
-                      src={item.image}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-col justify-center flex-1">
-                    <p className="text-white font-bold leading-tight mb-1 text-sm">
+                  <div className="flex-1">
+                    <p className="text-white font-semibold text-sm mb-1">
                       {item.name}
                     </p>
-                    <p className="text-slate-400 text-xs mb-1">
-                      Qty: {item.quantity}
+                    <p className="text-slate-400 text-xs">
+                      Qty: {item.quantity} × Rs. {item.price.toLocaleString()}
                     </p>
-                    <p className="text-primary font-black text-sm">
-                      Rs. {item.price.toLocaleString()}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white font-bold text-base">
+                      Rs. {(item.price * item.quantity).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -71,19 +70,16 @@ export function OrderSummary({
               {selectedServices.map((service) => (
                 <div
                   key={service.id}
-                  className="flex gap-4 p-3 rounded-2xl bg-primary/10 border border-primary/20 items-center"
+                  className="flex justify-between items-center p-3 rounded-lg bg-primary/10 border border-primary/20"
                 >
-                  <div className="size-16 bg-primary/20 rounded-xl flex items-center justify-center shrink-0 border border-primary/30 text-primary">
-                    <span className="material-symbols-outlined">build</span>
-                  </div>
-                  <div className="flex flex-col justify-center flex-1">
-                    <p className="text-white font-bold leading-tight mb-1 text-sm">
+                  <div className="flex-1">
+                    <p className="text-white font-semibold text-sm mb-1">
                       {service.title}
                     </p>
-                    <p className="text-primary/80 text-xs mb-1">
-                      Service Booking
-                    </p>
-                    <p className="text-primary font-black text-sm">
+                    <p className="text-primary/80 text-xs">Service Booking</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-primary font-bold text-base">
                       Rs. {service.price.toLocaleString()}
                     </p>
                   </div>
@@ -121,6 +117,14 @@ export function OrderSummary({
         </div>
 
         <div className="space-y-8 mt-auto pt-8">
+          {/** Page-level error shown above CTA so user notices it near the action button */}
+          {/** This mirrors the left-column form error but places it close to the CTA */}
+          {/** pageError can be validation or submission error messages */}
+          {pageError && (
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+              {pageError}
+            </div>
+          )}
           {/* CTA */}
           <button
             onClick={onSubmit}

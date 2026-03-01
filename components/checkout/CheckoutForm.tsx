@@ -20,6 +20,7 @@ interface CheckoutFormProps {
   onServiceToggle: (id: string) => void;
   bookingDate: string;
   setBookingDate: (date: string) => void;
+  fieldErrors?: Record<string, string>;
 }
 
 export function CheckoutForm({
@@ -30,10 +31,9 @@ export function CheckoutForm({
   onServiceToggle,
   bookingDate,
   setBookingDate,
+  fieldErrors,
 }: CheckoutFormProps) {
-  const handleInputChange = (e: {
-    target: { name: string; value: string };
-  }) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCustomerData((prev) => ({ ...prev, [name]: value }));
   };
@@ -45,46 +45,72 @@ export function CheckoutForm({
         <h3 className="text-slate-900 dark:text-white text-xl font-black">
           Contact Information
         </h3>
+
         <div className="space-y-4">
           <div className="flex flex-col">
-            <label className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1">
+            <label
+              htmlFor="fullName"
+              className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
+            >
               Full Name *
             </label>
             <input
+              id="fullName"
               name="fullName"
               value={customerData.fullName}
               onChange={handleInputChange}
-              className="w-full h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all shadow-sm"
+              className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.fullName ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
               placeholder="Junaid Babar"
               type="text"
             />
+            {fieldErrors?.fullName && (
+              <p className="mt-2 text-xs text-red-600">
+                {fieldErrors.fullName}
+              </p>
+            )}
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1">
+              <label
+                htmlFor="email"
+                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
+              >
                 Email Address
               </label>
               <input
+                id="email"
                 name="email"
                 value={customerData.email}
                 onChange={handleInputChange}
-                className="w-full h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all shadow-sm"
+                className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.email ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
                 placeholder="alex@shahzaib-autos.com"
                 type="email"
               />
+              {fieldErrors?.email && (
+                <p className="mt-2 text-xs text-red-600">{fieldErrors.email}</p>
+              )}
             </div>
+
             <div className="flex flex-col">
-              <label className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1">
+              <label
+                htmlFor="phone"
+                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
+              >
                 Phone Number (For WhatsApp) *
               </label>
               <input
+                id="phone"
                 name="phone"
                 value={customerData.phone}
                 onChange={handleInputChange}
-                className="w-full h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all shadow-sm"
+                className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.phone ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
                 placeholder="+92 300 0000000"
                 type="tel"
               />
+              {fieldErrors?.phone && (
+                <p className="mt-2 text-xs text-red-600">{fieldErrors.phone}</p>
+              )}
             </div>
           </div>
         </div>
@@ -127,22 +153,37 @@ export function CheckoutForm({
         {selectedServiceIds.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 animate-in slide-in-from-top-4 fade-in duration-300">
             <div className="flex flex-col">
-              <label className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1">
+              <label
+                htmlFor="vehicleModel"
+                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
+              >
                 Vehicle Details
               </label>
               <input
+                id="vehicleModel"
                 name="vehicleModel"
                 value={customerData.vehicleModel}
                 onChange={handleInputChange}
-                className="w-full h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm"
+                className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.vehicleModel ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
                 placeholder="e.g. Honda Civic RS 2024"
               />
+              {fieldErrors?.vehicleModel && (
+                <p className="mt-2 text-xs text-red-600">
+                  {fieldErrors.vehicleModel}
+                </p>
+              )}
             </div>
+
             <div className="flex flex-col">
-              <label className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1">
+              <label
+                htmlFor="bookingDate"
+                className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
+              >
                 Preferred Booking Date
               </label>
               <input
+                id="bookingDate"
+                name="bookingDate"
                 type="date"
                 value={bookingDate}
                 onChange={(e) => setBookingDate(e.target.value)}
@@ -153,17 +194,24 @@ export function CheckoutForm({
         )}
 
         <div className="flex flex-col">
-          <label className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1">
+          <label
+            htmlFor="address"
+            className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-2 ml-1"
+          >
             Delivery / Service Address
           </label>
           <input
+            id="address"
             name="address"
             value={customerData.address}
             onChange={handleInputChange}
-            className="w-full h-14 px-4 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm"
+            className={`w-full h-14 px-4 rounded-xl border outline-none transition-all shadow-sm ${fieldErrors?.address ? "border-red-400 ring-2 ring-red-100 bg-red-50" : "border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:ring-2 focus:ring-primary"}`}
             placeholder="Shop #1, Shahzaib Autos..."
             type="text"
           />
+          {fieldErrors?.address && (
+            <p className="mt-2 text-xs text-red-600">{fieldErrors.address}</p>
+          )}
         </div>
       </section>
     </div>

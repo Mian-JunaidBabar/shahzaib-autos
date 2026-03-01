@@ -78,7 +78,7 @@ export default function Header() {
 
           {/* Cart Icon */}
           <Link
-            href="/checkout"
+            href="/cart"
             className="relative p-2 text-text-muted hover:text-text-primary transition-colors"
           >
             <ShoppingCart className="h-5 w-5" />
@@ -128,7 +128,7 @@ export default function Header() {
               </Link>
             ))}
             <Link
-              href="/checkout"
+              href="/cart"
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center gap-2 text-sm font-medium text-text-muted hover:text-text-primary transition-colors"
             >

@@ -26,6 +26,7 @@ export function CheckoutFlow({
   const [bookingDate, setBookingDate] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const selectedServices = availableServices
     .filter((s) => selectedServiceIds.includes(s.id))
@@ -46,8 +47,21 @@ export function CheckoutFlow({
 
   const handleSubmit = async () => {
     setError(null);
-    if (!customerData.fullName || !customerData.phone) {
-      setError("Please provide at least your Full Name and Phone Number.");
+    setFieldErrors({});
+    const newFieldErrors: Record<string, string> = {};
+    if (!customerData.fullName)
+      newFieldErrors.fullName = "Full Name is required.";
+    if (!customerData.phone) newFieldErrors.phone = "Phone number is required.";
+    if (customerData.email && !/^\S+@\S+\.\S+$/.test(customerData.email)) {
+      newFieldErrors.email = "Please enter a valid email address.";
+    }
+    if (items.length === 0 && selectedServices.length === 0) {
+      newFieldErrors.cart = "Your cart and booking queue are both empty.";
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      setError("Please fix the highlighted fields before continuing.");
       return;
     }
 
@@ -90,7 +104,7 @@ export function CheckoutFlow({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row flex-1 max-w-screen-xl mx-auto w-full">
+    <div className="flex flex-col lg:flex-row flex-1 max-w-xl mx-auto w-full">
       {/* Left Column: Forms */}
       <div className="flex-1 lg:pr-8 py-8 lg:py-12 bg-transparent">
         {error && (
@@ -106,17 +120,19 @@ export function CheckoutFlow({
           onServiceToggle={handleServiceToggle}
           bookingDate={bookingDate}
           setBookingDate={setBookingDate}
+          fieldErrors={fieldErrors}
         />
       </div>
 
       {/* Right Column: Sticky Summary */}
-      <div className="w-full lg:w-[420px]">
+      <div className="w-full lg:w-105">
         <OrderSummary
           cartItems={items}
           cartTotal={getTotal()}
           selectedServices={selectedServices}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
+          pageError={error ?? undefined}
         />
       </div>
     </div>
