@@ -9,8 +9,16 @@ export interface NewsletterWelcomeProps {
 
 export default function NewsletterWelcome({
   recipientEmail,
-  siteUrl = "https://shahzaibautos.com" || "https://shahzaib-autos.vercel.app",
+  siteUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://shahzaibautos.com" ||
+    "https://shahzaib-autos.vercel.app",
 }: NewsletterWelcomeProps) {
+  const unsubscribeLink = recipientEmail
+    ? `${siteUrl}/api/newsletter/unsubscribe?e=${encodeURIComponent(
+        Buffer.from(recipientEmail).toString("base64"),
+      )}`
+    : undefined;
+
   return (
     <Html>
       <Head />
@@ -44,8 +52,18 @@ export default function NewsletterWelcome({
             <Hr style={hr} />
 
             <Text style={small}>
-              You can unsubscribe anytime using the link in our emails.
+              You can unsubscribe anytime using the link below.
             </Text>
+            {unsubscribeLink && (
+              <Section style={buttonSection}>
+                <Button
+                  style={{ ...button, backgroundColor: "#ef4444" }}
+                  href={unsubscribeLink}
+                >
+                  Unsubscribe
+                </Button>
+              </Section>
+            )}
           </Section>
 
           <Section style={footer}>
