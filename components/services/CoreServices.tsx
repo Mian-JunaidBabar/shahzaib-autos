@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Service, Image as DbImage } from "@prisma/client";
+import Link from "next/link";
 
 type ServiceWithImages = Service & { images: DbImage[] };
 
@@ -59,7 +59,7 @@ export function CoreServices({
                   href={`/booking?service=${service.slug}`}
                   className="w-full"
                 >
-                  <button className="w-full h-12 rounded-xl bg-primary/10 hover:bg-primary dark:bg-primary/20 dark:hover:bg-primary text-primary hover:text-white text-sm font-bold transition-colors">
+                  <button className="w-full h-12 rounded-xl bg-primary/10 hover:bg-primary dark:bg-primary/20 dark:hover:bg-black text-primary hover:text-white text-sm font-bold transition-colors">
                     Book Now
                   </button>
                 </Link>

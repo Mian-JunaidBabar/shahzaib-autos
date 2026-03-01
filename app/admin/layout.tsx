@@ -4,7 +4,6 @@ import { ThemeProvider } from "@/context/theme-context";
 import { AuthProvider } from "@/context/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 
-
 export default function AdminRootLayout({
   children,
 }: Readonly<{
@@ -33,7 +32,7 @@ export default function AdminRootLayout({
       <ThemeProvider>
         <AuthProvider>{children}</AuthProvider>
       </ThemeProvider>
-      <Toaster richColors position="top-right" />
+      <Toaster position="top-right" />
     </div>
   );
 }

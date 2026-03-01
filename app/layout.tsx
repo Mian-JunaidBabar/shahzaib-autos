@@ -1,9 +1,9 @@
 import "./globals.css";
 
+import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/sonner";
 import { Inter } from "next/font/google";
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -38,7 +38,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} antialiased`}>
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster position="top-right" />
         <Analytics />
       </body>
     </html>

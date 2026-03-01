@@ -182,7 +182,7 @@ export function ProductCard({
           </div>
           <button
             onClick={handleAddToCart}
-            className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-primary dark:hover:bg-primary text-slate-900 dark:text-white hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 group/btn"
+            className="w-full py-3 bg-slate-100 dark:bg-slate-800 hover:bg-primary dark:hover:bg-black text-slate-900 dark:text-white hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 group/btn"
           >
             <span className="material-symbols-outlined text-[18px] group-hover/btn:scale-110 transition-transform">
               add_shopping_cart
