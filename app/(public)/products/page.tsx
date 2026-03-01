@@ -189,13 +189,13 @@ export default async function ProductsPage({
         {/* Main Content */}
         <div className="flex-1">
           {/* Top Bar - Search & Sorting */}
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-4 mb-4 sm:mb-0">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                 All Products
               </h2>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
               <ProductSearch />
               <SortDropdown currentSort={sp.sort} />
             </div>
