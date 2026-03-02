@@ -19,7 +19,7 @@ type GrowthData = {
 export function CustomerGrowthLineChart({ data }: { data: GrowthData[] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-slate-500">
+      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
         No growth data available.
       </div>
     );
@@ -28,8 +28,8 @@ export function CustomerGrowthLineChart({ data }: { data: GrowthData[] }) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 text-sm">
-          <p className="font-bold text-slate-900 dark:text-white mb-2">
+        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
+          <p className="font-bold text-popover-foreground mb-2">
             {format(new Date(label), "MMM do, yyyy")}
           </p>
           <div className="flex flex-col gap-1">

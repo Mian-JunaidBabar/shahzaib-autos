@@ -109,7 +109,7 @@ async function LowStockAlertsWrapper() {
 
   if (alerts.length === 0) {
     return (
-      <div className="text-slate-500 text-sm py-4">
+      <div className="text-muted-foreground text-sm py-4">
         All inventory levels are healthy.
       </div>
     );
@@ -121,13 +121,13 @@ async function LowStockAlertsWrapper() {
         <Link
           key={item.id}
           href={`/admin/dashboard/inventory/${item.id}`}
-          className="flex justify-between items-start hover:bg-slate-50 p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
+          className="flex justify-between items-start hover:bg-accent p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
         >
           <div className="flex flex-col">
-            <span className="font-bold text-slate-900 text-sm">
+            <span className="font-bold text-foreground text-sm">
               {item.name}
             </span>
-            <span className="text-xs text-slate-500 uppercase">
+            <span className="text-xs text-muted-foreground uppercase">
               SKU: {item.sku}
             </span>
           </div>
@@ -146,7 +146,9 @@ async function RecentActivityWrapper() {
 
   if (activities.length === 0) {
     return (
-      <div className="text-slate-500 text-sm py-4">No recent activity</div>
+      <div className="text-muted-foreground text-sm py-4">
+        No recent activity
+      </div>
     );
   }
 
@@ -173,8 +175,8 @@ async function RecentActivityWrapper() {
       default:
         return {
           icon: <Clock className="h-5 w-5" />,
-          bg: "bg-slate-100",
-          text: "text-slate-500",
+          bg: "bg-muted",
+          text: "text-muted-foreground",
         };
     }
   };
@@ -200,7 +202,7 @@ async function RecentActivityWrapper() {
           <Link
             key={activity.id}
             href={getActivityLink(activity.type, activity.id)}
-            className="flex items-center gap-4 hover:bg-slate-50 p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-4 hover:bg-accent p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
           >
             <div
               className={`p-2.5 rounded-full shrink-0 ${style.bg} ${style.text}`}
@@ -208,10 +210,10 @@ async function RecentActivityWrapper() {
               {style.icon}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-slate-900 text-sm truncate">
+              <p className="font-semibold text-foreground text-sm truncate">
                 {activity.title}
               </p>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-muted-foreground truncate">
                 {activity.subtitle}
               </p>
             </div>
@@ -236,15 +238,15 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const summary = await getDashboardSummary(dateRange);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20 -mx-4 md:-mx-8 -mt-4 md:-mt-8">
+    <div className="min-h-screen bg-background pb-20 -mx-4 md:-mx-8 -mt-4 md:-mt-8">
       {/* Top Header Row */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-4 md:px-8">
+      <div className="bg-card/80 backdrop-blur-md border-b px-4 py-4 md:px-8">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col">
-            <h1 className="text-xl md:text-2xl font-black text-blue-600 tracking-tight flex items-center gap-2">
+            <h1 className="text-xl md:text-2xl font-black text-primary tracking-tight flex items-center gap-2">
               Shahzaib Autos
             </h1>
-            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase mt-0.5">
               Command Center
             </p>
           </div>
@@ -261,12 +263,12 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
       <div className="max-w-5xl mx-auto space-y-6 mt-6 md:mt-8">
         {/* 4 Metrics Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="rounded-3xl border-0 shadow-sm bg-white">
+          <Card className="rounded-3xl border-0 shadow-sm">
             <CardContent className="p-5 flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 Total Revenue
               </span>
-              <span className="text-2xl font-black text-slate-900">
+              <span className="text-2xl font-black text-foreground">
                 ${summary.totalRevenue.toLocaleString()}
               </span>
               <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs mt-1">
@@ -277,12 +279,12 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           </Card>
 
           <Link href="/admin/dashboard/orders?status=NEW" className="block">
-            <Card className="rounded-3xl border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
+            <Card className="rounded-3xl border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardContent className="p-5 flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Pending Orders
                 </span>
-                <span className="text-2xl font-black text-slate-900">
+                <span className="text-2xl font-black text-foreground">
                   {summary.pendingOrders}
                 </span>
                 <div className="flex items-center gap-1 text-red-500 font-bold text-xs mt-1">
@@ -294,12 +296,12 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           </Link>
 
           <Link href="/admin/dashboard/bookings" className="block">
-            <Card className="rounded-3xl border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
+            <Card className="rounded-3xl border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardContent className="p-5 flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Active Bookings
                 </span>
-                <span className="text-2xl font-black text-slate-900">
+                <span className="text-2xl font-black text-foreground">
                   {summary.activeBookings}
                 </span>
                 <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs mt-1">
@@ -314,9 +316,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             href="/admin/dashboard/inventory?sort=low_stock"
             className="block"
           >
-            <Card className="rounded-3xl border-0 shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
+            <Card className="rounded-3xl border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardContent className="p-5 flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Low Stock
                 </span>
                 <span className="text-2xl font-black text-red-600">
@@ -335,11 +337,11 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             {/* Timeline Chart */}
-            <Card className="rounded-4xl border-0 shadow-sm bg-white overflow-hidden">
+            <Card className="rounded-4xl border-0 shadow-sm overflow-hidden">
               <CardHeader className="p-6 pb-2">
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col gap-1">
-                    <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
+                    <CardTitle className="text-sm font-bold m-0 p-0">
                       Revenue & Orders Timeline
                     </CardTitle>
                     <div className="flex items-baseline gap-2">
@@ -349,7 +351,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                           .toFixed(0)
                           .toLocaleString()}
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">
+                      <span className="text-xs text-muted-foreground font-medium">
                         / 30d
                       </span>
                     </div>
@@ -367,9 +369,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             </Card>
 
             {/* Booking Status Donut */}
-            <Card className="rounded-4xl border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm">
               <CardHeader className="p-6 pb-2 border-b-0">
-                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
+                <CardTitle className="text-sm font-bold m-0 p-0">
                   Booking Status Distribution
                 </CardTitle>
               </CardHeader>
@@ -381,9 +383,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             </Card>
 
             {/* Revenue Category Progress Bars */}
-            <Card className="rounded-4xl border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm">
               <CardHeader className="p-6 pb-2 border-b-0">
-                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
+                <CardTitle className="text-sm font-bold m-0 p-0">
                   Revenue by Category
                 </CardTitle>
               </CardHeader>
@@ -397,9 +399,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
 
           <div className="space-y-6">
             {/* Top Selling Products Bar Chart */}
-            <Card className="rounded-4xl border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm">
               <CardHeader className="p-6 pb-2 border-b-0">
-                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
+                <CardTitle className="text-sm font-bold m-0 p-0">
                   Top 5 Selling Products
                 </CardTitle>
               </CardHeader>
@@ -411,13 +413,13 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             </Card>
 
             {/* Critical Stock Alerts with striking visual frame */}
-            <Card className="rounded-3xl border-0 shadow-sm bg-white overflow-hidden relative">
+            <Card className="rounded-3xl border-0 shadow-sm overflow-hidden relative">
               <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#fb1034]" />
               <CardHeader className="p-6 pb-2 border-b-0 flex flex-row items-center gap-3">
                 <div className="p-1.5 bg-red-100 text-red-600 rounded-md">
                   <LayoutGrid className="w-4 h-4" />
                 </div>
-                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
+                <CardTitle className="text-sm font-bold m-0 p-0">
                   Critical Stock Alerts
                 </CardTitle>
               </CardHeader>
@@ -429,9 +431,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             </Card>
 
             {/* Recent Activity */}
-            <Card className="rounded-4xl border-0 shadow-sm bg-white">
+            <Card className="rounded-4xl border-0 shadow-sm">
               <CardHeader className="p-6 pb-2 border-b-0">
-                <CardTitle className="text-sm font-bold m-0 p-0 text-slate-900">
+                <CardTitle className="text-sm font-bold m-0 p-0">
                   Recent Activity Log
                 </CardTitle>
               </CardHeader>

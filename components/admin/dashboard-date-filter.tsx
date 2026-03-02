@@ -2,13 +2,21 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { CalendarIcon } from "lucide-react";
-import { format, subDays, startOfDay, endOfDay, isEqual } from "date-fns";
+import { CalendarIcon, ArrowRight } from "lucide-react";
+import {
+  format,
+  subDays,
+  startOfDay,
+  endOfDay,
+  isEqual,
+  startOfMonth,
+} from "date-fns";
 import type { DateRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 import {
   Popover,
   PopoverContent,
@@ -42,6 +50,13 @@ const presets = [
     label: "Last 30 Days",
     getValue: () => ({
       from: startOfDay(subDays(new Date(), 29)),
+      to: endOfDay(new Date()),
+    }),
+  },
+  {
+    label: "This Month",
+    getValue: () => ({
+      from: startOfMonth(new Date()),
       to: endOfDay(new Date()),
     }),
   },
@@ -132,60 +147,50 @@ export function DashboardDateFilter({ className }: DashboardDateFilterProps) {
             id="date"
             variant="outline"
             className={cn(
-              "w-65 justify-start text-left font-normal bg-white border-slate-200 hover:bg-slate-50",
+              "w-full sm:w-[400px] justify-start text-left font-normal gap-2",
               !date && "text-muted-foreground",
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Start</span>
-                <span className="text-sm font-medium text-slate-800">
-                  {date?.from ? format(date.from, "LLL dd, y") : "—"}
-                </span>
-              </div>
-
-              <span className="h-5 w-px bg-slate-200 mx-2" aria-hidden />
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">End</span>
-                <span className="text-sm font-medium text-slate-800">
-                  {date?.to ? format(date.to, "LLL dd, y") : "—"}
-                </span>
-              </div>
+            <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 flex-1">
+              <span className="font-medium">
+                {date?.from ? format(date.from, "MMM dd, yyyy") : "Start date"}
+              </span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="font-medium">
+                {date?.to ? format(date.to, "MMM dd, yyyy") : "End date"}
+              </span>
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 bg-white" align="start">
+        <PopoverContent className="w-auto p-0" align="start">
           <div className="flex">
-            {/* Presets sidebar */}
-            <div className="flex flex-col gap-3 p-3 border-r border-slate-200 min-w-[160px]">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Quick Select
+            {/* Quick Filters Sidebar */}
+            <div className="p-4 min-w-[160px]">
+              <p className="text-xs font-semibold text-muted-foreground mb-3">
+                Quick Filters
               </p>
               <div className="flex flex-col gap-1">
                 {presets.map((preset) => (
                   <Button
                     key={preset.label}
-                    variant="ghost"
+                    variant={
+                      activePreset === preset.label ? "default" : "ghost"
+                    }
                     size="sm"
-                    className={cn(
-                      "justify-start text-sm",
-                      activePreset === preset.label &&
-                        "bg-blue-50 text-blue-600 font-medium",
-                    )}
+                    className="justify-start text-sm font-medium"
                     onClick={() => handlePresetClick(preset)}
                   >
                     {preset.label}
                   </Button>
                 ))}
               </div>
-              <div className="border-t border-slate-100 pt-2 mt-2">
-                <p className="text-xs text-slate-400">Custom Range</p>
-              </div>
             </div>
+
+            <Separator orientation="vertical" className="h-auto" />
+
             {/* Calendar */}
-            <div className="p-3">
+            <div className="p-4">
               <Calendar
                 initialFocus
                 mode="range"

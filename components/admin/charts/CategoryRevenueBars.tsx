@@ -18,7 +18,7 @@ const CATEGORY_COLORS = [
 export function CategoryRevenueBars({ data }: { data: CategoryData[] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center p-8 text-slate-500 text-sm">
+      <div className="flex items-center justify-center p-8 text-muted-foreground text-sm">
         No category revenue data available.
       </div>
     );
@@ -36,14 +36,10 @@ export function CategoryRevenueBars({ data }: { data: CategoryData[] }) {
         return (
           <div key={item.name} className="flex flex-col gap-2">
             <div className="flex justify-between items-center text-sm font-medium">
-              <span className="text-slate-700 dark:text-slate-300 capitalize">
-                {item.name}
-              </span>
-              <span className="text-slate-500 dark:text-slate-400">
-                {percentage}%
-              </span>
+              <span className="text-foreground capitalize">{item.name}</span>
+              <span className="text-muted-foreground">{percentage}%</span>
             </div>
-            <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full ${colorClass} rounded-full transition-all duration-1000 ease-out`}
                 style={{ width: `${percentage}%` }}

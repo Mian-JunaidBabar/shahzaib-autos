@@ -26,7 +26,7 @@ const CATEGORY_COLORS = [
 export function CategoryRevenuePieChart({ data }: { data: CategoryData[] }) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-slate-500">
+      <div className="flex items-center justify-center h-[300px] text-muted-foreground">
         No category revenue data available.
       </div>
     );
@@ -37,15 +37,15 @@ export function CategoryRevenuePieChart({ data }: { data: CategoryData[] }) {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 text-sm flex items-center gap-2">
+        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm flex items-center gap-2">
           <div
             className="w-3 h-3 rounded-full"
             style={{ backgroundColor: payload[0].payload.fill }}
           />
-          <span className="font-bold text-slate-900 dark:text-white capitalize">
+          <span className="font-bold text-popover-foreground capitalize">
             {payload[0].name}:
           </span>
-          <span className="font-black text-slate-700 dark:text-slate-200">
+          <span className="font-black text-popover-foreground">
             {formatCurrency(payload[0].value)}
           </span>
         </div>
@@ -80,7 +80,7 @@ export function CategoryRevenuePieChart({ data }: { data: CategoryData[] }) {
             height={36}
             iconType="circle"
             formatter={(value) => (
-              <span className="text-slate-600 dark:text-slate-300 ml-1 font-medium capitalize">
+              <span className="text-muted-foreground ml-1 font-medium capitalize">
                 {value}
               </span>
             )}

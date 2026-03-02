@@ -23,7 +23,7 @@ export function TopProductsBarChart({ data }: { data: ProductData[] }) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-75 text-slate-500">
+      <div className="flex items-center justify-center h-75 text-muted-foreground">
         No product data available.
       </div>
     );
@@ -38,14 +38,16 @@ export function TopProductsBarChart({ data }: { data: ProductData[] }) {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 text-sm">
-          <p className="font-bold text-slate-900 dark:text-white mb-1">
+        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
+          <p className="font-bold text-popover-foreground mb-1">
             {payload[0].payload.name}
           </p>
           <span className="text-primary font-black">
             Sold: {payload[0].value} units
           </span>
-          <p className="text-xs text-slate-500 mt-1">Click to view details</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Click to view details
+          </p>
         </div>
       );
     }
