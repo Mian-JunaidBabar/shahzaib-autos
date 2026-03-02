@@ -137,42 +137,52 @@ export function DashboardDateFilter({ className }: DashboardDateFilterProps) {
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(date.from, "LLL dd, y")
-              )
-            ) : (
-              <span>Pick a date range</span>
-            )}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Start</span>
+                <span className="text-sm font-medium text-slate-800">
+                  {date?.from ? format(date.from, "LLL dd, y") : "—"}
+                </span>
+              </div>
+
+              <span className="h-5 w-px bg-slate-200 mx-2" aria-hidden />
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">End</span>
+                <span className="text-sm font-medium text-slate-800">
+                  {date?.to ? format(date.to, "LLL dd, y") : "—"}
+                </span>
+              </div>
+            </div>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-white" align="start">
           <div className="flex">
             {/* Presets sidebar */}
-            <div className="flex flex-col gap-1 p-3 border-r border-slate-200">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            <div className="flex flex-col gap-3 p-3 border-r border-slate-200 min-w-[160px]">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 Quick Select
               </p>
-              {presets.map((preset) => (
-                <Button
-                  key={preset.label}
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "justify-start text-sm",
-                    activePreset === preset.label &&
-                      "bg-blue-50 text-blue-600 font-medium",
-                  )}
-                  onClick={() => handlePresetClick(preset)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
+              <div className="flex flex-col gap-1">
+                {presets.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "justify-start text-sm",
+                      activePreset === preset.label &&
+                        "bg-blue-50 text-blue-600 font-medium",
+                    )}
+                    onClick={() => handlePresetClick(preset)}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="border-t border-slate-100 pt-2 mt-2">
+                <p className="text-xs text-slate-400">Custom Range</p>
+              </div>
             </div>
             {/* Calendar */}
             <div className="p-3">

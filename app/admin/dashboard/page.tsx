@@ -20,7 +20,7 @@ import {
   Clock,
   LayoutGrid,
 } from "lucide-react";
-import { startOfDay, endOfDay, subDays } from "date-fns";
+import { startOfDay, endOfDay, subDays, format } from "date-fns";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -41,6 +41,7 @@ import { BookingStatusDonut } from "@/components/admin/charts/BookingStatusDonut
 import { CategoryRevenueBars } from "@/components/admin/charts/CategoryRevenueBars";
 import { ChartSkeleton } from "@/components/admin/charts/chart-skeleton";
 import { DashboardDateFilter } from "@/components/admin/dashboard-date-filter";
+import ExportButton from "@/components/admin/export-button";
 
 export const dynamic = "force-dynamic";
 
@@ -249,13 +250,10 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           </div>
           <div className="flex items-center gap-3">
             <DashboardDateFilter />
-            <Button
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-10 rounded-lg px-4 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]"
-            >
-              <Download className="w-4 h-4" />
-              <span className="font-semibold">Export</span>
-            </Button>
+            <ExportButton
+              from={format(dateRange.startDate, "yyyy-MM-dd")}
+              to={format(dateRange.endDate, "yyyy-MM-dd")}
+            />
           </div>
         </div>
       </div>
