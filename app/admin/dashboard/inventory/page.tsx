@@ -326,8 +326,16 @@ export default function InventoryPage() {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return `PKR ${(price / 100).toLocaleString()}`;
+  const formatPrice = (price?: number | null) => {
+    if (price == null || !isFinite(Number(price))) return "0";
+    const rupees = Number(price) / 100;
+    // show only the numeric price without currency label
+    return rupees % 1 === 0
+      ? rupees.toLocaleString()
+      : rupees.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
   };
 
   const getStockStatus = (product: Product) => {
@@ -510,9 +518,8 @@ export default function InventoryPage() {
                 </TableHead>
                 <TableHead className="w-16">Image</TableHead>
                 <TableHead>Product</TableHead>
-                <TableHead className="hidden md:table-cell">SKU</TableHead>
                 <TableHead className="hidden lg:table-cell">Category</TableHead>
-                <TableHead>Price</TableHead>
+                {/* Price column removed */}
                 <TableHead>Stock</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -521,7 +528,7 @@ export default function InventoryPage() {
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <Package className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                     <p className="text-muted-foreground">No products found</p>
                   </TableCell>
@@ -566,10 +573,15 @@ export default function InventoryPage() {
                           )}
                         </div>
                       </TableCell>
-                      {/* Product Name Column */}
+                      {/* Product Name Column (reduced size + truncate) */}
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <p className="font-medium">{product.name}</p>
+                          <p
+                            className="font-medium text-sm truncate"
+                            title={product.name}
+                          >
+                            {product.name}
+                          </p>
                           {product.badge && (
                             <Badge
                               variant="outline"
@@ -585,12 +597,7 @@ export default function InventoryPage() {
                           )}
                         </div>
                       </TableCell>
-                      {/* SKU Column - hidden on mobile */}
-                      <TableCell className="hidden md:table-cell">
-                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                          {product.sku}
-                        </code>
-                      </TableCell>
+                      {/* SKU removed per request */}
                       {/* Category Column - hidden on small screens */}
                       <TableCell className="hidden lg:table-cell">
                         {product.category ? (
@@ -602,25 +609,7 @@ export default function InventoryPage() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      {/* Price Column with sale price support */}
-                      <TableCell>
-                        <div className="flex flex-col">
-                          {product.salePrice ? (
-                            <>
-                              <span className="font-medium text-green-600">
-                                {formatPrice(product.salePrice)}
-                              </span>
-                              <span className="text-xs text-muted-foreground line-through">
-                                {formatPrice(product.price)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="font-medium">
-                              {formatPrice(product.price)}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
+                      {/* Price column removed per request */}
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Badge className={stockStatus.color}>
