@@ -16,6 +16,34 @@ type GrowthData = {
   newCustomers: number;
 };
 
+type TooltipPayload = {
+  value: number;
+};
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+};
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length && label) {
+    return (
+      <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
+        <p className="font-bold text-popover-foreground mb-2">
+          {format(new Date(label), "MMM do, yyyy")}
+        </p>
+        <div className="flex flex-col gap-1">
+          <span className="text-emerald-500 font-black">
+            New Signups: {payload[0].value}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function CustomerGrowthLineChart({ data }: { data: GrowthData[] }) {
   if (!data || data.length === 0) {
     return (
@@ -24,24 +52,6 @@ export function CustomerGrowthLineChart({ data }: { data: GrowthData[] }) {
       </div>
     );
   }
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
-          <p className="font-bold text-popover-foreground mb-2">
-            {format(new Date(label), "MMM do, yyyy")}
-          </p>
-          <div className="flex flex-col gap-1">
-            <span className="text-emerald-500 font-black">
-              New Signups: {payload[0].value}
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="h-[300px] w-full text-xs">

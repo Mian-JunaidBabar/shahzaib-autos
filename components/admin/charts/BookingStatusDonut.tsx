@@ -14,6 +14,39 @@ type StatusData = {
   value: number;
 };
 
+type TooltipPayload = {
+  name: string;
+  value: number;
+  payload: {
+    fill: string;
+  };
+};
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayload[];
+};
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm flex items-center gap-2">
+        <div
+          className="w-3 h-3 rounded-full"
+          style={{ backgroundColor: payload[0].payload.fill }}
+        />
+        <span className="font-bold text-popover-foreground">
+          {payload[0].name}:
+        </span>
+        <span className="font-black text-popover-foreground">
+          {payload[0].value}
+        </span>
+      </div>
+    );
+  }
+  return null;
+};
+
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "#eab308", // Yellow (amber-500)
   CONFIRMED: "#2563eb", // Blue (blue-600)
@@ -31,26 +64,6 @@ export function BookingStatusDonut({ data }: { data: StatusData[] }) {
       </div>
     );
   }
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: payload[0].payload.fill }}
-          />
-          <span className="font-bold text-popover-foreground">
-            {payload[0].name}:
-          </span>
-          <span className="font-black text-popover-foreground">
-            {payload[0].value}
-          </span>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="h-[300px] w-full text-xs flex items-center justify-center">

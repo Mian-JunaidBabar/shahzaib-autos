@@ -18,6 +18,37 @@ type ProductData = {
   productId: string;
 };
 
+type TooltipPayload = {
+  value: number;
+  payload: {
+    name: string;
+  };
+};
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayload[];
+};
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
+        <p className="font-bold text-popover-foreground mb-1">
+          {payload[0].payload.name}
+        </p>
+        <span className="text-primary font-black">
+          Sold: {payload[0].value} units
+        </span>
+        <p className="text-xs text-muted-foreground mt-1">
+          Click to view details
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function TopProductsBarChart({ data }: { data: ProductData[] }) {
   const router = useRouter();
 
@@ -33,25 +64,6 @@ export function TopProductsBarChart({ data }: { data: ProductData[] }) {
     if (productData.productId) {
       router.push(`/admin/dashboard/inventory/${productData.productId}`);
     }
-  };
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
-          <p className="font-bold text-popover-foreground mb-1">
-            {payload[0].payload.name}
-          </p>
-          <span className="text-primary font-black">
-            Sold: {payload[0].value} units
-          </span>
-          <p className="text-xs text-muted-foreground mt-1">
-            Click to view details
-          </p>
-        </div>
-      );
-    }
-    return null;
   };
 
   return (

@@ -1,8 +1,8 @@
 import { ProductGridWithLoadMore } from "@/components/products/ProductGridWithLoadMore";
+import { getStoreProductsWithCount } from "@/lib/services/product.service";
 import ProductGridClient from "@/components/products/ProductGridClient";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { SortDropdown } from "@/components/products/SortDropdown";
-import { getStoreProducts } from "@/lib/services/product.service";
 import ProductSearch from "@/components/products/ProductSearch";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -70,8 +70,8 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
     sort: sort || undefined,
   };
 
-  // Fetch products using the optimized service
-  const products = await getStoreProducts({
+  // Fetch products along with the total count
+  const { products, count: totalCount } = await getStoreProductsWithCount({
     ...parsedFilters,
     limit: 12,
     offset: 0,
@@ -117,8 +117,14 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
           {mappedProducts.length > 0 ? (
             <>
               Showing{" "}
-              <span className="font-semibold">{mappedProducts.length}</span>{" "}
-              {mappedProducts.length === 1 ? "product" : "products"}
+              <span className="font-semibold">{mappedProducts.length}</span>
+              {totalCount > mappedProducts.length && (
+                <>
+                  {" "}
+                  of <span className="font-semibold">{totalCount}</span>
+                </>
+              )}{" "}
+              {totalCount === 1 ? "product" : "products"}
               {(q || categories || tags || min || max) && (
                 <span className="ml-1 text-slate-500">with active filters</span>
               )}
@@ -137,6 +143,7 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
           initialProducts={mappedProducts}
           initialLimit={12}
           filters={parsedFilters}
+          totalCount={totalCount}
         />
       )}
     </>

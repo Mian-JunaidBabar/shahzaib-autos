@@ -15,6 +15,34 @@ type ServiceData = {
   bookings: number;
 };
 
+type TooltipPayload = {
+  value: number;
+  payload: {
+    name: string;
+  };
+};
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayload[];
+};
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
+        <p className="font-bold text-popover-foreground capitalize mb-1">
+          {payload[0].payload.name?.replace(/_/g, " ")}
+        </p>
+        <span className="text-indigo-500 font-black">
+          Bookings: {payload[0].value}
+        </span>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function TopServicesBarChart({ data }: { data: ServiceData[] }) {
   if (!data || data.length === 0) {
     return (
@@ -23,22 +51,6 @@ export function TopServicesBarChart({ data }: { data: ServiceData[] }) {
       </div>
     );
   }
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
-          <p className="font-bold text-popover-foreground capitalize mb-1">
-            {payload[0].payload.name?.replace(/_/g, " ")}
-          </p>
-          <span className="text-indigo-500 font-black">
-            Bookings: {payload[0].value}
-          </span>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="h-[300px] w-full text-xs">

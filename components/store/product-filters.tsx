@@ -76,6 +76,7 @@ function FilterContent({
           <div>
             <label className="text-sm text-muted-foreground">Min</label>
             <select
+              aria-label="Minimum price filter"
               className="w-full mt-1 p-2 border rounded-md bg-background"
               value={currentMinPrice}
               onChange={(e) => updateFilters({ minPrice: e.target.value })}
@@ -91,6 +92,7 @@ function FilterContent({
           <div>
             <label className="text-sm text-muted-foreground">Max</label>
             <select
+              aria-label="Maximum price filter"
               className="w-full mt-1 p-2 border rounded-md bg-background"
               value={currentMaxPrice}
               onChange={(e) => updateFilters({ maxPrice: e.target.value })}
@@ -255,7 +257,10 @@ export function ActiveFilters() {
       {query && (
         <Badge variant="secondary" className="gap-1">
           Search: {query}
-          <button onClick={() => removeFilter("query")}>
+          <button
+            aria-label="Remove search filter"
+            onClick={() => removeFilter("query")}
+          >
             <X className="h-3 w-3" />
           </button>
         </Badge>
@@ -264,7 +269,10 @@ export function ActiveFilters() {
       {category && (
         <Badge variant="secondary" className="gap-1">
           {category}
-          <button onClick={() => removeFilter("category")}>
+          <button
+            aria-label="Remove category filter"
+            onClick={() => removeFilter("category")}
+          >
             <X className="h-3 w-3" />
           </button>
         </Badge>
@@ -273,7 +281,10 @@ export function ActiveFilters() {
       {minPrice && (
         <Badge variant="secondary" className="gap-1">
           Min: {formatPrice(minPrice)}
-          <button onClick={() => removeFilter("minPrice")}>
+          <button
+            aria-label="Remove minimum price filter"
+            onClick={() => removeFilter("minPrice")}
+          >
             <X className="h-3 w-3" />
           </button>
         </Badge>
@@ -282,7 +293,10 @@ export function ActiveFilters() {
       {maxPrice && (
         <Badge variant="secondary" className="gap-1">
           Max: {formatPrice(maxPrice)}
-          <button onClick={() => removeFilter("maxPrice")}>
+          <button
+            aria-label="Remove maximum price filter"
+            onClick={() => removeFilter("maxPrice")}
+          >
             <X className="h-3 w-3" />
           </button>
         </Badge>

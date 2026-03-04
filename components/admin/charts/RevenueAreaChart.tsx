@@ -17,6 +17,42 @@ type RevenueData = {
   orders: number;
 };
 
+type TooltipPayload = {
+  value: number;
+  payload: {
+    orders: number;
+  };
+};
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+};
+
+const formatCurrency = (value: number) => `Rs. ${value.toLocaleString()}`;
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length && label) {
+    return (
+      <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
+        <p className="font-bold text-popover-foreground mb-2">
+          {format(new Date(label), "MMM do, yyyy")}
+        </p>
+        <div className="flex flex-col gap-1">
+          <span className="text-primary font-black">
+            Revenue: {formatCurrency(payload[0].value)}
+          </span>
+          <span className="text-muted-foreground font-medium">
+            Orders: {payload[0].payload.orders}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function RevenueAreaChart({ data }: { data: RevenueData[] }) {
   if (!data || data.length === 0) {
     return (
@@ -25,29 +61,6 @@ export function RevenueAreaChart({ data }: { data: RevenueData[] }) {
       </div>
     );
   }
-
-  const formatCurrency = (value: number) => `Rs. ${value.toLocaleString()}`;
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm">
-          <p className="font-bold text-popover-foreground mb-2">
-            {format(new Date(label), "MMM do, yyyy")}
-          </p>
-          <div className="flex flex-col gap-1">
-            <span className="text-primary font-black">
-              Revenue: {formatCurrency(payload[0].value)}
-            </span>
-            <span className="text-muted-foreground font-medium">
-              Orders: {payload[0].payload.orders}
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="h-[300px] w-full text-xs">

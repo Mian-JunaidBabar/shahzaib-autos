@@ -92,7 +92,7 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
       let dbOrder = null;
       let dbBooking = null;
       let totalCents = 0;
-      let bookingServiceString = "";
+      const bookingServiceString = "";
       let servicesSubtotal = 0;
 
       // 2. Create Order & Items if cartItems exist

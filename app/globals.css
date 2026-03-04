@@ -313,3 +313,10 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--foreground);
 }
+/* Hero section background image */
+.hero-background {
+  background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD84j0AQUZkjO39LDhW77lXLcTCp6yn3yZw284iyVWYcE65F721am7cdtIm0J7ealTuLRiVULJXUcpKUZ7pIPhnrjcB8c9naxM8KKiMwOYz3RfzW2YEfvjOSlr6Mfuyd8yJSLw7HAA6x9ZdwcvG1qkbvdCpFyhzX4MwhXA5c3qMQIkqI0nQ4VSkbzuuG1Qri0GaSOqoCTw8ezlx0wBp_5rVvZByM4J8pLvOJ6YD7usAHWBl3gJChabYLoKXRYCfUYSOZJcNg7S0v0zk");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}

@@ -19,10 +19,27 @@ type ProductCardProps = {
   category?: string;
 };
 
+type StoreFilters = {
+  q?: string;
+  categories?: string[];
+  tags?: string[];
+  min?: number;
+  max?: number;
+  sort?: string;
+  limit?: number;
+  offset?: number;
+};
+
 type Props = {
   initialProducts: ProductCardProps[];
   initialLimit?: number;
-  filters?: any;
+  filters?: StoreFilters;
+  /**
+   * Total number of products matching the filters. When provided we can
+   * determine whether there are more pages immediately and hide the load
+   * button correctly when the total is equal to the initial batch.
+   */
+  totalCount?: number;
 };
 
 const PRODUCTS_PER_LOAD = 12;
@@ -31,11 +48,14 @@ export function ProductGridWithLoadMore({
   initialProducts,
   initialLimit = 12,
   filters = {},
+  totalCount,
 }: Props) {
   const [products, setProducts] = useState(initialProducts);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(
-    initialProducts.length >= initialLimit,
+    typeof totalCount === "number"
+      ? initialProducts.length < totalCount
+      : initialProducts.length >= initialLimit,
   );
 
   const loadMore = async () => {
@@ -48,11 +68,19 @@ export function ProductGridWithLoadMore({
       });
 
       if (result.success && result.data) {
-        setProducts((prev) => [...prev, ...result.data.map(mapProductToCard)]);
+        const newItems = result.data.map(mapProductToCard);
+        const newList = [...products, ...newItems];
+        setProducts(newList);
 
-        // Hide button if fewer products came back than requested
-        if (result.data.length < initialLimit) {
-          setHasMore(false);
+        if (typeof totalCount === "number") {
+          if (newList.length >= totalCount) {
+            setHasMore(false);
+          }
+        } else {
+          // Hide button if fewer products came back than requested
+          if (result.data.length < initialLimit) {
+            setHasMore(false);
+          }
         }
       } else {
         console.error("Failed to load more products:", result.error);
@@ -66,7 +94,15 @@ export function ProductGridWithLoadMore({
   };
 
   // Helper function to map Prisma payload to ProductCardProps structure
-  const mapProductToCard = (product: any): ProductCardProps => {
+  const mapProductToCard = (product: {
+    slug: string;
+    name: string;
+    price: number;
+    salePrice: number | null;
+    images: { secureUrl: string }[];
+    badge?: { name: string } | null;
+    category?: string | null;
+  }): ProductCardProps => {
     const currentPrice = (product.salePrice || product.price) / 100;
     const originalPrice = product.salePrice ? product.price / 100 : undefined;
     let badgeType: "NEW" | "SALE" | undefined = undefined;

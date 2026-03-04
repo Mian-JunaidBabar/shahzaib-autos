@@ -14,6 +14,41 @@ type CategoryData = {
   value: number;
 };
 
+type TooltipPayload = {
+  name: string;
+  value: number;
+  payload: {
+    fill: string;
+  };
+};
+
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: TooltipPayload[];
+};
+
+const formatCurrency = (value: number) => `Rs. ${value.toLocaleString()}`;
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm flex items-center gap-2">
+        <div
+          className="w-3 h-3 rounded-full"
+          style={{ backgroundColor: payload[0].payload.fill }}
+        />
+        <span className="font-bold text-popover-foreground capitalize">
+          {payload[0].name}:
+        </span>
+        <span className="font-black text-popover-foreground">
+          {formatCurrency(payload[0].value)}
+        </span>
+      </div>
+    );
+  }
+  return null;
+};
+
 const CATEGORY_COLORS = [
   "#6366f1",
   "#0ea5e9",
@@ -31,28 +66,6 @@ export function CategoryRevenuePieChart({ data }: { data: CategoryData[] }) {
       </div>
     );
   }
-
-  const formatCurrency = (value: number) => `Rs. ${value.toLocaleString()}`;
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border bg-popover p-3 shadow-lg text-sm flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: payload[0].payload.fill }}
-          />
-          <span className="font-bold text-popover-foreground capitalize">
-            {payload[0].name}:
-          </span>
-          <span className="font-black text-popover-foreground">
-            {formatCurrency(payload[0].value)}
-          </span>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="h-[300px] w-full text-xs flex flex-col items-center justify-center">

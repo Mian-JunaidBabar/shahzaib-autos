@@ -119,13 +119,78 @@ export async function getTopTags(limit: number = 3) {
  * Advanced product filtering for e-commerce storefront
  * Supports: search, multi-category, multi-tag, price range, sorting
  */
-export async function getStoreProducts(filters: StoreFilters = {}) {
-  const { q, categories, tags, min, max, sort, limit, offset } = filters;
 
+// Helper to build a Prisma where object from StoreFilters
+function buildStoreWhere(filters: StoreFilters = {}): Prisma.ProductWhereInput {
+  const { q, categories, tags, min, max } = filters;
   const where: Prisma.ProductWhereInput = {
     isActive: true,
     isArchived: false,
   };
+
+  if (q && q.trim()) {
+    where.OR = [
+      { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+      { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+    ];
+  }
+
+  if (categories && categories.length > 0) {
+    if (categories.length === 1) {
+      where.category = {
+        contains: categories[0],
+        mode: Prisma.QueryMode.insensitive,
+      };
+    } else {
+      where.OR = [
+        ...(where.OR || []),
+        ...categories.map((cat) => ({
+          category: { contains: cat, mode: Prisma.QueryMode.insensitive },
+        })),
+      ];
+    }
+  }
+
+  if (tags && tags.length > 0) {
+    where.badgeId = { in: tags };
+  }
+
+  // Price range filters
+  const priceFilters: Prisma.ProductWhereInput[] = [];
+  if (min !== undefined) {
+    const minCents = Math.round(min * 100);
+    priceFilters.push({
+      OR: [
+        { salePrice: { gte: minCents } },
+        { salePrice: null, price: { gte: minCents } },
+      ],
+    });
+  }
+  if (max !== undefined) {
+    const maxCents = Math.round(max * 100);
+    priceFilters.push({
+      OR: [
+        { salePrice: { lte: maxCents } },
+        { salePrice: null, price: { lte: maxCents } },
+      ],
+    });
+  }
+  if (priceFilters.length > 0) {
+    const existingAnd: Prisma.ProductWhereInput[] = Array.isArray(where.AND)
+      ? (where.AND as Prisma.ProductWhereInput[])
+      : where.AND
+        ? [where.AND as Prisma.ProductWhereInput]
+        : [];
+    where.AND = [...existingAnd, ...priceFilters];
+  }
+
+  return where;
+}
+
+export async function getStoreProducts(filters: StoreFilters = {}) {
+  const { q, categories, tags, min, max, sort, limit, offset } = filters;
+
+  const where: Prisma.ProductWhereInput = buildStoreWhere(filters);
 
   // Search: name OR description
   if (q && q.trim()) {
@@ -210,6 +275,28 @@ export async function getStoreProducts(filters: StoreFilters = {}) {
   });
 
   return products;
+}
+
+// returns both list and total count according to filters (ignores limit/offset for count)
+export async function getStoreProductsWithCount(filters: StoreFilters = {}) {
+  const { limit, offset } = filters;
+  const where = buildStoreWhere(filters);
+  const [products, count] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy:
+        filters.sort === "price-low"
+          ? { price: "asc" }
+          : filters.sort === "price-high"
+            ? { price: "desc" }
+            : { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+      include: { images: { orderBy: { sortOrder: "asc" } }, badge: true },
+    }),
+    prisma.product.count({ where }),
+  ]);
+  return { products, count };
 }
 
 /**
