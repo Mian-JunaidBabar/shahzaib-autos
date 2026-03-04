@@ -10,11 +10,21 @@ export const metadata: Metadata = {
 
 export const revalidate = 0; // Don't cache checkout
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: { service?: string };
+}) {
   // Fetch active services to show as upsells in the checkout flow
   const services = await prisma.service.findMany({
     where: { isActive: true },
   });
+
+  // Find the pre-selected service if provided in URL params
+  const preSelectedServiceSlug = searchParams.service;
+  const preSelectedService = preSelectedServiceSlug
+    ? services.find((s) => s.slug === preSelectedServiceSlug)
+    : null;
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
@@ -32,7 +42,10 @@ export default async function CheckoutPage() {
       </div>
 
       <main className="flex flex-col lg:flex-row flex-1 max-w-full mx-auto w-full">
-        <CheckoutFlow availableServices={services} />
+        <CheckoutFlow
+          availableServices={services}
+          preSelectedServiceId={preSelectedService?.id}
+        />
       </main>
     </div>
   );

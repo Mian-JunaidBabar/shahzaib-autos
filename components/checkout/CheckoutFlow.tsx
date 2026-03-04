@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/context/cart-context";
 import { createUnifiedOrderAction } from "@/app/actions/checkoutActions";
 import { CheckoutForm } from "./CheckoutForm";
@@ -9,8 +9,10 @@ import { Service } from "@prisma/client";
 
 export function CheckoutFlow({
   availableServices,
+  preSelectedServiceId,
 }: {
   availableServices: Service[];
+  preSelectedServiceId?: string;
 }) {
   const { items, getTotal, clearCart } = useCart();
 
@@ -27,6 +29,16 @@ export function CheckoutFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Auto-select service from URL parameter on mount
+  useEffect(() => {
+    if (
+      preSelectedServiceId &&
+      !selectedServiceIds.includes(preSelectedServiceId)
+    ) {
+      setSelectedServiceIds([preSelectedServiceId]);
+    }
+  }, [preSelectedServiceId]);
 
   const selectedServices = availableServices
     .filter((s) => selectedServiceIds.includes(s.id))

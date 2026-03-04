@@ -56,7 +56,7 @@ export function CoreServices({
                 </p>
 
                 <Link
-                  href={`/booking?service=${service.slug}`}
+                  href={`/checkout?service=${service.slug}`}
                   className="w-full"
                 >
                   <button className="w-full h-12 rounded-xl bg-primary/10 hover:bg-primary dark:bg-primary/20 dark:hover:bg-black text-primary hover:text-white text-sm font-bold transition-colors">

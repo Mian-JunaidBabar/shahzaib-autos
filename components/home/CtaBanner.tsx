@@ -13,7 +13,7 @@ export function CtaBanner() {
           </p>
         </div>
         <Link
-          href="/booking"
+          href="/contact"
           className="bg-white dark:bg-slate-800 text-primary dark:text-white px-10 py-4 rounded-xl font-black text-lg shadow-lg hover:shadow-2xl transition-all whitespace-nowrap"
         >
           Schedule a Test Drive
