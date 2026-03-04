@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function ServicesHero() {
   return (
     <section className="relative px-4 py-8 max-w-7xl mx-auto w-full">
@@ -14,9 +16,12 @@ export function ServicesHero() {
             Premium automotive customization services for the modern enthusiast.
             From aero styling to acoustic tuning.
           </p>
-          <button className="mt-8 flex w-full max-w-60 mx-auto cursor-pointer items-center justify-center rounded-xl h-14 bg-white text-slate-900 dark:bg-white dark:text-slate-900 text-base font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 active:scale-95 transition-all">
+          <Link
+            href="/contact"
+            className="mt-8 flex w-full max-w-60 mx-auto cursor-pointer items-center justify-center rounded-xl h-14 bg-white text-slate-900 dark:bg-white dark:text-slate-900 text-base font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 active:scale-95 transition-all"
+          >
             Book a Consultation
-          </button>
+          </Link>
         </div>
 
         <div
