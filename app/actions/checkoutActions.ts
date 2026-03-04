@@ -56,7 +56,22 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
       return { success: false, error: "Cart and services are empty." };
     }
 
-    // Wrap the entire process in a Prisma Transaction
+    // Pre-fetch service pricing outside the transaction to avoid long-running
+    // interactive transactions (prevents transaction timeout errors).
+    let bookingServiceString = "";
+    let servicesSubtotalPre = 0;
+    if (selectedServices.length > 0) {
+      bookingServiceString = selectedServices.map((s) => s.title).join(", ");
+      const serviceIds = selectedServices.map((s) => s.id);
+      const dbServicesResultPre = await prisma.service.findMany({
+        where: { id: { in: serviceIds } },
+      });
+      for (const s of dbServicesResultPre) {
+        servicesSubtotalPre += s.price;
+      }
+    }
+
+    // Wrap the remaining writes in a Prisma Transaction
     const result = await prisma.$transaction(async (tx) => {
       // 1. Upsert Customer
       const customer = await tx.customer.upsert({
@@ -137,18 +152,9 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
         });
       }
 
-      // 3. Create Booking if selectedServices exist
+      // 3. Create Booking if selectedServices exist (use pre-fetched service data)
       if (selectedServices.length > 0) {
-        bookingServiceString = selectedServices.map((s) => s.title).join(", ");
-
-        const serviceIds = selectedServices.map((s) => s.id);
-        const dbServicesResult = await tx.service.findMany({
-          where: { id: { in: serviceIds } },
-        });
-
-        for (const s of dbServicesResult) {
-          servicesSubtotal += s.price;
-        }
+        servicesSubtotal = servicesSubtotalPre;
 
         // Create Booking
         dbBooking = await tx.booking.create({
@@ -160,15 +166,14 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
             customerEmail: customerData.email,
             serviceType: bookingServiceString,
             vehicleInfo: customerData.vehicleInfo || null,
-            date: bookingDate ? new Date(bookingDate) : new Date(), // Using exact date or today
+            date: bookingDate ? new Date(bookingDate) : new Date(),
             status: "PENDING",
             address: customerData.address || "Workshop",
-            orderId: dbOrder ? dbOrder.id : null, // Link to order if created
+            orderId: dbOrder ? dbOrder.id : null,
           },
         });
 
-        // In this platform, Order total is natively in cents, Services are Float (Rupees)
-        // If combining into one display total:
+        // Add services subtotal (Rupees -> cents)
         totalCents += servicesSubtotal * 100;
       }
 
@@ -216,8 +221,6 @@ Please confirm my request.`;
     };
   } catch (error: unknown) {
     console.error("UnifiedCheckout Error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to process transaction.";
-    return { success: false, error: message };
+    return { success: false, error: "Something went wrong. Please try again." };
   }
 }

@@ -132,7 +132,7 @@ export function ProductFilters({ categories, priceRange }: Props) {
   const currentMaxPrice = searchParams.get("maxPrice") || "";
 
   const hasActiveFilters = Boolean(
-    currentCategory || currentMinPrice || currentMaxPrice
+    currentCategory || currentMinPrice || currentMaxPrice,
   );
 
   const updateFilters = (updates: Record<string, string | null>) => {
@@ -170,7 +170,7 @@ export function ProductFilters({ categories, priceRange }: Props) {
     <>
       {/* Desktop Filters */}
       <div className="hidden lg:block w-64 shrink-0">
-        <div className="sticky top-4 bg-card rounded-lg border p-4">
+        <div className="sticky top-4 bg-card rounded-lg border p-4 max-h-[calc(100vh-4rem)] overflow-auto pr-2">
           <h3 className="font-semibold text-lg mb-4">Filters</h3>
           <FilterContent
             categories={categories}
@@ -200,7 +200,7 @@ export function ProductFilters({ categories, priceRange }: Props) {
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80">
+          <SheetContent side="left" className="w-80 overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Filters</SheetTitle>
             </SheetHeader>

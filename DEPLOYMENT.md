@@ -58,8 +58,8 @@ NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="your-unsigned-preset"
 
 #### 4. **WhatsApp Integration**
 ```env
-NEXT_PUBLIC_WHATSAPP_NUMBER="923374990542"
-WHATSAPP_BUSINESS_PHONE="+92 337 4990542"
+NEXT_PUBLIC_WHATSAPP_NUMBER="923021191771"
+WHATSAPP_BUSINESS_PHONE="+92 302 1191771"
 ```
 - Use your business WhatsApp number (without spaces for `NEXT_PUBLIC_*`)
 - Format with country code (92 for Pakistan)
