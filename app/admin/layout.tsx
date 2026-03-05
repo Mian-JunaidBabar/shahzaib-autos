@@ -23,20 +23,15 @@ export default function AdminRootLayout({
             __html: `
             (function() {
               try {
-                var theme = localStorage.getItem('admin-theme') || 'dark';
-                if (theme === 'light') {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.classList.add('light');
-                } else {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.classList.remove('light');
-                }
+                // Force Light mode for Admin Panel
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
               } catch (e) {}
             })();
           `,
           }}
         />
-        <ThemeProvider>
+        <ThemeProvider forcedTheme="light">
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
         <Toaster position="top-right" />

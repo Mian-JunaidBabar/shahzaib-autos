@@ -123,25 +123,6 @@ export default function AdminLoginPage() {
             {isLoading || signing ? "Signing in..." : "Sign In"}
           </button>
 
-          <div className="mt-6 pt-6 border-t border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Theme:</span>
-              <button
-                type="button"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted text-foreground hover:bg-accent transition-colors"
-                title={theme === "dark" ? "Switch to light" : "Switch to dark"}
-              >
-                <span className="material-symbols-outlined text-sm">
-                  {theme === "dark" ? "light_mode" : "dark_mode"}
-                </span>
-                <span className="text-sm">
-                  {theme === "dark" ? "Light" : "Dark"}
-                </span>
-              </button>
-            </div>
-          </div>
-
           <div className="mt-4 text-xs text-muted-foreground text-center">
             Contact administrator for access credentials
           </div>

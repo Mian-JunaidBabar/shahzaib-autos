@@ -18,8 +18,15 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({
+  children,
+  forcedTheme,
+}: {
+  children: ReactNode;
+  forcedTheme?: Theme;
+}) {
   const [theme, setThemeState] = useState<Theme>(() => {
+    if (forcedTheme) return forcedTheme;
     if (typeof window !== "undefined") {
       const savedTheme = localStorage.getItem("theme") as Theme | null;
       if (savedTheme) return savedTheme;
@@ -41,35 +48,47 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!mounted) return;
 
     const root = document.documentElement;
-    if (theme === "dark") {
+    const activeTheme = forcedTheme || theme;
+
+    if (activeTheme === "dark") {
       root.classList.add("dark");
       root.classList.remove("light");
     } else {
       root.classList.add("light");
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme", theme);
-  }, [theme, mounted]);
+
+    if (!forcedTheme) {
+      localStorage.setItem("theme", activeTheme);
+    }
+  }, [theme, mounted, forcedTheme]);
 
   const toggleTheme = () => {
+    if (forcedTheme) return; // Ignore toggle if theme is forced
     setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
   const setTheme = (newTheme: Theme) => {
+    if (forcedTheme) return; // Ignore set if theme is forced
     setThemeState(newTheme);
   };
 
   // Prevent flash of wrong theme
   if (!mounted) {
+    const initialTheme = forcedTheme || "dark";
     return (
-      <ThemeContext.Provider value={{ theme: "dark", toggleTheme, setTheme }}>
+      <ThemeContext.Provider
+        value={{ theme: initialTheme, toggleTheme, setTheme }}
+      >
         {children}
       </ThemeContext.Provider>
     );
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider
+      value={{ theme: forcedTheme || theme, toggleTheme, setTheme }}
+    >
       {children}
     </ThemeContext.Provider>
   );

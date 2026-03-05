@@ -87,22 +87,6 @@ export default function AdminHeader() {
           />
         </div>
 
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted"
-          title={
-            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-          }
-          aria-label={
-            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-          }
-        >
-          <span className="material-symbols-outlined text-[22px]">
-            {theme === "dark" ? "light_mode" : "dark_mode"}
-          </span>
-        </button>
-
         {/* User Profile Button */}
         <button
           onClick={handleProfileClick}
