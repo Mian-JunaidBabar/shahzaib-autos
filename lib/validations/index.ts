@@ -11,7 +11,6 @@
  */
 import { z } from "zod";
 
-
 // ============ Common Schemas ============
 
 export const phoneSchema = z
@@ -147,6 +146,9 @@ const productBaseSchema = z.object({
   description: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
+  tags: z
+    .array(z.string().min(1, "Tag name cannot be empty").max(100))
+    .default([]),
   isActive: z.boolean().default(true),
   isUniversal: z.boolean().default(true),
 
@@ -186,6 +188,9 @@ export const productUpdateSchema = z.object({
   description: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
+  tags: z
+    .array(z.string().min(1, "Tag name cannot be empty").max(100))
+    .optional(),
   isActive: z.boolean().optional(),
   isArchived: z.boolean().optional(),
   isUniversal: z.boolean().optional(),

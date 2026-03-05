@@ -101,6 +101,23 @@ model Badge {
   @@map("badges")
 }
 
+// ============================================
+// TAGS (Product Multi-Tagging System)
+// ============================================
+// Flexible tagging system allowing products to have multiple tags.
+// Unlike badges (status/promotional), tags are descriptive keywords.
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g., "Durable", "Waterproof", "Premium"
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[] // Many-to-many implicit relation
+
+  @@map("tags")
+}
+
 model Product {
   id          String        @id @default(uuid())
   name        String
@@ -116,6 +133,7 @@ model Product {
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   badge       Badge?              @relation(fields: [badgeId], references: [id])
+  tags        Tag[]               // Many-to-many relation to tags
   images      Image[]             // Unified Image relation
   variants    ProductVariant[]    // Product specifications/variations
   fitments    VehicleFitment[]    // Vehicle compatibility

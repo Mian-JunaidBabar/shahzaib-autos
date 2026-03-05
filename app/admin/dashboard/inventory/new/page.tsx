@@ -47,6 +47,7 @@ type FormData = {
   description?: string;
   category?: string;
   badgeId?: string;
+  tags: string[];
   isActive: boolean;
   isUniversal: boolean;
   variants: Array<{
@@ -190,6 +191,7 @@ export default function NewProductPage() {
         description: data.description || undefined,
         category: data.category || undefined,
         badgeId: data.badgeId || undefined,
+        tags: data.tags,
         isActive: data.isActive,
         isUniversal: data.isUniversal,
         variants: variantsData,

@@ -38,12 +38,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { BadgeSelector } from "@/components/ui/badge-selector";
+import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import {
   saveProductImage,
   deleteProductImage,
 } from "@/app/actions/imageActions";
 import { getActiveBadgesAction } from "@/app/actions/badgeActions";
+import { getAllTagsAction } from "@/app/actions/tagActions";
 import {
   createProductAction,
   updateProductAction,
@@ -103,6 +105,7 @@ type ProductFormValues = {
   description?: string;
   category?: string;
   badgeId?: string;
+  tags: string[]; // Array of tag names
   isActive: boolean;
   isUniversal: boolean;
   variants: VariantFormRow[];
@@ -127,6 +130,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
   const isEdit = !!initialData;
   const [isPending, startTransition] = useTransition();
   const [badges, setBadges] = useState<BadgeOption[]>([]);
+  const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Image state
@@ -162,6 +166,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           description: initialData.description ?? "",
           category: initialData.category ?? "",
           badgeId: initialData.badgeId ?? "",
+          tags: (initialData.tags ?? []).map((t) => t.name),
           isActive: initialData.isActive ?? true,
           isUniversal: initialData.isUniversal ?? true,
           variants: (initialData.variants ?? []).map((v) => ({
@@ -189,6 +194,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           description: "",
           category: "",
           badgeId: "",
+          tags: [],
           isActive: true,
           isUniversal: true,
           variants: [
@@ -237,13 +243,23 @@ export function ProductForm({ initialData }: ProductFormProps) {
     }
   }, [watchedName, isEdit, setValue]);
 
-  // Load badges
+  // Load badges and tags
   useEffect(() => {
-    getActiveBadgesAction().then((result) => {
-      if (result.success && result.data) {
-        setBadges(result.data as BadgeOption[]);
-      }
-    });
+    Promise.all([getActiveBadgesAction(), getAllTagsAction()]).then(
+      ([badgesResult, tagsResult]) => {
+        if (badgesResult.success && badgesResult.data) {
+          setBadges(badgesResult.data as BadgeOption[]);
+        }
+        if (tagsResult.success && tagsResult.data) {
+          setTags(
+            tagsResult.data.map((tag: any) => ({
+              id: tag.id,
+              name: tag.name,
+            })),
+          );
+        }
+      },
+    );
   }, []);
 
   // Cleanup blob URLs on unmount
@@ -324,6 +340,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
             description: data.description || undefined,
             category: data.category || undefined,
             badgeId: data.badgeId || undefined,
+            tags: data.tags,
             isActive: data.isActive,
             isUniversal: data.isUniversal,
             variants: variantsPayload,
@@ -350,6 +367,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
             description: data.description || undefined,
             category: data.category || undefined,
             badgeId: data.badgeId || undefined,
+            tags: data.tags,
             isActive: data.isActive,
             isUniversal: data.isUniversal,
             variants: variantsPayload,
@@ -551,6 +569,17 @@ export function ProductForm({ initialData }: ProductFormProps) {
                   label="Badge (optional)"
                 />
               </div>
+            )}
+
+            {tags.length > 0 && (
+              <CreatableMultiSelect
+                control={control}
+                name="tags"
+                label="Tags (optional)"
+                placeholder="Search or create tags..."
+                description="Add descriptive tags to help customers find this product"
+                availableTags={tags}
+              />
             )}
           </div>
 

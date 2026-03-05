@@ -4,6 +4,7 @@ import type {
   ProductVariant,
   VehicleFitment,
   Badge,
+  Tag,
 } from "@prisma/client";
 import { deleteImage, extractPublicId } from "@/lib/cloudinary";
 import { ProductStatus, Prisma } from "@prisma/client";
@@ -25,6 +26,7 @@ export type ProductWithRelations = Product & {
   variants: ProductVariant[];
   fitments: VehicleFitment[];
   badge: Badge | null;
+  tags: Tag[];
 };
 
 // Store product with limited relations (for listing pages)
@@ -32,6 +34,7 @@ export type StoreProduct = Product & {
   images: Image[];
   variants: ProductVariant[];
   badge: Badge | null;
+  tags: Tag[];
 };
 
 // Legacy type for backward compatibility
@@ -43,6 +46,7 @@ export type CreateProductInput = {
   description?: string | null;
   category?: string | null;
   badgeId?: string | null;
+  tags?: string[]; // Array of tag names (will be created if not exist), defaults to empty
   isActive?: boolean;
   status?: ProductStatus;
   isUniversal?: boolean; // Whether product fits all vehicles
@@ -76,6 +80,7 @@ export type UpdateProductInput = {
   description?: string | null;
   category?: string | null;
   badgeId?: string | null;
+  tags?: string[]; // Array of tag names (will connect or create)
   isActive?: boolean;
   isArchived?: boolean;
   status?: ProductStatus;
@@ -271,6 +276,7 @@ export async function getStoreProducts(filters: StoreFilters = {}) {
         orderBy: { isDefault: "desc" },
       },
       badge: true,
+      tags: { orderBy: { name: "asc" } },
     },
   });
 
@@ -301,6 +307,7 @@ export async function getStoreProductsWithCount(
         },
         variants: { orderBy: { isDefault: "desc" } },
         badge: true,
+        tags: { orderBy: { name: "asc" } },
       },
     }),
     prisma.product.count({ where }),
@@ -468,6 +475,7 @@ export async function getProducts(
       variants: true,
       fitments: true,
       badge: true,
+      tags: { orderBy: { name: "asc" } },
     },
     orderBy: { [sortBy]: sortOrder },
     skip: (page - 1) * limit,
@@ -501,6 +509,7 @@ export async function getProduct(
       variants: { orderBy: { createdAt: "asc" } },
       fitments: true,
       badge: true,
+      tags: { orderBy: { name: "asc" } },
     },
   });
 }
@@ -554,6 +563,7 @@ export async function createProduct(
     slug,
     variants = [],
     fitments = [],
+    tags = [],
     status,
     isUniversal = true,
     ...productData
@@ -590,7 +600,7 @@ export async function createProduct(
       status: productStatus,
       isUniversal,
       variants: {
-        create: variants.map((variant) => ({
+        create: enforcedVariants.map((variant) => ({
           name: variant.name,
           sku: variant.sku,
           price: variant.price,
@@ -610,18 +620,25 @@ export async function createProduct(
           endYear: fitment.endYear ?? null,
         })),
       },
+      tags: {
+        connectOrCreate: tags.map((tagName) => ({
+          where: { name: tagName },
+          create: { name: tagName },
+        })),
+      },
     },
     include: {
       images: true,
       variants: true,
       fitments: true,
       badge: true,
+      tags: true,
     },
   });
 }
 
 /**
- * Update a product with image sync, variant sync, and fitment sync
+ * Update a product with image sync, variant sync, fitment sync, and tag sync
  *
  * Uses Fetch-Then-Clean strategy for safe deletion:
  * 1. FETCH: Get current state (product + images + variants) from database
@@ -636,6 +653,7 @@ export async function updateProduct(
     variants,
     fitments,
     keepImagePublicIds,
+    tags,
     status,
     isArchived,
     isUniversal,
@@ -651,6 +669,7 @@ export async function updateProduct(
       images: true,
       variants: true,
       fitments: true,
+      tags: true,
     },
   });
 
@@ -715,6 +734,17 @@ export async function updateProduct(
           in: publicIdsToDelete,
         },
       },
+    };
+  }
+
+  // Sync tags — disconnect all and reconnect new list to ensure exact match
+  if (tags !== undefined) {
+    updateData.tags = {
+      set: [], // Disconnect all existing tags
+      connectOrCreate: tags.map((tagName) => ({
+        where: { name: tagName },
+        create: { name: tagName },
+      })),
     };
   }
 
@@ -806,6 +836,7 @@ export async function updateProduct(
       variants: { orderBy: { createdAt: "asc" } },
       fitments: true,
       badge: true,
+      tags: { orderBy: { name: "asc" } },
     },
   });
 
@@ -826,6 +857,7 @@ export async function deactivateProduct(
       variants: true,
       fitments: true,
       badge: true,
+      tags: { orderBy: { name: "asc" } },
     },
   });
 }
@@ -848,6 +880,7 @@ export async function archiveProduct(
       variants: true,
       fitments: true,
       badge: true,
+      tags: { orderBy: { name: "asc" } },
     },
   });
 }
@@ -880,6 +913,7 @@ export async function unarchiveProduct(
       variants: true,
       fitments: true,
       badge: true,
+      tags: { orderBy: { name: "asc" } },
     },
   });
 }
@@ -1285,4 +1319,13 @@ export async function getProductStockDetails(productId: string) {
     reserved,
     sold,
   };
+}
+
+/**
+ * Get all available tags (for admin form multi-select)
+ */
+export async function getAllTags(): Promise<Tag[]> {
+  return prisma.tag.findMany({
+    orderBy: { name: "asc" },
+  });
 }
