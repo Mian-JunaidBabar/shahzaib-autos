@@ -45,6 +45,7 @@ type Props = {
   totalCount?: number;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PRODUCTS_PER_LOAD = 12;
 
 export function ProductGridWithLoadMore({

@@ -13,8 +13,8 @@
 import type {
   Product,
   Image,
-  ProductVariant,
-  VehicleFitment,
+  // ProductVariant,
+  // VehicleFitment,
   Order,
   OrderItem,
   Booking,

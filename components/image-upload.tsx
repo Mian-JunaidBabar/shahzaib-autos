@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, X, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Upload, X, AlertCircle } from "lucide-react";
 import Image from "next/image";
 
 export interface UploadedImage {
@@ -30,8 +30,10 @@ interface ImageState {
  * This prevents orphaned images in cloud storage if users cancel the form.
  */
 export function ImageUpload({
-  productId,
-  onImagesUpload,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  productId: _productId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onImagesUpload: _onImagesUpload,
   maxFiles = 5,
 }: ImageUploadProps) {
   const [images, setImages] = useState<ImageState[]>([]);

@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -39,6 +39,7 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Calendar as CalendarIcon,
   MessageCircle,
   Wrench,
@@ -198,6 +199,7 @@ export default function BookingDetailsPage({
 
   useEffect(() => {
     if (rescheduleDate) fetchTimeSlots(rescheduleDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rescheduleDate]);
 
   const handleOpenReschedule = () => {

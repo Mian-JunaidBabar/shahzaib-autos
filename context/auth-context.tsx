@@ -9,7 +9,7 @@ import {
   useCallback,
 } from "react";
 import { supabase } from "@/lib/auth-client";
-import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 // Types
 interface User {

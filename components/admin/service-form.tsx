@@ -18,7 +18,7 @@ import {
   Wrench,
   CheckSquare,
   Plus,
-  Trash2,
+  // Trash2,
   Star,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,6 +144,7 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
         }
       });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleImageSelect = useCallback(
@@ -263,6 +264,7 @@ export function ServiceForm({ initialData }: ServiceFormProps) {
         const allImages = images.map((img, idx) => {
           if (img.isNew && img.file) {
             const uploaded = uploadedImages.find(
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               (u) =>
                 images.indexOf(images.find((x) => x.file === img.file)!) ===
                 idx,

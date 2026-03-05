@@ -85,7 +85,6 @@ export function BookingForm() {
   useEffect(() => {
     loadServices();
     loadSettings();
-     
   }, []);
 
   const loadSettings = async () => {
@@ -131,6 +130,7 @@ export function BookingForm() {
     if (formData.date) {
       fetchAvailableSlots(formData.date);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.date]);
 
   const fetchAvailableSlots = async (date: string) => {

@@ -37,6 +37,7 @@ export default function ProductSearch() {
       params.delete("page"); // Reset to page 1 on search change
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
 
   return (

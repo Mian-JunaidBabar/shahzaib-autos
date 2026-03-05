@@ -15,8 +15,8 @@ import {
   DollarSign,
   AlertTriangle,
   MessageCircle,
-  Edit,
-  Clock,
+  // Edit,
+  // Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import {
   getCustomerAction,
-  getCustomerHistoryAction,
+  // getCustomerHistoryAction,
   toggleVipStatusAction,
 } from "@/app/actions/customerActions";
 import { toast } from "sonner";

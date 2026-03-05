@@ -62,9 +62,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Mark as hydrated after mount
+  // Mark as hydrated after mount (intentional setState for client-side hydration detection)
   useEffect(() => {
-    // This setState is intentional for mount detection and doesn't cause cascading renders
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsHydrated(true);
   }, []);
@@ -76,50 +75,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isHydrated]);
 
-  const addItem = useCallback(
-    (item: Omit<CartItem, "quantity">) => {
-      setItems((prev) => {
-        // Match by both product id and variantId so different variants of the same product are separate items
-        const existing = prev.find(
-          (i) => i.id === item.id && i.variantId === item.variantId,
+  const addItem = useCallback((item: Omit<CartItem, "quantity">) => {
+    setItems((prev) => {
+      // Match by both product id and variantId so different variants of the same product are separate items
+      const existing = prev.find(
+        (i) => i.id === item.id && i.variantId === item.variantId,
+      );
+      if (existing) {
+        const updated = prev.map((i) =>
+          i.id === item.id && i.variantId === item.variantId
+            ? { ...i, quantity: i.quantity + 1 }
+            : i,
         );
-        if (existing) {
-          const updated = prev.map((i) =>
-            i.id === item.id && i.variantId === item.variantId
-              ? { ...i, quantity: i.quantity + 1 }
-              : i,
-          );
-          return updated;
-        }
-        const newItems = [...prev, { ...item, quantity: 1 }];
-        return newItems;
-      });
-    },
-    [isHydrated],
-  );
+        return updated;
+      }
+      const newItems = [...prev, { ...item, quantity: 1 }];
+      return newItems;
+    });
+  }, []);
 
   // Alias for addItem that accepts full CartItem (with quantity)
-  const addToCart = useCallback(
-    (item: CartItem) => {
-      setItems((prev) => {
-        // Match by both product id and variantId
-        const existing = prev.find(
-          (i) => i.id === item.id && i.variantId === item.variantId,
+  const addToCart = useCallback((item: CartItem) => {
+    setItems((prev) => {
+      // Match by both product id and variantId
+      const existing = prev.find(
+        (i) => i.id === item.id && i.variantId === item.variantId,
+      );
+      if (existing) {
+        const updated = prev.map((i) =>
+          i.id === item.id && i.variantId === item.variantId
+            ? { ...i, quantity: i.quantity + (item.quantity || 1) }
+            : i,
         );
-        if (existing) {
-          const updated = prev.map((i) =>
-            i.id === item.id && i.variantId === item.variantId
-              ? { ...i, quantity: i.quantity + (item.quantity || 1) }
-              : i,
-          );
-          return updated;
-        }
-        const newItems = [...prev, { ...item, quantity: item.quantity || 1 }];
-        return newItems;
-      });
-    },
-    [isHydrated],
-  );
+        return updated;
+      }
+      const newItems = [...prev, { ...item, quantity: item.quantity || 1 }];
+      return newItems;
+    });
+  }, []);
 
   const removeItem = useCallback((id: string | number, variantId?: string) => {
     setItems((prev) =>

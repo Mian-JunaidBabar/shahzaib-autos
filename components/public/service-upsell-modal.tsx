@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { getPublicServicesAction } from "@/app/actions/serviceActions";
 import { toast } from "sonner";
-import { Clock, X, Loader2, Check } from "lucide-react";
+import { Clock, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,

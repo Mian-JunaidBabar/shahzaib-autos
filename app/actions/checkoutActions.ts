@@ -97,7 +97,7 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
       }
 
       const itemsFallingBack = cartItems.filter(
-        (item) => !item.variantId || !preFetchedVariants.has(item.variantId)
+        (item) => !item.variantId || !preFetchedVariants.has(item.variantId),
       );
 
       if (itemsFallingBack.length > 0) {
@@ -157,7 +157,6 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
       let dbOrder = null;
       let dbBooking = null;
       let totalCents = 0;
-      const bookingServiceString = "";
       let servicesSubtotal = 0;
       const normalizedCartItems: {
         name: string;

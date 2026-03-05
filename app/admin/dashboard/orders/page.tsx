@@ -167,6 +167,7 @@ export default function OrdersPage() {
     startTransition(() => {
       fetchOrders();
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter]);
 
   const handleSearch = () => {

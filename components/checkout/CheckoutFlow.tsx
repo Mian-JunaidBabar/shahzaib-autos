@@ -38,6 +38,7 @@ export function CheckoutFlow({
     ) {
       setSelectedServiceIds([preSelectedServiceId]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preSelectedServiceId]);
 
   const selectedServices = availableServices

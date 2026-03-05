@@ -5,6 +5,7 @@ export function AboutOrigin() {
         {/* Left: Image */}
         <div className="flex-1 w-full relative">
           <div className="rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none aspect-video bg-slate-200 border-4 border-white dark:border-slate-800 relative z-10 w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               className="w-full h-full object-cover"
               alt="Interior of a luxury modern automotive garage with specialized tools"

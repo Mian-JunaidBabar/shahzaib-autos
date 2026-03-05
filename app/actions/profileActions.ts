@@ -86,7 +86,13 @@ export async function uploadAvatarAction(
     }
 
     // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp", "image/avif"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "image/webp",
+      "image/avif",
+    ];
     if (!allowedTypes.includes(file.type)) {
       return { success: false, error: "File must be JPEG, PNG, WebP, or AVIF" };
     }
@@ -106,7 +112,7 @@ export async function uploadAvatarAction(
     const buffer = Buffer.from(bytes);
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("admin-profile")
       .upload(filePath, buffer, {
         contentType: file.type,

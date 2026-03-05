@@ -874,8 +874,10 @@ export async function updateProduct(
   // Remove badge-related scalars from productData so we only update
   // the relation via nested writes (Prisma expects `badge: { connect }`)
   const {
-    badgeId: _removedBadgeId,
-    badges: _removedBadges,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    badgeId,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    badges,
     ...productDataWithoutBadge
   } = productData;
 
@@ -1048,7 +1050,7 @@ export async function updateProduct(
   }
 
   // Update product with all nested operations (atomic transaction)
-  const product = await prisma.product.update({
+  await prisma.product.update({
     where: { id },
     data: updateData,
     include: {
@@ -1428,26 +1430,21 @@ export async function updateVariantStock(
   quantity: number,
   operation: "set" | "increment" | "decrement" = "set",
 ): Promise<void> {
-  let newQuantity: number;
-
   if (operation === "set") {
-    const result = await prisma.productVariant.update({
+    await prisma.productVariant.update({
       where: { id: variantId },
       data: { inventoryQty: quantity },
     });
-    newQuantity = result.inventoryQty;
   } else if (operation === "increment") {
-    const result = await prisma.productVariant.update({
+    await prisma.productVariant.update({
       where: { id: variantId },
       data: { inventoryQty: { increment: quantity } },
     });
-    newQuantity = result.inventoryQty;
   } else if (operation === "decrement") {
-    const result = await prisma.productVariant.update({
+    await prisma.productVariant.update({
       where: { id: variantId },
       data: { inventoryQty: { decrement: quantity } },
     });
-    newQuantity = result.inventoryQty;
   } else {
     return;
   }

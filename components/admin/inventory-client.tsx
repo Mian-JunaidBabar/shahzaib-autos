@@ -15,14 +15,14 @@ import {
   CheckCircle,
   XCircle,
   Tag,
-  DollarSign,
+  // DollarSign,
   Archive,
-  TrendingUp,
+  // TrendingUp,
   Image as ImageIcon,
   Trash2,
   Loader2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InventoryFilters } from "./inventory-filters";
@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  getProductsAction,
+  // getProductsAction,
   toggleProductActiveAction,
   deleteProductAction,
   updateProductAction,
@@ -90,7 +90,8 @@ type Product = {
   } | null;
 };
 
-function LoadingSkeleton() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _LoadingSkeleton() {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -312,6 +313,7 @@ export function InventoryClient({
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatPrice = (price?: number | null) => {
     if (price == null || !isFinite(Number(price))) return "0";
     const rupees = Number(price) / 100;
@@ -551,6 +553,7 @@ export function InventoryClient({
                       <TableCell>
                         <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
                           {primaryImage ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               src={primaryImage.secureUrl}
                               alt={product.name}

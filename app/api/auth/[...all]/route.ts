@@ -10,7 +10,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-
 // Handle auth callbacks (e.g., email confirmation, password reset)
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -51,7 +50,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST handler for any custom operations
-export async function POST(request: NextRequest) {
+export async function POST() {
   return NextResponse.json(
     { message: "Use Supabase client SDK for authentication" },
     { status: 400 },

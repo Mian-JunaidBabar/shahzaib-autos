@@ -35,6 +35,7 @@ export function OptimizedImage({ fallback, ...props }: OptimizedImageProps) {
   return (
     <Image
       {...props}
+      alt={props.alt}
       unoptimized={isExternalSlowImage}
       onError={() => setHasError(true)}
     />

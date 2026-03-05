@@ -28,7 +28,7 @@ export default function BadgesPage() {
   const [newBadgeName, setNewBadgeName] = useState("");
   const [newBadgeColor, setNewBadgeColor] = useState("#3B82F6");
   const [isPending, startTransition] = useTransition();
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadBadges();

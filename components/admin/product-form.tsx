@@ -922,6 +922,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {existingImages.map((image, index) => (
                   <div key={image.id} className="relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={image.secureUrl}
                       alt={`Product ${index + 1}`}
@@ -955,6 +956,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {newImages.map((image, index) => (
                   <div key={index} className="relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={image.preview}
                       alt={`New ${index + 1}`}

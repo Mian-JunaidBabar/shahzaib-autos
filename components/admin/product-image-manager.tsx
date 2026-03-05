@@ -77,6 +77,7 @@ export function ProductImageManager({
   useEffect(() => {
     const cleanImages = images
       .filter((img) => !img.isLoading)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .map(({ isLoading, isNew, file, ...rest }) => rest);
     onImagesChange(cleanImages);
   }, [images, onImagesChange]);
@@ -90,6 +91,7 @@ export function ProductImageManager({
         }
       });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileSelect = useCallback(
@@ -239,6 +241,7 @@ export function ProductImageManager({
   /**
    * Get pending files for upload (for parent form to use)
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const getPendingUploads = useCallback(() => {
     return images.filter((img) => img.isNew && img.file);
   }, [images]);
@@ -371,6 +374,7 @@ export function ProductImageManager({
               } ${draggedIndex === index ? "opacity-50" : ""}`}
             >
               {/* Image */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={image.secureUrl}
                 alt={`Product ${index + 1}`}

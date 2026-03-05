@@ -34,6 +34,7 @@ export function ColorPicker({
   allowCustom = true,
   allowRemove = true,
 }: ColorPickerProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isDragging, setIsDragging] = React.useState(false);
   const [customColors, setCustomColors] = React.useState<string[]>([]);
   const [removedColors, setRemovedColors] = React.useState<string[]>([]);
@@ -77,11 +78,13 @@ export function ColorPicker({
     setIsDragging(false);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDragOver = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     const color = e.dataTransfer.getData("text/plain");

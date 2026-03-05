@@ -276,6 +276,7 @@ export default function OrderDetailPage({ params }: OrderDetailsPageProps) {
                   >
                     <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                       {item.product?.images?.[0]?.secureUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={item.product.images[0].secureUrl}
                           alt={item.name}

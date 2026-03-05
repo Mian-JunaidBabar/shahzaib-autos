@@ -40,6 +40,7 @@ export function TeamGrid() {
               className="flex flex-col items-center text-center space-y-4 group"
             >
               <div className="size-32 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl group-hover:scale-105 group-hover:border-primary transition-all duration-300">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   className="w-full h-full object-cover"
                   alt={member.name}

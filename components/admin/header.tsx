@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useTheme } from "@/context/theme-context";
 import { useAuth } from "@/context/auth-context";
 
@@ -14,7 +15,7 @@ function formatLabel(segment: string) {
 export default function AdminHeader() {
   const pathname = usePathname() || "/admin";
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
+  // const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
   const handleProfileClick = () => {
@@ -28,6 +29,7 @@ export default function AdminHeader() {
     label: formatLabel(seg),
   }));
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleLogout = () => {
     logout();
     window.location.href = "/admin/auth/login";

@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     let email: string;
     try {
       email = Buffer.from(decodeURIComponent(e), "base64").toString("utf8");
-    } catch (err) {
+    } catch {
       return NextResponse.json(
         { success: false, error: "Invalid param" },
         { status: 400 },

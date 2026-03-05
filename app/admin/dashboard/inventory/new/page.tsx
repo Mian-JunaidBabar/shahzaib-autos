@@ -132,6 +132,7 @@ export default function NewProductPage() {
     name: "fitments",
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const isUniversal = watch("isUniversal");
   const name = watch("name");
 
@@ -689,6 +690,7 @@ export default function NewProductPage() {
                   key={index}
                   className="group relative aspect-square overflow-hidden rounded-lg border-2 border-transparent bg-gray-100 transition-all hover:border-gray-300 dark:bg-gray-800"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={image.preview}
                     alt={`Upload ${index + 1}`}

@@ -3,12 +3,13 @@
 import { useAuth } from "@/context/auth-context";
 import { useState, type FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useTheme } from "@/context/theme-context";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function AdminLoginPage() {
   const { login, isLoading, isAuthenticated } = useAuth();
-  const { theme, setTheme } = useTheme();
+  // const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
