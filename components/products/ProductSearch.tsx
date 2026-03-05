@@ -34,6 +34,7 @@ export default function ProductSearch() {
     // Only push if the value actually changed
     const currentQuery = searchParams.get("q");
     if (currentQuery !== (debouncedSearch || null)) {
+      params.delete("page"); // Reset to page 1 on search change
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     }
   }, [debouncedSearch]);

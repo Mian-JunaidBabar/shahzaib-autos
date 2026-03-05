@@ -126,6 +126,7 @@ export function ProductFilters() {
       currentMin !== (debouncedMinPrice || null) ||
       currentMax !== (debouncedMaxPrice || null)
     ) {
+      params.delete("page"); // Reset to page 1 on price change
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     }
   }, [debouncedMinPrice, debouncedMaxPrice, pathname, router, searchParams]);
@@ -170,6 +171,7 @@ export function ProductFilters() {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
     if (enabled) params.set("favorites", "1");
     else params.delete("favorites");
+    params.delete("page"); // Reset to page 1
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
@@ -180,6 +182,7 @@ export function ProductFilters() {
     } else {
       params.delete(key);
     }
+    params.delete("page"); // Reset to page 1
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 

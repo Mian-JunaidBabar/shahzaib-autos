@@ -14,6 +14,7 @@ export function SortDropdown({ currentSort }: { currentSort?: string }) {
     } else {
       params.delete("sort");
     }
+    params.delete("page"); // Reset to page 1 on sort change
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 

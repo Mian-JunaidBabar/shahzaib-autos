@@ -310,6 +310,93 @@ export async function getStoreProductsWithCount(
 }
 
 /**
+ * Paginated store products with metadata.
+ *
+ * Wrapped in `unstable_cache` for tag-based invalidation via `products:all`.
+ */
+export type PaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
+
+const STORE_PAGE_SIZE = 24;
+
+async function _getStoreProductsPaginated(
+  filters: StoreFilters & { page?: number },
+) {
+  const page = Math.max(1, filters.page ?? 1);
+  const limit = filters.limit ?? STORE_PAGE_SIZE;
+  const skip = (page - 1) * limit;
+  const where = buildStoreWhere(filters);
+
+  let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };
+  if (filters.sort === "newest") orderBy = { createdAt: "desc" };
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy,
+      take: limit,
+      skip,
+      include: {
+        images: {
+          where: { isPrimary: true },
+          take: 1,
+          orderBy: { sortOrder: "asc" },
+        },
+        variants: { orderBy: { isDefault: "desc" } },
+        badge: true,
+      },
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    products: products as StoreProduct[],
+    metadata: {
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    } satisfies PaginationMeta,
+  };
+}
+
+// Re-export for use by the products page — cache key includes filter+page
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { unstable_cache } = require("next/cache");
+
+export function getStoreProductsPaginated(
+  filters: StoreFilters & { page?: number },
+): Promise<{ products: StoreProduct[]; metadata: PaginationMeta }> {
+  // Build a stable cache key from the filter values
+  const cacheKey = JSON.stringify({
+    q: filters.q,
+    categories: filters.categories,
+    tags: filters.tags,
+    min: filters.min,
+    max: filters.max,
+    sort: filters.sort,
+    page: filters.page ?? 1,
+    limit: filters.limit ?? STORE_PAGE_SIZE,
+  });
+
+  return unstable_cache(
+    () => _getStoreProductsPaginated(filters),
+    ["store-products-paginated", cacheKey],
+    { tags: ["products:all"], revalidate: 120 },
+  )();
+}
+
+/**
  * Get paginated list of products
  */
 export async function getProducts(

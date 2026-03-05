@@ -1,8 +1,9 @@
-import { ProductGridWithLoadMore } from "@/components/products/ProductGridWithLoadMore";
-import { getStoreProductsWithCount } from "@/lib/services/product.service";
+import { getStoreProductsPaginated } from "@/lib/services/product.service";
 import ProductGridClient from "@/components/products/ProductGridClient";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { SortDropdown } from "@/components/products/SortDropdown";
+import { Pagination } from "@/components/store/pagination";
+import { ProductCard } from "@/components/products/ProductCard";
 import ProductSearch from "@/components/products/ProductSearch";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -12,8 +13,6 @@ export const metadata: Metadata = {
   title: "Shop Premium Car Accessories",
 };
 
-export const revalidate = 60; // Revalidate every 60 seconds
-
 type SearchParams = {
   categories?: string;
   tags?: string;
@@ -22,6 +21,7 @@ type SearchParams = {
   max?: string;
   favorites?: string;
   sort?: string;
+  page?: string;
 };
 
 // Loading skeleton for products grid
@@ -44,11 +44,53 @@ function ProductsGridSkeleton() {
   );
 }
 
-// Products grid component
+// Map a raw product to ProductCard props
+function mapProductToCard(product: any) {
+  const defaultVariant =
+    product.variants?.find((v: any) => v.isDefault) || product.variants?.[0];
+
+  if (!defaultVariant) return null;
+
+  const currentPrice = (defaultVariant.salePrice || defaultVariant.price) / 100;
+  const originalPrice = defaultVariant.salePrice
+    ? defaultVariant.price / 100
+    : undefined;
+
+  let badgeType: "NEW" | "SALE" | undefined = undefined;
+  let badgeText = "";
+
+  if (product.badge) {
+    badgeText = product.badge.name;
+    if (badgeText.toUpperCase().includes("NEW")) badgeType = "NEW";
+    else if (badgeText.toUpperCase().includes("SALE")) badgeType = "SALE";
+  } else if (defaultVariant.salePrice) {
+    badgeType = "SALE";
+    badgeText = `-${Math.round((1 - defaultVariant.salePrice / defaultVariant.price) * 100)}%`;
+  }
+
+  return {
+    id: product.slug,
+    title: product.name,
+    price: currentPrice,
+    originalPrice,
+    image: product.images[0]?.secureUrl || "/placeholder-image.jpg",
+    variantId: defaultVariant.id,
+    variantName: defaultVariant.name,
+    variantsCount: product.variants.length,
+    rating: 5,
+    reviews: 0,
+    badge: badgeType,
+    badgeText: badgeText || undefined,
+    category: product.category || undefined,
+  };
+}
+
+// Products grid component — server-rendered with pagination
 async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
-  const { categories, tags, q, min, max, sort } = searchParams;
-  const favoritesFlag = (searchParams as SearchParams & { favorites?: string })
-    .favorites;
+  const { categories, tags, q, min, max, sort, page: pageStr } = searchParams;
+  const favoritesFlag = searchParams.favorites;
+
+  const page = Math.max(1, parseInt(pageStr || "1", 10) || 1);
 
   // Parse filter parameters
   const parsedFilters = {
@@ -70,61 +112,20 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
     sort: sort || undefined,
   };
 
-  // Fetch products along with the total count
-  const { products, count: totalCount } = await getStoreProductsWithCount({
+  // Fetch paginated products (cached with tag: products:all)
+  const { products, metadata } = await getStoreProductsPaginated({
     ...parsedFilters,
-    limit: 12,
-    offset: 0,
+    page,
   });
 
-  // Map to ProductCardProps structure
+  // Map to ProductCardProps
   const mappedProducts = products
-    .map((product) => {
-      // Use the actual default variant if marked, otherwise fallback to the first one
-      const defaultVariant =
-        product.variants?.find((v) => v.isDefault) || product.variants?.[0];
+    .map(mapProductToCard)
+    .filter(Boolean) as any[];
 
-      if (!defaultVariant) {
-        // Skip products without variants
-        return null;
-      }
-
-      // Prisma price is in cents. Converting to dollars.
-      const currentPrice =
-        (defaultVariant.salePrice || defaultVariant.price) / 100;
-      const originalPrice = defaultVariant.salePrice
-        ? defaultVariant.price / 100
-        : undefined;
-
-      let badgeType: "NEW" | "SALE" | undefined = undefined;
-      let badgeText = "";
-
-      if (product.badge) {
-        badgeText = product.badge.name;
-        if (badgeText.toUpperCase().includes("NEW")) badgeType = "NEW";
-        else if (badgeText.toUpperCase().includes("SALE")) badgeType = "SALE";
-      } else if (defaultVariant.salePrice) {
-        badgeType = "SALE";
-        badgeText = `-${Math.round((1 - defaultVariant.salePrice / defaultVariant.price) * 100)}%`;
-      }
-
-      return {
-        id: product.slug,
-        title: product.name,
-        price: currentPrice,
-        originalPrice,
-        image: product.images[0]?.secureUrl || "/placeholder-image.jpg",
-        variantId: defaultVariant.id,
-        variantName: defaultVariant.name,
-        variantsCount: product.variants.length,
-        rating: 5,
-        reviews: 0,
-        badge: badgeType,
-        badgeText: badgeText || undefined,
-        category: product.category || undefined,
-      };
-    })
-    .filter(Boolean); // Filter out null entries (products without variants)
+  // Calculate range for display
+  const rangeStart = (metadata.page - 1) * metadata.limit + 1;
+  const rangeEnd = Math.min(metadata.page * metadata.limit, metadata.total);
 
   return (
     <>
@@ -134,14 +135,11 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
           {mappedProducts.length > 0 ? (
             <>
               Showing{" "}
-              <span className="font-semibold">{mappedProducts.length}</span>
-              {totalCount > mappedProducts.length && (
-                <>
-                  {" "}
-                  of <span className="font-semibold">{totalCount}</span>
-                </>
-              )}{" "}
-              {totalCount === 1 ? "product" : "products"}
+              <span className="font-semibold">
+                {rangeStart}–{rangeEnd}
+              </span>{" "}
+              of <span className="font-semibold">{metadata.total}</span>{" "}
+              {metadata.total === 1 ? "product" : "products"}
               {(q || categories || tags || min || max) && (
                 <span className="ml-1 text-slate-500">with active filters</span>
               )}
@@ -152,15 +150,23 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
         </p>
       </div>
 
-      {/* Product Grid - render client favorites grid when favorites flag present */}
+      {/* Product Grid */}
       {favoritesFlag ? (
         <ProductGridClient products={mappedProducts} favoritesOnly={true} />
       ) : (
-        <ProductGridWithLoadMore
-          initialProducts={mappedProducts}
-          initialLimit={12}
-          filters={parsedFilters}
-          totalCount={totalCount}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {mappedProducts.map((product: any) => (
+            <ProductCard key={product.id} {...product} />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!favoritesFlag && metadata.totalPages > 1 && (
+        <Pagination
+          currentPage={metadata.page}
+          totalPages={metadata.totalPages}
+          total={metadata.total}
         />
       )}
     </>
@@ -170,7 +176,6 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
 export default async function ProductsPage({
   searchParams,
 }: {
-  // `searchParams` can be a Promise in Next.js dynamic routes; unwrap it.
   searchParams: SearchParams | Promise<SearchParams>;
 }) {
   const sp = await searchParams;
