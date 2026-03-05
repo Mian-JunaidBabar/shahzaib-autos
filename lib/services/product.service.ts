@@ -287,7 +287,9 @@ export async function getStoreProducts(filters: StoreFilters = {}) {
 
   // Map productBadges -> badges for convenience
   return products.map((p) => {
-    const product = p as Omit<ProductWithRelations, "badges"> & {
+    // Narrow the Prisma result into a product shape that includes productBadges.
+    // Cast via `unknown` to avoid excessive structural typing checks from TS.
+    const product = p as unknown as Omit<ProductWithRelations, "badges"> & {
       productBadges?: { badge: Badge }[];
     };
     return {
@@ -330,7 +332,8 @@ export async function getStoreProductsWithCount(
 
   return {
     products: products.map((p) => {
-      const product = p as Omit<ProductWithRelations, "badges"> & {
+      // Cast via `unknown` to avoid strict structural checks from TypeScript
+      const product = p as unknown as Omit<ProductWithRelations, "badges"> & {
         productBadges?: { badge: Badge }[];
       };
       return {

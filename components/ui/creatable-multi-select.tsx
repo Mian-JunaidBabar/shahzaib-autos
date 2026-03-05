@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useLayoutEffect } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import { useController, type FieldValues, type Path } from "react-hook-form";
 import { Control } from "react-hook-form";
 import { ChevronDown, X } from "lucide-react";
@@ -75,6 +75,10 @@ export function CreatableMultiSelect<
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const selectedTags = (field.value as string[]) || [];
+
+  // Refs for trigger button and search input so we can focus the input
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   // Focus search input when popover opens
   useLayoutEffect(() => {
