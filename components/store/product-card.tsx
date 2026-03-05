@@ -116,16 +116,16 @@ export function ProductCard({ product }: Props) {
           <h3 className="font-medium text-sm line-clamp-2 hover:underline">
             {product.name}
           </h3>
+          {defaultVariant && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {defaultVariant.name}
+            </p>
+          )}
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            {defaultVariant &&
-              defaultVariant.name.toLowerCase() !== "default" && (
-                <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-300">
-                  {defaultVariant.name}
-                </span>
-              )}
             {product.variants && product.variants.length > 1 && (
               <span className="text-[10px] text-muted-foreground">
-                + {product.variants.length - 1} options
+                + {product.variants.length - 1} option
+                {product.variants.length !== 2 ? "s" : ""}
               </span>
             )}
           </div>

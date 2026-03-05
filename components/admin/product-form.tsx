@@ -151,6 +151,8 @@ export function ProductForm({ initialData }: ProductFormProps) {
     handleSubmit,
     watch,
     setValue,
+    setError,
+    setFocus,
     formState: { errors },
   } = useForm<ProductFormValues>({
     defaultValues: isEdit
@@ -256,12 +258,50 @@ export function ProductForm({ initialData }: ProductFormProps) {
   // Submit
   // ---------------------------------------------------------------------------
 
+  // Map Zod issues returned from server to react-hook-form field errors
+  function applyZodIssues(raw?: string) {
+    if (!raw) return false;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return false;
+
+      let firstField: string | null = null;
+      parsed.forEach((issue: any) => {
+        const path = issue.path || [];
+        if (!Array.isArray(path) || path.length === 0) return;
+
+        // Convert Zod path to RHF field name. Example: ["variants", 0, "sku"] => "variants.0.sku"
+        const mapped = path.map((p: any, idx: number) => {
+          // For variant id field, our form uses `_id` instead of `id`
+          if (p === "id" && path[0] === "variants") return "_id";
+          return String(p);
+        });
+        const fieldName = mapped.join(".");
+        setError(fieldName as any, { type: "server", message: issue.message });
+        if (!firstField) firstField = fieldName;
+      });
+
+      // Focus the first errored field so the user sees it immediately
+      if (firstField) {
+        try {
+          setFocus(firstField as any);
+        } catch {
+          // ignore focus errors
+        }
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const onSubmit = (data: ProductFormValues) => {
     setSubmitError(null);
     startTransition(async () => {
       try {
         const variantsPayload = data.variants.map((v) => ({
-          id: v._id, // undefined for new variants → service will CREATE
+          id: v._id || undefined, // undefined for new variants → service will CREATE
           name: v.name,
           sku: v.sku,
           price: Math.round(Number(v.price) * 100),
@@ -291,9 +331,13 @@ export function ProductForm({ initialData }: ProductFormProps) {
           });
 
           if (!result.success) {
+            // If server returned structured Zod issues, map them to form fields
+            const handled = applyZodIssues(result.error);
             const friendlyError = parseErrorMessage(result.error);
-            setSubmitError(friendlyError);
-            toast.error(friendlyError);
+            if (!handled) {
+              setSubmitError(friendlyError);
+              toast.error(friendlyError);
+            }
             return;
           }
           productId = initialData.id;
@@ -312,9 +356,12 @@ export function ProductForm({ initialData }: ProductFormProps) {
           });
 
           if (!result.success || !result.data) {
+            const handled = applyZodIssues(result.error);
             const friendlyError = parseErrorMessage(result.error);
-            setSubmitError(friendlyError);
-            toast.error(friendlyError);
+            if (!handled) {
+              setSubmitError(friendlyError);
+              toast.error(friendlyError);
+            }
             return;
           }
           productId = result.data.id;

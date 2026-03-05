@@ -9,6 +9,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
+import { ZodError } from "zod";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as ProductService from "@/lib/services/product.service";
 import {
@@ -137,8 +138,14 @@ export async function createProductAction(
     const validated = productCreateSchema.parse(input);
     const product = await ProductService.createProduct(validated);
 
-    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
-    revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag(
+      "products:all",
+      undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+    );
+    revalidateTag(
+      "dashboard:stats",
+      undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+    );
     revalidatePath("/admin/dashboard/products");
     revalidatePath("/products");
 
@@ -149,6 +156,11 @@ export async function createProductAction(
     };
   } catch (error) {
     console.error("createProductAction error:", error);
+    if (error instanceof ZodError) {
+      // Return structured Zod issues so the client can highlight fields
+      return { success: false, error: JSON.stringify(error.issues) };
+    }
+
     return {
       success: false,
       error: getPrismaErrorMessage(error),
@@ -169,9 +181,19 @@ export async function updateProductAction(
     const { id, ...data } = validated;
     await ProductService.updateProduct(id, data);
 
-    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
-    revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
-    if (data.slug) revalidateTag(`products:${data.slug}`, undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag(
+      "products:all",
+      undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+    );
+    revalidateTag(
+      "dashboard:stats",
+      undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+    );
+    if (data.slug)
+      revalidateTag(
+        `products:${data.slug}`,
+        undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+      );
 
     revalidatePath("/admin/dashboard/products");
     revalidatePath(`/products/${id}`);
@@ -183,6 +205,10 @@ export async function updateProductAction(
     };
   } catch (error) {
     console.error("updateProductAction error:", error);
+    if (error instanceof ZodError) {
+      return { success: false, error: JSON.stringify(error.issues) };
+    }
+
     return {
       success: false,
       error: getPrismaErrorMessage(error),
@@ -202,7 +228,10 @@ export async function toggleProductActiveAction(
 
     await ProductService.updateProduct(id, { isActive });
 
-    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag(
+      "products:all",
+      undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+    );
     revalidatePath("/admin/dashboard/products");
     revalidatePath("/admin/dashboard/inventory");
     revalidatePath("/products");
@@ -255,8 +284,14 @@ export async function archiveProductAction(id: string): Promise<ActionResult> {
 
     await ProductService.archiveProduct(id);
 
-    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
-    revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag(
+      "products:all",
+      undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+    );
+    revalidateTag(
+      "dashboard:stats",
+      undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+    );
     revalidatePath("/admin/dashboard/products");
     revalidatePath("/admin/dashboard/inventory");
     revalidatePath("/products");
@@ -311,8 +346,14 @@ export async function deleteProductAction(
     const result = await ProductService.deleteProduct(id);
 
     if (result.deleted) {
-      revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
-      revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+      revalidateTag(
+        "products:all",
+        undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+      );
+      revalidateTag(
+        "dashboard:stats",
+        undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+      );
       revalidatePath("/admin/dashboard/products");
       revalidatePath("/admin/dashboard/inventory");
       revalidatePath("/products");
@@ -552,7 +593,9 @@ export async function getProductStockDetailsAction(
 export async function fetchMoreProductsAction(
   offset: number,
   filters: ProductService.StoreFilters = {},
-): Promise<ActionResult<Awaited<ReturnType<typeof ProductService.getStoreProducts>>>> {
+): Promise<
+  ActionResult<Awaited<ReturnType<typeof ProductService.getStoreProducts>>>
+> {
   try {
     const products = await ProductService.getStoreProducts({
       ...filters,
