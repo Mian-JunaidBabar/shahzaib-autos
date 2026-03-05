@@ -85,7 +85,7 @@ export function BookingForm() {
   useEffect(() => {
     loadServices();
     loadSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const loadSettings = async () => {

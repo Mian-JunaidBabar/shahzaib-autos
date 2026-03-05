@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import { useController, type FieldValues, type Path } from "react-hook-form";
 import { Control } from "react-hook-form";
 import { ChevronDown, X } from "lucide-react";
@@ -27,7 +33,7 @@ interface CreatableMultiSelectProps<
   label?: string;
   placeholder?: string;
   description?: string;
-  control: Control<TFieldValues, any>;
+  control: Control<TFieldValues, Record<string, unknown>>;
   name: TName;
   availableTags: Tag[];
   onTagsChange?: (tags: string[]) => void;
@@ -74,25 +80,12 @@ export function CreatableMultiSelect<
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>(
-    (field.value as string[]) || [],
-  );
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
-  // Sync field value with local state
-  useEffect(() => {
-    if (Array.isArray(field.value)) {
-      setSelectedTags(field.value);
-    }
-  }, [field.value]);
+  const selectedTags = (field.value as string[]) || [];
 
   // Focus search input when popover opens
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (open) {
       setTimeout(() => searchInputRef.current?.focus(), 0);
-    } else {
-      setSearch("");
     }
   }, [open]);
 
@@ -116,7 +109,7 @@ export function CreatableMultiSelect<
     e?.preventDefault();
     e?.stopPropagation();
     const newTags = [...selectedTags, tagName];
-    setSelectedTags(newTags);
+    field.onChange(newTags);
     field.onChange(newTags);
     onTagsChange?.(newTags);
     setSearch("");
@@ -128,7 +121,7 @@ export function CreatableMultiSelect<
     e?.preventDefault();
     e?.stopPropagation();
     const newTags = selectedTags.filter((t) => t !== tagName);
-    setSelectedTags(newTags);
+    field.onChange(newTags);
     field.onChange(newTags);
     onTagsChange?.(newTags);
   };
@@ -150,7 +143,13 @@ export function CreatableMultiSelect<
     <div className="w-full space-y-2">
       {label && <Label htmlFor={`creatableselect-${name}`}>{label}</Label>}
 
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(newOpen) => {
+          setOpen(newOpen);
+          if (!newOpen) setSearch("");
+        }}
+      >
         <PopoverTrigger asChild>
           <Button
             ref={triggerRef}
@@ -186,7 +185,7 @@ export function CreatableMultiSelect<
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] p-2"
+          className="w-(--radix-popover-trigger-width) p-2"
           align="start"
         >
           <div className="space-y-2">
@@ -201,7 +200,7 @@ export function CreatableMultiSelect<
             />
 
             {/* Tag List */}
-            <div className="flex flex-col max-h-[200px] overflow-y-auto gap-1">
+            <div className="flex flex-col max-h-50 overflow-y-auto gap-1">
               {filteredTags.length > 0 ? (
                 filteredTags.map((tag) => (
                   <button

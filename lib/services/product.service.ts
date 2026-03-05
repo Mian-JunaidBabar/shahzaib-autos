@@ -286,10 +286,15 @@ export async function getStoreProducts(filters: StoreFilters = {}) {
   });
 
   // Map productBadges -> badges for convenience
-  return products.map((p: any) => ({
-    ...p,
-    badges: p.productBadges?.map((pb: any) => pb.badge) ?? [],
-  }));
+  return products.map((p) => {
+    const product = p as Omit<ProductWithRelations, "badges"> & {
+      productBadges?: { badge: Badge }[];
+    };
+    return {
+      ...product,
+      badges: product.productBadges?.map((pb) => pb.badge) ?? [],
+    };
+  });
 }
 
 // returns both list and total count according to filters (ignores limit/offset for count)
@@ -324,10 +329,15 @@ export async function getStoreProductsWithCount(
   ]);
 
   return {
-    products: products.map((p: any) => ({
-      ...p,
-      badges: p.productBadges?.map((pb: any) => pb.badge) ?? [],
-    })),
+    products: products.map((p) => {
+      const product = p as Omit<ProductWithRelations, "badges"> & {
+        productBadges?: { badge: Badge }[];
+      };
+      return {
+        ...product,
+        badges: product.productBadges?.map((pb) => pb.badge) ?? [],
+      };
+    }),
     count,
   };
 }
@@ -501,10 +511,15 @@ export async function getProducts(
   const total = await prisma.product.count({ where });
 
   return {
-    products: products.map((p: any) => ({
-      ...p,
-      badges: p.productBadges?.map((pb: any) => pb.badge) ?? [],
-    })),
+    products: products.map((p) => {
+      const product = p as Omit<ProductWithRelations, "badges"> & {
+        productBadges?: { badge: Badge }[];
+      };
+      return {
+        ...product,
+        badges: product.productBadges?.map((pb) => pb.badge) ?? [],
+      };
+    }),
     pagination: {
       page,
       limit,
@@ -541,8 +556,18 @@ export async function getAdminProducts(filters: AdminProductFilters = {}) {
       { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
       { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
       { slug: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      { variants: { some: { sku: { contains: q, mode: Prisma.QueryMode.insensitive } } } },
-      { variants: { some: { barcode: { contains: q, mode: Prisma.QueryMode.insensitive } } } },
+      {
+        variants: {
+          some: { sku: { contains: q, mode: Prisma.QueryMode.insensitive } },
+        },
+      },
+      {
+        variants: {
+          some: {
+            barcode: { contains: q, mode: Prisma.QueryMode.insensitive },
+          },
+        },
+      },
     ];
   }
 
@@ -591,10 +616,15 @@ export async function getAdminProducts(filters: AdminProductFilters = {}) {
   const totalPages = Math.ceil(total / limit);
 
   return {
-    products: products.map((p: any) => ({
-      ...p,
-      badges: p.productBadges?.map((pb: any) => pb.badge) ?? [],
-    })),
+    products: products.map((p) => {
+      const product = p as Omit<ProductWithRelations, "badges"> & {
+        productBadges?: { badge: Badge }[];
+      };
+      return {
+        ...product,
+        badges: product.productBadges?.map((pb) => pb.badge) ?? [],
+      };
+    }),
     metadata: {
       total,
       totalPages,
@@ -847,7 +877,7 @@ export async function updateProduct(
     badgeId: _removedBadgeId,
     badges: _removedBadges,
     ...productDataWithoutBadge
-  } = productData as any;
+  } = productData;
 
   // ==========================================================================
   // STEP 1: FETCH FIRST - Get current product state
@@ -1031,8 +1061,8 @@ export async function updateProduct(
   });
 
   // Sync badges if provided
-  if ((input as any).badges !== undefined) {
-    const incomingBadges: string[] = (input as any).badges || [];
+  if (input.badges !== undefined) {
+    const incomingBadges: string[] = input.badges || [];
 
     const existingBadgeNames =
       existingProduct.productBadges?.map((pb) => pb.badge.name) ?? [];
