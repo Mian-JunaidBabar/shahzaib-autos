@@ -96,7 +96,11 @@ model Badge {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // Legacy one-to-many (single badge per product)
   products Product[]
+
+  // Many-to-many via explicit join table for multiple badges per product
+  productBadges ProductBadge[]
 
   @@map("badges")
 }
@@ -134,11 +138,28 @@ model Product {
 
   badge       Badge?              @relation(fields: [badgeId], references: [id])
   tags        Tag[]               // Many-to-many relation to tags
+
+  // Explicit many-to-many link to badges (products can have multiple badges)
+  productBadges ProductBadge[]
   images      Image[]             // Unified Image relation
   variants    ProductVariant[]    // Product specifications/variations
   fitments    VehicleFitment[]    // Vehicle compatibility
 
   @@map("products")
+}
+
+// Join table to allow assigning multiple badges to a single product.
+model ProductBadge {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  badgeId   String   @map("badge_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  badge   Badge   @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, badgeId])
+  @@map("product_badges")
 }
 
 // ============================================

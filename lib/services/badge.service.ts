@@ -83,16 +83,11 @@ export async function updateBadge(id: string, input: Partial<BadgeInput>) {
  * Delete badge
  */
 export async function deleteBadge(id: string) {
-  // First, remove badge from all products
-  await prisma.product.updateMany({
-    where: { badgeId: id },
-    data: { badgeId: null },
-  });
+  // First, remove any ProductBadge join rows referencing this badge
+  await prisma.productBadge.deleteMany({ where: { badgeId: id } });
 
   // Then delete the badge
-  return prisma.badge.delete({
-    where: { id },
-  });
+  return prisma.badge.delete({ where: { id } });
 }
 
 /**

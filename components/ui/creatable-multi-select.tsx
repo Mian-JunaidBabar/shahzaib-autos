@@ -112,17 +112,21 @@ export function CreatableMultiSelect<
     ) &&
     !selectedTags.includes(trimmedSearch);
 
-  const handleSelectTag = (tagName: string) => {
+  const handleSelectTag = (tagName: string, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const newTags = [...selectedTags, tagName];
     setSelectedTags(newTags);
     field.onChange(newTags);
     onTagsChange?.(newTags);
     setSearch("");
-    // Keep popover open for convenience
-    searchInputRef.current?.focus();
+    // Keep popover open for multiple selections
+    setTimeout(() => searchInputRef.current?.focus(), 10);
   };
 
-  const handleRemoveTag = (tagName: string) => {
+  const handleRemoveTag = (tagName: string, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     const newTags = selectedTags.filter((t) => t !== tagName);
     setSelectedTags(newTags);
     field.onChange(newTags);
@@ -166,14 +170,11 @@ export function CreatableMultiSelect<
                   <Badge
                     key={tagName}
                     variant="secondary"
-                    className="gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveTag(tagName);
-                    }}
+                    className="gap-1 cursor-pointer"
+                    onClick={(e) => handleRemoveTag(tagName, e)}
                   >
                     {tagName}
-                    <X className="h-3 w-3 cursor-pointer hover:opacity-70" />
+                    <X className="h-3 w-3 hover:opacity-70" />
                   </Badge>
                 ))
               ) : (
@@ -206,7 +207,7 @@ export function CreatableMultiSelect<
                   <button
                     key={tag.id}
                     type="button"
-                    onClick={() => handleSelectTag(tag.name)}
+                    onClick={(e) => handleSelectTag(tag.name, e)}
                     className={cn(
                       "px-2 py-1.5 text-sm text-left rounded-md hover:bg-accent transition-colors",
                       selectedTags.includes(tag.name) &&
@@ -226,7 +227,11 @@ export function CreatableMultiSelect<
               {canCreateNewTag && (
                 <button
                   type="button"
-                  onClick={handleCreateAndSelect}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleCreateAndSelect();
+                  }}
                   className="px-2 py-1.5 text-sm text-left rounded-md bg-green-50 hover:bg-green-100 text-green-700 transition-colors border border-green-200 font-medium"
                 >
                   + Create &quot;{trimmedSearch}&quot;

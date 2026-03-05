@@ -37,7 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { BadgeSelector } from "@/components/ui/badge-selector";
+// BadgeSelector replaced by CreatableMultiSelect for multi-badge support
 import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import {
@@ -105,6 +105,7 @@ type ProductFormValues = {
   description?: string;
   category?: string;
   badgeId?: string;
+  badges?: string[];
   tags: string[]; // Array of tag names
   isActive: boolean;
   isUniversal: boolean;
@@ -166,6 +167,9 @@ export function ProductForm({ initialData }: ProductFormProps) {
           description: initialData.description ?? "",
           category: initialData.category ?? "",
           badgeId: initialData.badgeId ?? "",
+          badges: (
+            initialData.badges ?? (initialData.badge ? [initialData.badge] : [])
+          ).map((b) => b.name),
           tags: (initialData.tags ?? []).map((t) => t.name),
           isActive: initialData.isActive ?? true,
           isUniversal: initialData.isUniversal ?? true,
@@ -194,6 +198,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           description: "",
           category: "",
           badgeId: "",
+          badges: [],
           tags: [],
           isActive: true,
           isUniversal: true,
@@ -340,6 +345,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
             description: data.description || undefined,
             category: data.category || undefined,
             badgeId: data.badgeId || undefined,
+            badges: data.badges,
             tags: data.tags,
             isActive: data.isActive,
             isUniversal: data.isUniversal,
@@ -367,6 +373,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
             description: data.description || undefined,
             category: data.category || undefined,
             badgeId: data.badgeId || undefined,
+            badges: data.badges,
             tags: data.tags,
             isActive: data.isActive,
             isUniversal: data.isUniversal,
@@ -560,27 +567,25 @@ export function ProductForm({ initialData }: ProductFormProps) {
                 placeholder="Engine Parts, Body Parts, etc"
               />
             </div>
-            {badges.length > 0 && (
-              <div className="space-y-2">
-                <BadgeSelector
-                  badges={badges}
-                  value={watch("badgeId") || ""}
-                  onChange={(badgeId) => setValue("badgeId", badgeId || "")}
-                  label="Badge (optional)"
-                />
-              </div>
-            )}
-
-            {tags.length > 0 && (
+            <div className="space-y-2">
               <CreatableMultiSelect
                 control={control}
-                name="tags"
-                label="Tags (optional)"
-                placeholder="Search or create tags..."
-                description="Add descriptive tags to help customers find this product"
-                availableTags={tags}
+                name="badges"
+                label="Badges (optional)"
+                placeholder="Search or create badges..."
+                description="Assign one or more promotional badges to this product"
+                availableTags={badges}
               />
-            )}
+            </div>
+
+            <CreatableMultiSelect
+              control={control}
+              name="tags"
+              label="Tags (optional)"
+              placeholder="Search or create tags..."
+              description="Add descriptive tags to help customers find this product"
+              availableTags={tags}
+            />
           </div>
 
           <div className="space-y-2">

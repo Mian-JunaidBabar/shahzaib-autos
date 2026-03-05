@@ -19,9 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { BadgeSelector } from "@/components/ui/badge-selector";
+import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
 import { Switch } from "@/components/ui/switch";
 import { uploadImageToCloudinary } from "@/lib/cloudinary-client";
 import { createProductAction } from "@/app/actions/productActions";
@@ -47,6 +46,7 @@ type FormData = {
   description?: string;
   category?: string;
   badgeId?: string;
+  badges: string[];
   tags: string[];
   isActive: boolean;
   isUniversal: boolean;
@@ -73,7 +73,6 @@ export default function NewProductPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [badges, setBadges] = useState<Badge[]>([]);
-  const [isLoadingBadges, setIsLoadingBadges] = useState(true);
   const [imageFiles, setImageFiles] = useState<ImagePreview[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -94,6 +93,7 @@ export default function NewProductPage() {
       description: "",
       category: "",
       badgeId: "",
+      badges: [],
       isActive: true,
       isUniversal: true,
       variants: [
@@ -164,7 +164,6 @@ export default function NewProductPage() {
       if (result.success && result.data) {
         setBadges(result.data as Badge[]);
       }
-      setIsLoadingBadges(false);
     };
     loadBadges();
   }, []);
@@ -191,6 +190,7 @@ export default function NewProductPage() {
         description: data.description || undefined,
         category: data.category || undefined,
         badgeId: data.badgeId || undefined,
+        badges: data.badges,
         tags: data.tags,
         isActive: data.isActive,
         isUniversal: data.isUniversal,
@@ -368,16 +368,14 @@ export default function NewProductPage() {
                 placeholder="Engine Parts, Body Parts, etc"
               />
             </div>
-            {!isLoadingBadges && (
-              <div className="space-y-2">
-                <BadgeSelector
-                  badges={badges}
-                  value={watch("badgeId") || ""}
-                  onChange={(badgeId) => setValue("badgeId", badgeId || "")}
-                  label="Badge (optional)"
-                />
-              </div>
-            )}
+            <CreatableMultiSelect
+              control={control}
+              name="badges"
+              label="Badges (optional)"
+              placeholder="Search or create badges..."
+              description="Assign one or more promotional badges to this product"
+              availableTags={badges}
+            />
           </div>
 
           <div className="space-y-2">

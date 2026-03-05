@@ -27,6 +27,7 @@ export type ProductWithRelations = Product & {
   fitments: VehicleFitment[];
   badge: Badge | null;
   tags: Tag[];
+  badges?: Badge[];
 };
 
 // Store product with limited relations (for listing pages)
@@ -35,6 +36,7 @@ export type StoreProduct = Product & {
   variants: ProductVariant[];
   badge: Badge | null;
   tags: Tag[];
+  badges?: Badge[];
 };
 
 // Legacy type for backward compatibility
@@ -46,6 +48,7 @@ export type CreateProductInput = {
   description?: string | null;
   category?: string | null;
   badgeId?: string | null;
+  badges?: string[]; // Array of badge names to attach to product (will be created if missing)
   tags?: string[]; // Array of tag names (will be created if not exist), defaults to empty
   isActive?: boolean;
   status?: ProductStatus;
@@ -80,6 +83,7 @@ export type UpdateProductInput = {
   description?: string | null;
   category?: string | null;
   badgeId?: string | null;
+  badges?: string[];
   tags?: string[]; // Array of tag names (will connect or create)
   isActive?: boolean;
   isArchived?: boolean;
@@ -277,10 +281,15 @@ export async function getStoreProducts(filters: StoreFilters = {}) {
       },
       badge: true,
       tags: { orderBy: { name: "asc" } },
+      productBadges: { include: { badge: true } },
     },
   });
 
-  return products;
+  // Map productBadges -> badges for convenience
+  return products.map((p: any) => ({
+    ...p,
+    badges: p.productBadges?.map((pb: any) => pb.badge) ?? [],
+  }));
 }
 
 // returns both list and total count according to filters (ignores limit/offset for count)
@@ -308,12 +317,19 @@ export async function getStoreProductsWithCount(
         variants: { orderBy: { isDefault: "desc" } },
         badge: true,
         tags: { orderBy: { name: "asc" } },
+        productBadges: { include: { badge: true } },
       },
     }),
     prisma.product.count({ where }),
   ]);
 
-  return { products, count };
+  return {
+    products: products.map((p: any) => ({
+      ...p,
+      badges: p.productBadges?.map((pb: any) => pb.badge) ?? [],
+    })),
+    count,
+  };
 }
 
 /**
@@ -476,6 +492,7 @@ export async function getProducts(
       fitments: true,
       badge: true,
       tags: { orderBy: { name: "asc" } },
+      productBadges: { include: { badge: true } },
     },
     orderBy: { [sortBy]: sortOrder },
     skip: (page - 1) * limit,
@@ -484,7 +501,10 @@ export async function getProducts(
   const total = await prisma.product.count({ where });
 
   return {
-    products,
+    products: products.map((p: any) => ({
+      ...p,
+      badges: p.productBadges?.map((pb: any) => pb.badge) ?? [],
+    })),
     pagination: {
       page,
       limit,
@@ -500,7 +520,7 @@ export async function getProducts(
 export async function getProduct(
   idOrSlug: string,
 ): Promise<ProductWithRelations | null> {
-  return prisma.product.findFirst({
+  const p = await prisma.product.findFirst({
     where: {
       OR: [{ id: idOrSlug }, { slug: idOrSlug }],
     },
@@ -510,8 +530,16 @@ export async function getProduct(
       fitments: true,
       badge: true,
       tags: { orderBy: { name: "asc" } },
+      productBadges: { include: { badge: true } },
     },
   });
+
+  if (!p) return null;
+
+  return {
+    ...p,
+    badges: p.productBadges?.map((pb) => pb.badge) ?? [],
+  } as unknown as ProductWithRelations;
 }
 
 /**
@@ -564,6 +592,7 @@ export async function createProduct(
     variants = [],
     fitments = [],
     tags = [],
+    badges = [],
     status,
     isUniversal = true,
     ...productData
@@ -593,7 +622,8 @@ export async function createProduct(
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-  return prisma.product.create({
+  // First, create the product, variants and fitments
+  const created = await prisma.product.create({
     data: {
       ...productData,
       slug: productSlug,
@@ -620,21 +650,80 @@ export async function createProduct(
           endYear: fitment.endYear ?? null,
         })),
       },
-      tags: {
-        connectOrCreate: tags.map((tagName) => ({
-          where: { name: tagName },
-          create: { name: tagName },
-        })),
-      },
     },
+  });
+
+  // Connect or create tags
+  if (tags.length > 0) {
+    await prisma.product.update({
+      where: { id: created.id },
+      data: {
+        tags: {
+          connectOrCreate: tags.map((tagName) => ({
+            where: { name: tagName },
+            create: { name: tagName },
+          })),
+        },
+      },
+    });
+  }
+
+  // Connect or create badges and link via ProductBadge join table
+  if (badges.length > 0) {
+    // ensure badges exist and create join records
+    const firstBadgeIds: string[] = [];
+    for (const badgeName of badges) {
+      const badge = await prisma.badge.upsert({
+        where: { name: badgeName },
+        create: { name: badgeName, color: "bg-gray-500" },
+        update: {},
+      });
+
+      // create join link if not exists
+      await prisma.productBadge.createMany({
+        data: [
+          {
+            productId: created.id,
+            badgeId: badge.id,
+          },
+        ],
+        skipDuplicates: true,
+      });
+
+      firstBadgeIds.push(badge.id);
+    }
+
+    // For backward compatibility, set product.badgeId to first badge id
+    if (firstBadgeIds.length > 0) {
+      await prisma.product.update({
+        where: { id: created.id },
+        data: { badge: { connect: { id: firstBadgeIds[0] } } },
+      });
+    }
+  }
+
+  // Return complete product with relations (including productBadges -> badge)
+  const full = await prisma.product.findUnique({
+    where: { id: created.id },
     include: {
       images: true,
       variants: true,
       fitments: true,
       badge: true,
       tags: true,
+      productBadges: { include: { badge: true } },
     },
   });
+
+  if (!full) throw new Error("Failed to fetch created product");
+
+  // Map productBadges to badges array for convenience
+  const result = {
+    ...full,
+    badges: full.productBadges?.map((pb) => pb.badge) ?? [],
+  } as unknown as ProductWithRelations;
+
+  return result;
 }
 
 /**
@@ -660,6 +749,14 @@ export async function updateProduct(
     ...productData
   } = input;
 
+  // Remove badge-related scalars from productData so we only update
+  // the relation via nested writes (Prisma expects `badge: { connect }`)
+  const {
+    badgeId: _removedBadgeId,
+    badges: _removedBadges,
+    ...productDataWithoutBadge
+  } = productData as any;
+
   // ==========================================================================
   // STEP 1: FETCH FIRST - Get current product state
   // ==========================================================================
@@ -670,6 +767,7 @@ export async function updateProduct(
       variants: true,
       fitments: true,
       tags: true,
+      productBadges: { include: { badge: true } },
     },
   });
 
@@ -720,7 +818,7 @@ export async function updateProduct(
 
   // Build update data
   const updateData: Prisma.ProductUpdateInput = {
-    ...productData,
+    ...productDataWithoutBadge,
     ...(newStatus !== undefined && { status: newStatus }),
     ...(isArchived !== undefined && { isArchived }),
     ...(isUniversal !== undefined && { isUniversal }),
@@ -840,7 +938,87 @@ export async function updateProduct(
     },
   });
 
-  return product;
+  // Sync badges if provided
+  if ((input as any).badges !== undefined) {
+    const incomingBadges: string[] = (input as any).badges || [];
+
+    const existingBadgeNames =
+      existingProduct.productBadges?.map((pb) => pb.badge.name) ?? [];
+
+    const toAdd = incomingBadges.filter((b) => !existingBadgeNames.includes(b));
+    const toRemove = existingBadgeNames.filter(
+      (b) => !incomingBadges.includes(b),
+    );
+
+    // Add new badge links
+    for (const badgeName of toAdd) {
+      const badge = await prisma.badge.upsert({
+        where: { name: badgeName },
+        create: { name: badgeName, color: "bg-gray-500" },
+        update: {},
+      });
+
+      await prisma.productBadge.createMany({
+        data: [
+          {
+            productId: id,
+            badgeId: badge.id,
+          },
+        ],
+        skipDuplicates: true,
+      });
+    }
+
+    // Remove badge links
+    if (toRemove.length > 0) {
+      const badgesToRemove = await prisma.badge.findMany({
+        where: { name: { in: toRemove } },
+      });
+      const badgeIdsToRemove = badgesToRemove.map((b) => b.id);
+      await prisma.productBadge.deleteMany({
+        where: { productId: id, badgeId: { in: badgeIdsToRemove } },
+      });
+    }
+
+    // Set legacy badgeId to first badge if exists for compatibility
+    if (incomingBadges.length > 0) {
+      const first = await prisma.badge.findUnique({
+        where: { name: incomingBadges[0] },
+      });
+      if (first) {
+        await prisma.product.update({
+          where: { id },
+          data: { badge: { connect: { id: first.id } } },
+        });
+      }
+    } else {
+      // clear legacy badge relation
+      await prisma.product.update({
+        where: { id },
+        data: { badge: { disconnect: true } },
+      });
+    }
+  }
+
+  // Return full product with badges array
+  const full = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+      variants: { orderBy: { createdAt: "asc" } },
+      fitments: true,
+      badge: true,
+      tags: { orderBy: { name: "asc" } },
+      productBadges: { include: { badge: true } },
+    },
+  });
+
+  if (!full) throw new Error("Failed to fetch updated product");
+
+  return {
+    ...full,
+    badges: full.productBadges?.map((pb) => pb.badge) ?? [],
+  } as unknown as ProductWithRelations;
 }
 
 /**
@@ -849,7 +1027,7 @@ export async function updateProduct(
 export async function deactivateProduct(
   id: string,
 ): Promise<ProductWithRelations> {
-  return prisma.product.update({
+  const full = await prisma.product.update({
     where: { id },
     data: { isActive: false },
     include: {
@@ -858,8 +1036,14 @@ export async function deactivateProduct(
       fitments: true,
       badge: true,
       tags: { orderBy: { name: "asc" } },
+      productBadges: { include: { badge: true } },
     },
   });
+
+  return {
+    ...full,
+    badges: full.productBadges?.map((pb) => pb.badge) ?? [],
+  } as unknown as ProductWithRelations;
 }
 
 /**
@@ -868,7 +1052,7 @@ export async function deactivateProduct(
 export async function archiveProduct(
   id: string,
 ): Promise<ProductWithRelations> {
-  return prisma.product.update({
+  const full = await prisma.product.update({
     where: { id },
     data: {
       isArchived: true,
@@ -881,8 +1065,14 @@ export async function archiveProduct(
       fitments: true,
       badge: true,
       tags: { orderBy: { name: "asc" } },
+      productBadges: { include: { badge: true } },
     },
   });
+
+  return {
+    ...full,
+    badges: full.productBadges?.map((pb) => pb.badge) ?? [],
+  } as unknown as ProductWithRelations;
 }
 
 /**
@@ -901,21 +1091,30 @@ export async function unarchiveProduct(
     product?.variants.reduce((sum, v) => sum + v.inventoryQty, 0) ?? 0;
   const newStatus = determineStatusFromStock(totalStock);
 
-  return prisma.product.update({
-    where: { id },
-    data: {
-      isArchived: false,
-      status: newStatus,
-      isActive: true,
-    },
-    include: {
-      images: true,
-      variants: true,
-      fitments: true,
-      badge: true,
-      tags: { orderBy: { name: "asc" } },
-    },
-  });
+  return prisma.product
+    .update({
+      where: { id },
+      data: {
+        isArchived: false,
+        status: newStatus,
+        isActive: true,
+      },
+      include: {
+        images: true,
+        variants: true,
+        fitments: true,
+        badge: true,
+        tags: { orderBy: { name: "asc" } },
+        productBadges: { include: { badge: true } },
+      },
+    })
+    .then(
+      (full) =>
+        ({
+          ...full,
+          badges: full.productBadges?.map((pb) => pb.badge) ?? [],
+        }) as unknown as ProductWithRelations,
+    );
 }
 
 export type DeleteProductResult = {
