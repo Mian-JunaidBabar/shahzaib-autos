@@ -318,8 +318,8 @@ Please confirm availability and delivery.`;
     }
 
     // Revalidate admin orders page and flush products cache since stock dropped
-    revalidateTag("products:all", undefined as any);
-    revalidateTag("dashboard:stats", undefined as any);
+    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/orders");
 
     return {
@@ -412,8 +412,8 @@ export async function createOrderAction(
       "confirmation",
     );
 
-    revalidateTag("products:all", undefined as any);
-    revalidateTag("dashboard:stats", undefined as any);
+    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/orders");
 
     return {
@@ -451,8 +451,8 @@ export async function updateOrderStatusAction(
       "status_update",
     );
 
-    revalidateTag("products:all", undefined as any);
-    revalidateTag("dashboard:stats", undefined as any);
+    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/orders");
     revalidatePath(`/admin/dashboard/orders/${validated.id}`);
 
@@ -475,8 +475,8 @@ export async function deleteOrderAction(id: string): Promise<ActionResult> {
 
     await OrderService.deleteOrder(id);
 
-    revalidateTag("products:all", undefined as any);
-    revalidateTag("dashboard:stats", undefined as any);
+    revalidateTag("products:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    revalidateTag("dashboard:stats", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/orders");
 
     return { success: true };

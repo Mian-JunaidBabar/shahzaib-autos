@@ -121,7 +121,7 @@ export async function createServiceAction(
     const validated = serviceCreateSchema.parse(input);
     const service = await ServiceService.createService(validated);
 
-    revalidateTag("services:all", undefined as any);
+    revalidateTag("services:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/services");
     revalidatePath("/services");
 
@@ -147,8 +147,8 @@ export async function updateServiceAction(
     const validated = serviceUpdateSchema.parse(input);
     const service = await ServiceService.updateService(validated.id, validated);
 
-    revalidateTag("services:all", undefined as any);
-    if (validated.slug) revalidateTag(`services:${validated.slug}`, undefined as any);
+    revalidateTag("services:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
+    if (validated.slug) revalidateTag(`services:${validated.slug}`, undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/services");
     revalidatePath("/services");
 
@@ -177,7 +177,7 @@ export async function deleteServiceAction(
       return { success: false, error: result.error };
     }
 
-    revalidateTag("services:all", undefined as any);
+    revalidateTag("services:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/services");
     revalidatePath("/services");
 
@@ -203,7 +203,7 @@ export async function toggleServiceActiveAction(
 
     const service = await ServiceService.toggleServiceActive(id);
 
-    revalidateTag("services:all", undefined as any);
+    revalidateTag("services:all", undefined /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
     revalidatePath("/admin/dashboard/services");
     revalidatePath("/services");
 

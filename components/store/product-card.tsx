@@ -116,11 +116,21 @@ export function ProductCard({ product }: Props) {
           <h3 className="font-medium text-sm line-clamp-2 hover:underline">
             {product.name}
           </h3>
-          {product.variants.length > 1 && (
-            <p className="text-xs text-muted-foreground mt-1 tracking-wide">
-              + {product.variants.length - 1} more options
-            </p>
-          )}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {/* Show variant name as badge if it's not "Default" */}
+            {defaultVariant.name.toLowerCase() !== "default" && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {defaultVariant.name}
+              </Badge>
+            )}
+            {/* Show options count if multiple variants exist */}
+            {product.variants.length > 1 && (
+              <span className="text-xs text-muted-foreground tracking-wide">
+                + {product.variants.length - 1} more option
+                {product.variants.length - 1 !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
         </Link>
       </CardContent>
 
