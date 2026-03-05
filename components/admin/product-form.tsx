@@ -291,7 +291,9 @@ export function ProductForm({ initialData }: ProductFormProps) {
           });
 
           if (!result.success) {
-            setSubmitError(parseErrorMessage(result.error));
+            const friendlyError = parseErrorMessage(result.error);
+            setSubmitError(friendlyError);
+            toast.error(friendlyError);
             return;
           }
           productId = initialData.id;
@@ -310,7 +312,9 @@ export function ProductForm({ initialData }: ProductFormProps) {
           });
 
           if (!result.success || !result.data) {
-            setSubmitError(parseErrorMessage(result.error));
+            const friendlyError = parseErrorMessage(result.error);
+            setSubmitError(friendlyError);
+            toast.error(friendlyError);
             return;
           }
           productId = result.data.id;
@@ -348,11 +352,12 @@ export function ProductForm({ initialData }: ProductFormProps) {
         router.push(`/admin/dashboard/inventory/${productId}`);
       } catch (error) {
         console.error("ProductForm submit error:", error);
-        setSubmitError(
+        const fallbackError =
           error instanceof Error
             ? error.message
-            : "An unexpected error occurred",
-        );
+            : "An unexpected error occurred";
+        setSubmitError(fallbackError);
+        toast.error(fallbackError);
       }
     });
   };

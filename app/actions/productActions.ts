@@ -8,6 +8,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as ProductService from "@/lib/services/product.service";
 import {
@@ -22,6 +23,7 @@ import {
 export type ActionResult<T = void> = {
   success: boolean;
   data?: T;
+  message?: string;
   error?: string;
 };
 
@@ -29,11 +31,9 @@ export type ActionResult<T = void> = {
  * Helper: Extract user-friendly error message from Prisma errors
  */
 function getPrismaErrorMessage(error: unknown): string {
-  // Prisma errors expose a numeric/string `code` and optional `meta`.
-  const e = error as { code?: string; meta?: { target?: string[] } };
-  if (e && typeof e.code === "string") {
-    if (e.code === "P2002") {
-      const field = (e.meta?.target as string[])?.[0] || "field";
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      const field = (error.meta?.target as string[])?.[0] || "field";
       const fieldLabels: Record<string, string> = {
         sku: "SKU",
         slug: "URL slug",
@@ -43,21 +43,35 @@ function getPrismaErrorMessage(error: unknown): string {
       return `This ${label} is already in use. Please choose another.`;
     }
 
-    if (e.code === "P2003") {
+    if (error.code === "P2003") {
       return "This operation references data that doesn't exist.";
     }
 
-    if (e.code === "P2025") {
+    if (error.code === "P2025") {
       return "The record you're trying to update or delete doesn't exist.";
     }
   }
 
-  // Fallback for other errors
-  if (error instanceof Error) {
-    return error.message;
+  if (error instanceof Prisma.PrismaClientValidationError) {
+    if (error.message.includes("Unknown argument")) {
+      return "Database schema mismatch detected. Please restart the server and try again.";
+    }
+    return "Invalid product data format sent to the database. Please review the form and try again.";
   }
 
-  return "An unexpected error occurred. Please try again.";
+  if (error instanceof Error) {
+    if (error.message.includes("Unknown argument")) {
+      return "Database schema mismatch detected. Please restart the server and try again.";
+    }
+
+    if (error.message.includes("ZodError")) {
+      return "Some product fields are invalid. Please review the form and try again.";
+    }
+
+    return "Failed to save the product. Please check your inputs and try again.";
+  }
+
+  return "Failed to save the product. Please try again.";
 }
 
 /**
@@ -128,7 +142,11 @@ export async function createProductAction(
     revalidatePath("/admin/dashboard/products");
     revalidatePath("/products");
 
-    return { success: true, data: { id: product.id } };
+    return {
+      success: true,
+      data: { id: product.id },
+      message: "Product created successfully.",
+    };
   } catch (error) {
     console.error("createProductAction error:", error);
     return {
@@ -159,7 +177,10 @@ export async function updateProductAction(
     revalidatePath(`/products/${id}`);
     revalidatePath("/products");
 
-    return { success: true };
+    return {
+      success: true,
+      message: "Product updated successfully.",
+    };
   } catch (error) {
     console.error("updateProductAction error:", error);
     return {
