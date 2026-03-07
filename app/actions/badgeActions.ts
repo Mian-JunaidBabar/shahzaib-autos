@@ -7,6 +7,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as BadgeService from "@/lib/services/badge.service";
 
@@ -15,6 +16,26 @@ export type ActionResult<T = void> = {
   data?: T;
   error?: string;
 };
+
+function getSafeBadgeError(error: unknown, fallback: string): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      const target = Array.isArray(error.meta?.target)
+        ? error.meta?.target.map(String)
+        : [];
+      if (target.some((field) => field.includes("name"))) {
+        return "A badge with this name already exists.";
+      }
+      return "A unique value already exists. Please use a different one.";
+    }
+
+    if (error.code === "P2025") {
+      return "The badge record was not found.";
+    }
+  }
+
+  return fallback;
+}
 
 /**
  * Get all badges
@@ -29,7 +50,7 @@ export async function getBadgesAction(): Promise<
     console.error("getBadgesAction error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch badges",
+      error: "Failed to fetch badges",
     };
   }
 }
@@ -47,10 +68,7 @@ export async function getActiveBadgesAction(): Promise<
     console.error("getActiveBadgesAction error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch active badges",
+      error: "Failed to fetch active badges",
     };
   }
 }
@@ -77,7 +95,7 @@ export async function createBadgeAction(input: {
     console.error("createBadgeAction error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to create badge",
+      error: getSafeBadgeError(error, "Failed to create badge"),
     };
   }
 }
@@ -87,7 +105,7 @@ export async function createBadgeAction(input: {
  */
 export async function updateBadgeAction(
   id: string,
-  input: Partial<{ name: string; color: string; isActive: boolean }>
+  input: Partial<{ name: string; color: string; isActive: boolean }>,
 ): Promise<ActionResult<{ id: string }>> {
   try {
     await requireAdmin();
@@ -101,7 +119,7 @@ export async function updateBadgeAction(
     console.error("updateBadgeAction error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update badge",
+      error: getSafeBadgeError(error, "Failed to update badge"),
     };
   }
 }
@@ -122,7 +140,7 @@ export async function deleteBadgeAction(id: string): Promise<ActionResult> {
     console.error("deleteBadgeAction error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to delete badge",
+      error: getSafeBadgeError(error, "Failed to delete badge"),
     };
   }
 }

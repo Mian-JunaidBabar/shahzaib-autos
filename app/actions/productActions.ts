@@ -731,10 +731,7 @@ export async function bulkUpdateProductsAction(
     console.error("bulkUpdateProductsAction error:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to bulk update products",
+      error: getPrismaErrorMessage(error),
     };
   }
 }

@@ -30,7 +30,7 @@ export async function getAllTagsAction(): Promise<
     console.error("getAllTagsAction error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch tags",
+      error: "Failed to fetch tags. Please try again.",
     };
   }
 }

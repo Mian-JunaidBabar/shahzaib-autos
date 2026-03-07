@@ -9,16 +9,48 @@
 import { revalidatePath } from "next/cache";
 import { revalidateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
+import { ZodError } from "zod";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as CategoryService from "@/lib/services/category.service";
+import {
+  categoryCreateSchema,
+  categoryUpdateSchema,
+  CategoryCreateInput,
+  CategoryUpdateInput,
+} from "@/lib/validations";
 
 export type ActionResult<T = void> = {
   success: boolean;
   data?: T;
   error?: string;
-  fieldErrors?: Partial<Record<string, string>>;
   suggestedSlug?: string;
 };
+
+type IssueField = "name" | "slug" | "root";
+
+type ActionIssue = {
+  path: [IssueField];
+  message: string;
+};
+
+function issuesError(issues: ActionIssue[]): string {
+  return JSON.stringify(issues);
+}
+
+function getUniqueFieldFromTarget(
+  target: Prisma.PrismaClientKnownRequestError["meta"],
+): IssueField {
+  const rawTarget = target?.target;
+  const targets = Array.isArray(rawTarget)
+    ? rawTarget.map(String)
+    : typeof rawTarget === "string"
+      ? [rawTarget]
+      : [];
+
+  if (targets.some((item) => item.includes("slug"))) return "slug";
+  if (targets.some((item) => item.includes("name"))) return "name";
+  return "root";
+}
 
 /**
  * Get all categories (admin)
@@ -88,12 +120,13 @@ export async function getCategoryAction(
  * Create category
  */
 export async function createCategoryAction(
-  input: CategoryService.CategoryInput,
+  input: CategoryCreateInput,
 ): Promise<ActionResult<{ id: string }>> {
   try {
     await requireAdmin();
 
-    const category = await CategoryService.createCategory(input);
+    const validated = categoryCreateSchema.parse(input);
+    const category = await CategoryService.createCategory(validated);
 
     revalidatePath("/admin/dashboard/categories");
     revalidateTag(
@@ -109,38 +142,42 @@ export async function createCategoryAction(
   } catch (error) {
     console.error("createCategoryAction error:", error);
 
+    if (error instanceof ZodError) {
+      return { success: false, error: JSON.stringify(error.issues) };
+    }
+
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      const targets = Array.isArray(error.meta?.target)
-        ? (error.meta?.target as string[])
-        : [];
+      const field = getUniqueFieldFromTarget(error.meta);
+      const nextSuggestedSlug =
+        field === "slug"
+          ? await CategoryService.getAvailableCategorySlug(input.slug)
+          : undefined;
 
-      if (targets.includes("slug")) {
-        const suggestedSlug = await CategoryService.getAvailableCategorySlug(
-          input.slug,
-        );
+      const issues: ActionIssue[] = [
+        {
+          path: [field],
+          message:
+            field === "slug"
+              ? `This slug already exists.${nextSuggestedSlug ? ` Try "${nextSuggestedSlug}".` : ""}`
+              : field === "name"
+                ? "This name already exists. Please choose a unique one."
+                : "A unique field already exists. Please use a different value.",
+        },
+      ];
 
-        return {
-          success: false,
-          error: "Slug already exists. Please use a different slug.",
-          fieldErrors: {
-            slug: `This slug is already taken.${
-              suggestedSlug !== input.slug
-                ? ` Try \"${suggestedSlug}\".`
-                : ""
-            }`,
-          },
-          suggestedSlug,
-        };
-      }
+      return {
+        success: false,
+        error: issuesError(issues),
+        suggestedSlug: nextSuggestedSlug,
+      };
     }
 
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to create category",
+      error: "An unexpected error occurred while saving.",
     };
   }
 }
@@ -150,12 +187,14 @@ export async function createCategoryAction(
  */
 export async function updateCategoryAction(
   id: string,
-  input: Partial<CategoryService.CategoryInput>,
+  input: Partial<CategoryCreateInput>,
 ): Promise<ActionResult<{ id: string }>> {
   try {
     await requireAdmin();
 
-    await CategoryService.updateCategory(id, input);
+    const validated = categoryUpdateSchema.parse({ ...input, id });
+
+    await CategoryService.updateCategory(id, validated as CategoryUpdateInput);
 
     revalidatePath("/admin/dashboard/categories");
     revalidateTag(
@@ -171,39 +210,42 @@ export async function updateCategoryAction(
   } catch (error) {
     console.error("updateCategoryAction error:", error);
 
+    if (error instanceof ZodError) {
+      return { success: false, error: JSON.stringify(error.issues) };
+    }
+
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      const targets = Array.isArray(error.meta?.target)
-        ? (error.meta?.target as string[])
-        : [];
+      const field = getUniqueFieldFromTarget(error.meta);
+      const nextSuggestedSlug =
+        field === "slug" && input.slug
+          ? await CategoryService.getAvailableCategorySlug(input.slug, id)
+          : undefined;
 
-      if (targets.includes("slug") && input.slug) {
-        const suggestedSlug = await CategoryService.getAvailableCategorySlug(
-          input.slug,
-          id,
-        );
+      const issues: ActionIssue[] = [
+        {
+          path: [field],
+          message:
+            field === "slug"
+              ? `This slug already exists.${nextSuggestedSlug ? ` Try "${nextSuggestedSlug}".` : ""}`
+              : field === "name"
+                ? "This name already exists. Please choose a unique one."
+                : "A unique field already exists. Please use a different value.",
+        },
+      ];
 
-        return {
-          success: false,
-          error: "Slug already exists. Please use a different slug.",
-          fieldErrors: {
-            slug: `This slug is already taken.${
-              suggestedSlug !== input.slug
-                ? ` Try \"${suggestedSlug}\".`
-                : ""
-            }`,
-          },
-          suggestedSlug,
-        };
-      }
+      return {
+        success: false,
+        error: issuesError(issues),
+        suggestedSlug: nextSuggestedSlug,
+      };
     }
 
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to update category",
+      error: "An unexpected error occurred while saving.",
     };
   }
 }

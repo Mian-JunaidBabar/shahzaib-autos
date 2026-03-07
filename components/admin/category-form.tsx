@@ -86,6 +86,7 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
     watch,
     setValue,
     setError,
+    setFocus,
     clearErrors,
     formState: { errors },
   } = useForm<CategoryFormValues>({
@@ -165,9 +166,46 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
   // Submit
   // ---------------------------------------------------------------------------
 
+  function applyServerIssues(raw?: string) {
+    if (!raw) return false;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return false;
+
+      let firstField: keyof CategoryFormValues | null = null;
+
+      parsed.forEach(
+        (issue: { path?: (string | number)[]; message?: string }) => {
+          const issuePath = issue.path || [];
+          if (!Array.isArray(issuePath) || issuePath.length === 0) return;
+
+          const fieldName = String(issuePath[0]);
+          const message = issue.message || "Invalid value";
+
+          if (fieldName === "name" || fieldName === "slug") {
+            setError(fieldName, { type: "server", message });
+            if (!firstField) firstField = fieldName;
+          } else {
+            setSubmitError(message);
+          }
+        },
+      );
+
+      if (firstField) {
+        setSubmitError("Please correct the highlighted fields.");
+        setFocus(firstField);
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const onSubmit = (data: CategoryFormValues) => {
     setSubmitError(null);
-    clearErrors("slug");
+    clearErrors();
     startTransition(async () => {
       try {
         let finalImageUrl = imageUrl;
@@ -202,28 +240,26 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
         if (isEdit) {
           const result = await updateCategoryAction(initialData.id, payload);
           if (!result.success) {
-            if (result.fieldErrors?.slug) {
-              setError("slug", {
-                type: "server",
-                message: result.fieldErrors.slug,
-              });
+            const handledIssues = applyServerIssues(result.error);
+            if (!handledIssues) {
+              setSubmitError(result.error || "Failed to update category");
+              toast.error(result.error || "Failed to update category");
+            } else {
+              toast.error("Please fix the highlighted fields.");
             }
-            setSubmitError(result.error || "Failed to update category");
-            toast.error(result.error || "Failed to update category");
             return;
           }
           toast.success("Category updated");
         } else {
           const result = await createCategoryAction(payload);
           if (!result.success) {
-            if (result.fieldErrors?.slug) {
-              setError("slug", {
-                type: "server",
-                message: result.fieldErrors.slug,
-              });
+            const handledIssues = applyServerIssues(result.error);
+            if (!handledIssues) {
+              setSubmitError(result.error || "Failed to create category");
+              toast.error(result.error || "Failed to create category");
+            } else {
+              toast.error("Please fix the highlighted fields.");
             }
-            setSubmitError(result.error || "Failed to create category");
-            toast.error(result.error || "Failed to create category");
             return;
           }
           toast.success("Category created");
@@ -299,6 +335,9 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
               <Input
                 {...register("name", { required: "Name is required" })}
                 placeholder="e.g., Android Panels"
+                className={
+                  errors.name ? "border-destructive ring-destructive" : ""
+                }
               />
               {errors.name && (
                 <p className="text-sm text-destructive">
@@ -311,7 +350,9 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
               <Input
                 {...register("slug", { required: "Slug is required" })}
                 placeholder="android-panels"
-                className={errors.slug ? "border-destructive ring-destructive" : ""}
+                className={
+                  errors.slug ? "border-destructive ring-destructive" : ""
+                }
               />
               {errors.slug && (
                 <p className="text-sm text-destructive">
