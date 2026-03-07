@@ -85,6 +85,8 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
     handleSubmit,
     watch,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<CategoryFormValues>({
     defaultValues: isEdit
@@ -165,6 +167,7 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
 
   const onSubmit = (data: CategoryFormValues) => {
     setSubmitError(null);
+    clearErrors("slug");
     startTransition(async () => {
       try {
         let finalImageUrl = imageUrl;
@@ -199,6 +202,12 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
         if (isEdit) {
           const result = await updateCategoryAction(initialData.id, payload);
           if (!result.success) {
+            if (result.fieldErrors?.slug) {
+              setError("slug", {
+                type: "server",
+                message: result.fieldErrors.slug,
+              });
+            }
             setSubmitError(result.error || "Failed to update category");
             toast.error(result.error || "Failed to update category");
             return;
@@ -207,6 +216,12 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
         } else {
           const result = await createCategoryAction(payload);
           if (!result.success) {
+            if (result.fieldErrors?.slug) {
+              setError("slug", {
+                type: "server",
+                message: result.fieldErrors.slug,
+              });
+            }
             setSubmitError(result.error || "Failed to create category");
             toast.error(result.error || "Failed to create category");
             return;
@@ -296,6 +311,7 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
               <Input
                 {...register("slug", { required: "Slug is required" })}
                 placeholder="android-panels"
+                className={errors.slug ? "border-destructive ring-destructive" : ""}
               />
               {errors.slug && (
                 <p className="text-sm text-destructive">

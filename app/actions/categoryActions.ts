@@ -8,6 +8,7 @@
 
 import { revalidatePath } from "next/cache";
 import { revalidateTag } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/lib/services/auth.service";
 import * as CategoryService from "@/lib/services/category.service";
 
@@ -15,6 +16,8 @@ export type ActionResult<T = void> = {
   success: boolean;
   data?: T;
   error?: string;
+  fieldErrors?: Partial<Record<string, string>>;
+  suggestedSlug?: string;
 };
 
 /**
@@ -105,6 +108,35 @@ export async function createCategoryAction(
     return { success: true, data: { id: category.id } };
   } catch (error) {
     console.error("createCategoryAction error:", error);
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const targets = Array.isArray(error.meta?.target)
+        ? (error.meta?.target as string[])
+        : [];
+
+      if (targets.includes("slug")) {
+        const suggestedSlug = await CategoryService.getAvailableCategorySlug(
+          input.slug,
+        );
+
+        return {
+          success: false,
+          error: "Slug already exists. Please use a different slug.",
+          fieldErrors: {
+            slug: `This slug is already taken.${
+              suggestedSlug !== input.slug
+                ? ` Try \"${suggestedSlug}\".`
+                : ""
+            }`,
+          },
+          suggestedSlug,
+        };
+      }
+    }
+
     return {
       success: false,
       error:
@@ -138,6 +170,36 @@ export async function updateCategoryAction(
     return { success: true, data: { id } };
   } catch (error) {
     console.error("updateCategoryAction error:", error);
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const targets = Array.isArray(error.meta?.target)
+        ? (error.meta?.target as string[])
+        : [];
+
+      if (targets.includes("slug") && input.slug) {
+        const suggestedSlug = await CategoryService.getAvailableCategorySlug(
+          input.slug,
+          id,
+        );
+
+        return {
+          success: false,
+          error: "Slug already exists. Please use a different slug.",
+          fieldErrors: {
+            slug: `This slug is already taken.${
+              suggestedSlug !== input.slug
+                ? ` Try \"${suggestedSlug}\".`
+                : ""
+            }`,
+          },
+          suggestedSlug,
+        };
+      }
+    }
+
     return {
       success: false,
       error:

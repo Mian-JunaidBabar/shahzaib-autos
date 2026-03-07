@@ -16,6 +16,37 @@ export interface CategoryInput {
   isActive?: boolean;
 }
 
+export async function getAvailableCategorySlug(
+  baseSlug: string,
+  excludeId?: string,
+) {
+  const normalizedBase =
+    baseSlug
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "category";
+
+  let candidate = normalizedBase;
+  let suffix = 2;
+
+  while (true) {
+    const existing = await prisma.category.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+
+    if (!existing || (excludeId && existing.id === excludeId)) {
+      return candidate;
+    }
+
+    candidate = `${normalizedBase}-${suffix}`;
+    suffix += 1;
+  }
+}
+
 /**
  * Create a new category
  */
