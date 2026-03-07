@@ -616,62 +616,105 @@ export async function fetchMoreProductsAction(
   }
 }
 
-/**
- * Bulk update products — update category, badge, and/or tags for multiple products
- */
-export async function bulkUpdateProductsAction(input: {
-  productIds: string[];
+export type BulkProductUpdates = {
   categoryId?: string | null;
-  badgeId?: string | null;
-  tags?: string[];
-}): Promise<ActionResult<{ updatedCount: number }>> {
+  tagsToAdd?: string[];
+  tagsToRemove?: string[];
+  badgesToAdd?: string[];
+  badgesToRemove?: string[];
+};
+
+/**
+ * Bulk update products with safe delta semantics.
+ * - Category: set or clear
+ * - Tags (implicit m2m): connectOrCreate + disconnect (safe no-op if already missing)
+ * - Badges (explicit m2m): createMany skipDuplicates + deleteMany
+ */
+export async function bulkUpdateProductsAction(
+  productIds: string[],
+  updates: BulkProductUpdates,
+): Promise<ActionResult<{ updatedCount: number }>> {
   try {
     await requireAdmin();
-
-    const { productIds, categoryId, badgeId, tags } = input;
 
     if (!productIds || productIds.length === 0) {
       return { success: false, error: "No products selected" };
     }
 
+    const clean = (items?: string[]) =>
+      (items ?? [])
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .filter((item, index, array) => array.indexOf(item) === index);
+
+    const tagsToAdd = clean(updates.tagsToAdd);
+    const tagsToRemove = clean(updates.tagsToRemove).filter(
+      (name) => !tagsToAdd.includes(name),
+    );
+    const badgesToAdd = clean(updates.badgesToAdd);
+    const badgesToRemove = clean(updates.badgesToRemove).filter(
+      (id) => !badgesToAdd.includes(id),
+    );
+
     let updatedCount = 0;
 
-    // Update category in bulk if provided
-    if (categoryId !== undefined) {
-      const result = await prisma.product.updateMany({
-        where: { id: { in: productIds } },
-        data: { categoryId: categoryId || null },
-      });
-      updatedCount = result.count;
-    }
-
-    // Update badge in bulk if provided
-    if (badgeId !== undefined) {
-      const result = await prisma.product.updateMany({
-        where: { id: { in: productIds } },
-        data: { badgeId: badgeId || null },
-      });
-      updatedCount = Math.max(updatedCount, result.count);
-    }
-
-    // Update tags for each product if provided
-    if (tags !== undefined) {
-      for (const productId of productIds) {
-        await prisma.product.update({
-          where: { id: productId },
-          data: {
-            tags: {
-              set: [],
-              connectOrCreate: tags.map((tagName) => ({
-                where: { name: tagName },
-                create: { name: tagName },
-              })),
-            },
-          },
+    await prisma.$transaction(async (tx) => {
+      let tagsToDisconnect: { id: string }[] = [];
+      if (tagsToRemove.length > 0) {
+        const existingTags = await tx.tag.findMany({
+          where: { name: { in: tagsToRemove } },
+          select: { id: true },
         });
+        tagsToDisconnect = existingTags.map((tag) => ({ id: tag.id }));
       }
-      updatedCount = Math.max(updatedCount, productIds.length);
-    }
+
+      for (const productId of productIds) {
+        const data: Prisma.ProductUpdateInput = {};
+
+        if (updates.categoryId !== undefined) {
+          data.categoryRelation = updates.categoryId
+            ? { connect: { id: updates.categoryId } }
+            : { disconnect: true };
+        }
+
+        if (tagsToAdd.length > 0 || tagsToDisconnect.length > 0) {
+          data.tags = {};
+
+          if (tagsToAdd.length > 0) {
+            data.tags.connectOrCreate = tagsToAdd.map((name) => ({
+              where: { name },
+              create: { name },
+            }));
+          }
+
+          if (tagsToDisconnect.length > 0) {
+            data.tags.disconnect = tagsToDisconnect;
+          }
+        }
+
+        if (Object.keys(data).length > 0) {
+          await tx.product.update({ where: { id: productId }, data });
+        }
+
+        if (badgesToAdd.length > 0) {
+          await tx.productBadge.createMany({
+            data: badgesToAdd.map((badgeId) => ({ productId, badgeId })),
+            skipDuplicates: true,
+          });
+        }
+
+        if (badgesToRemove.length > 0) {
+          await tx.productBadge.deleteMany({
+            where: {
+              productId,
+              badgeId: { in: badgesToRemove },
+            },
+          });
+        }
+
+        updatedCount += 1;
+      }
+    });
 
     revalidatePath("/admin/dashboard/inventory");
     revalidateTag(

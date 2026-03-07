@@ -3,13 +3,13 @@
 /**
  * BulkEditModal
  *
- * Modal dialog for bulk-updating selected products:
- *  - Change category (Select)
- *  - Change badge (Select)
- *  - Add tags (CreatableMultiSelect)
+ * Delta-based bulk editor:
+ *  - Category assign/clear/no-change
+ *  - Tags add/remove (CreatableMultiSelect)
+ *  - Badges add/remove (explicit m2m IDs)
  */
 
-import { useState, useEffect, useTransition, useCallback } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import {
   Dialog,
@@ -28,75 +28,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CreatableMultiSelect } from "@/components/ui/creatable-multi-select";
-import { getActiveCategoriesAction } from "@/app/actions/categoryActions";
-import { getActiveBadgesAction } from "@/app/actions/badgeActions";
 import { getAllTagsAction } from "@/app/actions/tagActions";
 import { bulkUpdateProductsAction } from "@/app/actions/productActions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 interface BulkEditModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedIds: string[];
-  onSuccess: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  selectedProductIds: string[];
+  categories: { id: string; name: string }[];
+  badges: { id: string; name: string; color?: string }[];
+  onSuccess?: () => void;
 }
 
 type BulkEditFormValues = {
-  tags: string[];
+  categoryId: string;
+  tagsToAdd: string[];
+  tagsToRemove: string[];
+  badgesToAdd: string[];
+  badgesToRemove: string[];
 };
 
 export function BulkEditModal({
-  open,
-  onOpenChange,
-  selectedIds,
+  isOpen,
+  onClose,
+  selectedProductIds,
+  categories,
+  badges,
   onSuccess,
 }: BulkEditModalProps) {
   const [isPending, startTransition] = useTransition();
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
-    [],
-  );
-  const [badges, setBadges] = useState<
-    { id: string; name: string; color?: string }[]
-  >([]);
   const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
 
-  // Category and badge use plain state (Select), tags use react-hook-form (CreatableMultiSelect)
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
-  const [selectedBadgeId, setSelectedBadgeId] = useState<string>("");
+  const { control, reset, watch, setValue, getValues } =
+    useForm<BulkEditFormValues>({
+      defaultValues: {
+        categoryId: "__no_change__",
+        tagsToAdd: [],
+        tagsToRemove: [],
+        badgesToAdd: [],
+        badgesToRemove: [],
+      },
+    });
 
-  const { control, reset } = useForm<BulkEditFormValues>({
-    defaultValues: { tags: [] },
-  });
+  const badgesToAdd = watch("badgesToAdd");
+  const badgesToRemove = watch("badgesToRemove");
 
-  // Load options on mount
+  // Load tag options when opened
   useEffect(() => {
-    if (!open) return;
-    Promise.all([
-      getActiveCategoriesAction(),
-      getActiveBadgesAction(),
-      getAllTagsAction(),
-    ]).then(([catResult, badgeResult, tagResult]) => {
-      if (catResult.success && catResult.data) {
-        setCategories(
-          catResult.data.map((c: { id: string; name: string }) => ({
-            id: c.id,
-            name: c.name,
-          })),
-        );
-      }
-      if (badgeResult.success && badgeResult.data) {
-        setBadges(
-          badgeResult.data.map(
-            (b: { id: string; name: string; color: string }) => ({
-              id: b.id,
-              name: b.name,
-              color: b.color,
-            }),
-          ),
-        );
-      }
+    if (!isOpen) return;
+
+    getAllTagsAction().then((tagResult) => {
       if (tagResult.success && tagResult.data) {
         setTags(
           tagResult.data.map((t: { id: string; name: string }) => ({
@@ -106,46 +91,87 @@ export function BulkEditModal({
         );
       }
     });
-  }, [open]);
+  }, [isOpen, setTags]);
 
-  // Wrap onOpenChange to reset form state on open
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      if (nextOpen) {
-        setSelectedCategoryId("");
-        setSelectedBadgeId("");
-        reset({ tags: [] });
-      }
-      onOpenChange(nextOpen);
-    },
-    [onOpenChange, reset],
-  );
+  const toggleBadgeSelection = (
+    field: "badgesToAdd" | "badgesToRemove",
+    badgeId: string,
+    checked: boolean,
+  ) => {
+    const source = new Set(getValues(field));
+    const oppositeField =
+      field === "badgesToAdd" ? "badgesToRemove" : "badgesToAdd";
+    const opposite = new Set(getValues(oppositeField));
+
+    if (checked) {
+      source.add(badgeId);
+      opposite.delete(badgeId);
+    } else {
+      source.delete(badgeId);
+    }
+
+    setValue(field, Array.from(source), { shouldDirty: true });
+    setValue(oppositeField, Array.from(opposite), { shouldDirty: true });
+  };
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      onClose();
+      return;
+    }
+
+    reset({
+      categoryId: "__no_change__",
+      tagsToAdd: [],
+      tagsToRemove: [],
+      badgesToAdd: [],
+      badgesToRemove: [],
+    });
+  };
 
   const handleApply = () => {
     startTransition(async () => {
-      // Build the update payload — only include fields that were changed
-      const payload: Parameters<typeof bulkUpdateProductsAction>[0] = {
-        productIds: selectedIds,
-      };
+      const form = getValues();
+      const updates: Parameters<typeof bulkUpdateProductsAction>[1] = {};
+      const clean = (items: string[]) =>
+        items
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .filter((item, index, array) => array.indexOf(item) === index);
 
       let hasChanges = false;
 
-      if (selectedCategoryId && selectedCategoryId !== "__skip__") {
-        payload.categoryId =
-          selectedCategoryId === "__none__" ? null : selectedCategoryId;
+      if (form.categoryId !== "__no_change__") {
+        updates.categoryId =
+          form.categoryId === "__clear__" ? null : form.categoryId;
         hasChanges = true;
       }
 
-      if (selectedBadgeId && selectedBadgeId !== "__skip__") {
-        payload.badgeId =
-          selectedBadgeId === "__none__" ? null : selectedBadgeId;
+      const tagsToAdd = clean(form.tagsToAdd);
+      const tagsToRemove = clean(form.tagsToRemove).filter(
+        (name) => !tagsToAdd.includes(name),
+      );
+
+      if (tagsToAdd.length > 0) {
+        updates.tagsToAdd = tagsToAdd;
+        hasChanges = true;
+      }
+      if (tagsToRemove.length > 0) {
+        updates.tagsToRemove = tagsToRemove;
         hasChanges = true;
       }
 
-      // Get tags from the form
-      const formTags = control._formValues.tags;
-      if (formTags && formTags.length > 0) {
-        payload.tags = formTags;
+      const badgesToAddClean = clean(form.badgesToAdd);
+      const badgesToRemoveClean = clean(form.badgesToRemove).filter(
+        (id) => !badgesToAddClean.includes(id),
+      );
+
+      if (badgesToAddClean.length > 0) {
+        updates.badgesToAdd = badgesToAddClean;
+        hasChanges = true;
+      }
+      if (badgesToRemoveClean.length > 0) {
+        updates.badgesToRemove = badgesToRemoveClean;
         hasChanges = true;
       }
 
@@ -154,14 +180,17 @@ export function BulkEditModal({
         return;
       }
 
-      const result = await bulkUpdateProductsAction(payload);
+      const result = await bulkUpdateProductsAction(
+        selectedProductIds,
+        updates,
+      );
 
       if (result.success) {
         toast.success(
-          `Updated ${result.data?.updatedCount ?? selectedIds.length} products`,
+          `Updated ${result.data?.updatedCount ?? selectedProductIds.length} products`,
         );
-        onOpenChange(false);
-        onSuccess();
+        onClose();
+        onSuccess?.();
       } else {
         toast.error(result.error || "Failed to update products");
       }
@@ -169,14 +198,13 @@ export function BulkEditModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Bulk Edit</DialogTitle>
           <DialogDescription>
-            Apply changes to {selectedIds.length} selected product
-            {selectedIds.length > 1 ? "s" : ""}. Leave a field unchanged to skip
-            it.
+            Apply changes to {selectedProductIds.length} selected product
+            {selectedProductIds.length > 1 ? "s" : ""}.
           </DialogDescription>
         </DialogHeader>
 
@@ -185,15 +213,15 @@ export function BulkEditModal({
           <div className="space-y-2">
             <Label>Category</Label>
             <Select
-              value={selectedCategoryId}
-              onValueChange={setSelectedCategoryId}
+              value={watch("categoryId")}
+              onValueChange={(value) => setValue("categoryId", value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="— Don't change —" />
+                <SelectValue placeholder="— No change —" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__skip__">— Don&apos;t change —</SelectItem>
-                <SelectItem value="__none__">Remove category</SelectItem>
+                <SelectItem value="__no_change__">— No change —</SelectItem>
+                <SelectItem value="__clear__">Clear category</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}
@@ -203,44 +231,80 @@ export function BulkEditModal({
             </Select>
           </div>
 
-          {/* Badge */}
-          <div className="space-y-2">
-            <Label>Badge</Label>
-            <Select value={selectedBadgeId} onValueChange={setSelectedBadgeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="— Don't change —" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__skip__">— Don&apos;t change —</SelectItem>
-                <SelectItem value="__none__">Remove badge</SelectItem>
-                {badges.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Tags */}
+          {/* Tags Add */}
           <div className="space-y-2">
             <CreatableMultiSelect
               control={control}
-              name="tags"
-              label="Add Tags"
+              name="tagsToAdd"
+              label="Tags to Add"
               placeholder="Search or create tags..."
-              description="Tags will be added to selected products"
+              description="These tags will be attached to all selected products"
               availableTags={tags}
             />
+          </div>
+
+          {/* Tags Remove */}
+          <div className="space-y-2">
+            <CreatableMultiSelect
+              control={control}
+              name="tagsToRemove"
+              label="Tags to Remove"
+              placeholder="Search or create tags..."
+              description="Matching existing tags will be removed from selected products"
+              availableTags={tags}
+            />
+          </div>
+
+          {/* Badges Add/Remove */}
+          <div className="space-y-2">
+            <Label>Badges</Label>
+            <div className="grid grid-cols-1 gap-2 rounded-md border p-3 max-h-56 overflow-y-auto">
+              {badges.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No badges available
+                </p>
+              ) : (
+                badges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-sm px-2 py-1"
+                  >
+                    <div className="text-sm font-medium">{badge.name}</div>
+                    <label className="flex items-center gap-2 text-xs text-green-700">
+                      <Checkbox
+                        checked={badgesToAdd.includes(badge.id)}
+                        onCheckedChange={(checked) =>
+                          toggleBadgeSelection(
+                            "badgesToAdd",
+                            badge.id,
+                            checked === true,
+                          )
+                        }
+                      />
+                      Add
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-amber-700">
+                      <Checkbox
+                        checked={badgesToRemove.includes(badge.id)}
+                        onCheckedChange={(checked) =>
+                          toggleBadgeSelection(
+                            "badgesToRemove",
+                            badge.id,
+                            checked === true,
+                          )
+                        }
+                      />
+                      Remove
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-          >
+          <Button variant="outline" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
           <Button onClick={handleApply} disabled={isPending}>
@@ -249,7 +313,7 @@ export function BulkEditModal({
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Applying...
               </>
             ) : (
-              `Apply to ${selectedIds.length} product${selectedIds.length > 1 ? "s" : ""}`
+              `Apply to ${selectedProductIds.length} product${selectedProductIds.length > 1 ? "s" : ""}`
             )}
           </Button>
         </DialogFooter>

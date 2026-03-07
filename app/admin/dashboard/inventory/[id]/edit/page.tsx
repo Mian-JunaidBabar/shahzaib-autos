@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getProductAction } from "@/app/actions/productActions";
+import { getActiveCategoriesAction } from "@/app/actions/categoryActions";
 import { ProductForm } from "@/components/admin/product-form";
 import type { ProductWithRelations } from "@/lib/services/product.service";
 import { toast } from "sonner";
@@ -19,21 +20,36 @@ export default function EditProductPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [product, setProduct] = useState<ProductWithRelations | null>(null);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       if (!params?.id) return;
 
-      const result = await getProductAction(params.id);
+      const [productResult, categoriesResult] = await Promise.all([
+        getProductAction(params.id),
+        getActiveCategoriesAction(),
+      ]);
 
-      if (!result.success || !result.data) {
-        toast.error(result.error || "Product not found");
+      if (!productResult.success || !productResult.data) {
+        toast.error(productResult.error || "Product not found");
         router.push("/admin/dashboard/inventory");
         return;
       }
 
-      setProduct(result.data as ProductWithRelations);
+      if (categoriesResult.success && categoriesResult.data) {
+        setCategories(
+          categoriesResult.data.map((category) => ({
+            id: category.id,
+            name: category.name,
+          })),
+        );
+      }
+
+      setProduct(productResult.data as ProductWithRelations);
       setIsLoading(false);
     };
 
@@ -48,5 +64,5 @@ export default function EditProductPage() {
 
   if (!product) return null;
 
-  return <ProductForm initialData={product} />;
+  return <ProductForm initialData={product} categories={categories} />;
 }

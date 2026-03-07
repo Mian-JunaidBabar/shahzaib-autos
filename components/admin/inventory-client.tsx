@@ -51,6 +51,7 @@ import {
   updateProductAction,
 } from "@/app/actions/productActions";
 import { getBadgesAction } from "@/app/actions/badgeActions";
+import { getActiveCategoriesAction } from "@/app/actions/categoryActions";
 import { BulkEditModal } from "@/components/admin/bulk-edit-modal";
 import { toast } from "sonner";
 import {
@@ -174,17 +175,34 @@ export function InventoryClient({
   const [badges, setBadges] = useState<
     Array<{ id: string; name: string; color: string }>
   >([]);
+  const [categoryOptions, setCategoryOptions] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
   const [isApplyingBadge, setIsApplyingBadge] = useState(false);
 
   useEffect(() => {
-    const loadBadges = async () => {
-      const result = await getBadgesAction();
-      if (result.success && result.data) {
-        setBadges(result.data);
+    const loadOptions = async () => {
+      const [badgesResult, categoriesResult] = await Promise.all([
+        getBadgesAction(),
+        getActiveCategoriesAction(),
+      ]);
+
+      if (badgesResult.success && badgesResult.data) {
+        setBadges(badgesResult.data);
+      }
+
+      if (categoriesResult.success && categoriesResult.data) {
+        setCategoryOptions(
+          categoriesResult.data.map((category) => ({
+            id: category.id,
+            name: category.name,
+          })),
+        );
       }
     };
-    loadBadges();
+
+    loadOptions();
   }, []);
 
   const handleSearch = () => {
@@ -460,6 +478,15 @@ export function InventoryClient({
               <SelectItem value="INACTIVE">Inactive Only</SelectItem>
             </SelectContent>
           </Select>
+
+          <Button
+            variant="outline"
+            onClick={() => setShowBulkEdit(true)}
+            disabled={selectedIds.size === 0 || isPending}
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            Bulk Edit ({selectedIds.size})
+          </Button>
         </div>
 
         <InventoryFilters categories={categories} />
@@ -474,15 +501,6 @@ export function InventoryClient({
                 {selectedIds.size} product(s) selected
               </span>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowBulkEdit(true)}
-                  disabled={isPending}
-                >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Bulk Edit
-                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -804,9 +822,11 @@ export function InventoryClient({
 
       {/* Bulk Edit Modal */}
       <BulkEditModal
-        open={showBulkEdit}
-        onOpenChange={setShowBulkEdit}
-        selectedIds={Array.from(selectedIds)}
+        isOpen={showBulkEdit}
+        onClose={() => setShowBulkEdit(false)}
+        selectedProductIds={Array.from(selectedIds)}
+        categories={categoryOptions}
+        badges={badges}
         onSuccess={() => {
           setSelectedIds(new Set());
           router.refresh();

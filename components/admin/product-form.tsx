@@ -53,7 +53,6 @@ import {
 } from "@/app/actions/imageActions";
 import { getActiveBadgesAction } from "@/app/actions/badgeActions";
 import { getAllTagsAction } from "@/app/actions/tagActions";
-import { getActiveCategoriesAction } from "@/app/actions/categoryActions";
 import {
   createProductAction,
   updateProductAction,
@@ -111,7 +110,6 @@ type ProductFormValues = {
   name: string;
   slug?: string;
   description?: string;
-  category?: string;
   categoryId?: string;
   badgeId?: string;
   badges?: string[];
@@ -129,21 +127,19 @@ type ProductFormValues = {
 interface ProductFormProps {
   /** Pass existing product data for edit mode; omit for create mode */
   initialData?: ProductWithRelations;
+  categories: { id: string; name: string }[];
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function ProductForm({ initialData }: ProductFormProps) {
+export function ProductForm({ initialData, categories }: ProductFormProps) {
   const router = useRouter();
   const isEdit = !!initialData;
   const [isPending, startTransition] = useTransition();
   const [badges, setBadges] = useState<BadgeOption[]>([]);
   const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
-  const [categories, setCategories] = useState<
-    { id: string; name: string; slug: string }[]
-  >([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Image state
@@ -177,7 +173,6 @@ export function ProductForm({ initialData }: ProductFormProps) {
           name: initialData.name ?? "",
           slug: initialData.slug ?? "",
           description: initialData.description ?? "",
-          category: initialData.category ?? "",
           categoryId: initialData.categoryId ?? "",
           badgeId: initialData.badgeId ?? "",
           badges: (
@@ -209,7 +204,6 @@ export function ProductForm({ initialData }: ProductFormProps) {
           name: "",
           slug: "",
           description: "",
-          category: "",
           categoryId: "",
           badgeId: "",
           badges: [],
@@ -262,36 +256,23 @@ export function ProductForm({ initialData }: ProductFormProps) {
     }
   }, [watchedName, isEdit, setValue]);
 
-  // Load badges, tags, and categories
+  // Load badges and tags
   useEffect(() => {
-    Promise.all([
-      getActiveBadgesAction(),
-      getAllTagsAction(),
-      getActiveCategoriesAction(),
-    ]).then(([badgesResult, tagsResult, categoriesResult]) => {
-      if (badgesResult.success && badgesResult.data) {
-        setBadges(badgesResult.data as BadgeOption[]);
-      }
-      if (tagsResult.success && tagsResult.data) {
-        setTags(
-          tagsResult.data.map((tag: { id: string; name: string }) => ({
-            id: tag.id,
-            name: tag.name,
-          })),
-        );
-      }
-      if (categoriesResult.success && categoriesResult.data) {
-        setCategories(
-          categoriesResult.data.map(
-            (cat: { id: string; name: string; slug: string }) => ({
-              id: cat.id,
-              name: cat.name,
-              slug: cat.slug,
-            }),
-          ),
-        );
-      }
-    });
+    Promise.all([getActiveBadgesAction(), getAllTagsAction()]).then(
+      ([badgesResult, tagsResult]) => {
+        if (badgesResult.success && badgesResult.data) {
+          setBadges(badgesResult.data as BadgeOption[]);
+        }
+        if (tagsResult.success && tagsResult.data) {
+          setTags(
+            tagsResult.data.map((tag: { id: string; name: string }) => ({
+              id: tag.id,
+              name: tag.name,
+            })),
+          );
+        }
+      },
+    );
   }, []);
 
   // Cleanup blob URLs on unmount
@@ -375,7 +356,6 @@ export function ProductForm({ initialData }: ProductFormProps) {
             name: data.name,
             slug: data.slug || undefined,
             description: data.description || undefined,
-            category: data.category || undefined,
             categoryId: data.categoryId || undefined,
             badgeId: data.badgeId || undefined,
             badges: data.badges,
@@ -404,7 +384,6 @@ export function ProductForm({ initialData }: ProductFormProps) {
             name: data.name,
             slug: data.slug || undefined,
             description: data.description || undefined,
-            category: data.category || undefined,
             categoryId: data.categoryId || undefined,
             badgeId: data.badgeId || undefined,
             badges: data.badges,

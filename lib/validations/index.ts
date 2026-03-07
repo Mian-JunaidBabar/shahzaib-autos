@@ -145,7 +145,7 @@ const productBaseSchema = z.object({
   ),
   description: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
-  categoryId: z.string().uuid().optional().nullable(),
+  categoryId: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
   badges: z
     .array(z.string().min(1, "Badge name cannot be empty").max(100))
@@ -191,7 +191,7 @@ export const productUpdateSchema = z.object({
   ),
   description: z.string().optional().nullable(),
   category: z.string().optional().nullable(),
-  categoryId: z.string().uuid().optional().nullable(),
+  categoryId: z.string().optional().nullable(),
   badgeId: z.string().uuid().optional().nullable(),
   badges: z
     .array(z.string().min(1, "Badge name cannot be empty").max(100))
