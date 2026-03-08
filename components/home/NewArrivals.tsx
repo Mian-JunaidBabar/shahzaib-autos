@@ -34,7 +34,7 @@ export function NewArrivals() {
 
   return (
     <section className="py-24 max-w-7xl mx-auto px-4">
-      <div className="flex items-end justify-between mb-12">
+      <div className="flex flex-col items-start gap-4 mb-12 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-3xl font-black text-slate-900 mb-2">
             New Arrivals
@@ -84,7 +84,7 @@ export function NewArrivals() {
                   )}
                   <Link
                     href={`/products/${product.slug}`}
-                    className="absolute bottom-4 left-4 right-4 bg-primary text-white py-2 rounded-lg font-bold text-sm translate-y-12 group-hover:translate-y-0 transition-transform flex items-center justify-center gap-2"
+                    className="absolute bottom-4 left-4 right-4 bg-primary text-white py-2 rounded-lg font-bold text-sm transition-transform hidden md:flex md:translate-y-12 md:group-hover:translate-y-0 items-center justify-center gap-2"
                   >
                     <span className="material-symbols-outlined text-lg">
                       add_shopping_cart
@@ -105,6 +105,15 @@ export function NewArrivals() {
                     <span className="text-slate-400 text-xs ml-1 font-bold"></span>
                   </div>
                 </div>
+                <Link
+                  href={`/products/${product.slug}`}
+                  className="mt-3 bg-primary text-white py-2 rounded-lg font-bold text-sm flex md:hidden items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">
+                    add_shopping_cart
+                  </span>
+                  View Product
+                </Link>
               </div>
             ))}
       </div>
