@@ -29,6 +29,7 @@ import {
   Trash2,
   Save,
   Star,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -533,12 +534,20 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
           <Button type="submit" disabled={isPending}>
             {isEdit ? (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 {isPending ? "Saving..." : "Save"}
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4 mr-2" />
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4 mr-2" />
+                )}
                 {isPending ? "Creating..." : "Create"}
               </>
             )}

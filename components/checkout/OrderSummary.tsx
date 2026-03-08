@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import type { ServiceDTO } from "@/lib/types/dto";
 import type { CartItem } from "@/lib/whatsapp";
 
@@ -154,9 +155,7 @@ export function OrderSummary({
             className="w-full bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg shadow-[#25D366]/20 disabled:opacity-50 disabled:cursor-not-allowed group"
           >
             {isSubmitting ? (
-              <span className="material-symbols-outlined animate-spin text-[24px]">
-                progress_activity
-              </span>
+              <Loader2 className="h-6 w-6 animate-spin" />
             ) : (
               <>
                 <svg
