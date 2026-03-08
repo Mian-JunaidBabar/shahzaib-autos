@@ -19,14 +19,21 @@ type Badge = { id: string; name: string; usageCount?: number };
 
 export function ProductFilters() {
   const isScrolled = useScroll(10);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<string[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [topTags, setTopTags] = useState<Badge[]>([]);
   const [topCategories, setTopCategories] = useState<string[]>([]);
 
   // Local state for inputs (before debouncing)
-  const [minPriceInput, setMinPriceInput] = useState<string>("");
-  const [maxPriceInput, setMaxPriceInput] = useState<string>("");
+  const [minPriceInput, setMinPriceInput] = useState<string>(
+    () => searchParams.get("min") || "",
+  );
+  const [maxPriceInput, setMaxPriceInput] = useState<string>(
+    () => searchParams.get("max") || "",
+  );
 
   // Debounced values for URL updates
   const debouncedMinPrice = useDebounce(minPriceInput, 500);
@@ -37,10 +44,7 @@ export function ProductFilters() {
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const initializeFiltersRef = useRef(false);
   const suppressDebouncedPushRef = useRef<boolean>(false);
 
   // Fetch initial data
@@ -81,45 +85,39 @@ export function ProductFilters() {
       .catch(() => setTopCategories([]));
   }, []);
 
-  // Sync local state with URL params
+  // Initialize multi-select filters from URL params (only once on mount)
   useEffect(() => {
+    if (initializeFiltersRef.current) return;
+    initializeFiltersRef.current = true;
+
     const categoryParam = searchParams.get("categories");
     const tagsParam = searchParams.get("tags");
     const badgesParam = searchParams.get("badges");
-    const minParam = searchParams.get("min");
-    const maxParam = searchParams.get("max");
     const favParam = searchParams.get("favorites");
 
-    // Defer state updates to avoid synchronous setState warnings and cascading renders
-    const t = setTimeout(() => {
-      const nextCategories = categoryParam
-        ? categoryParam
-            .split(",")
-            .map((c) => c.trim())
-            .filter(Boolean)
-        : [];
-      const nextTags = tagsParam
-        ? tagsParam
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [];
-      const nextBadges = badgesParam
-        ? badgesParam
-            .split(",")
-            .map((b) => b.trim())
-            .filter(Boolean)
-        : [];
+    const nextCategories = categoryParam
+      ? categoryParam
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [];
+    const nextTags = tagsParam
+      ? tagsParam
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [];
+    const nextBadges = badgesParam
+      ? badgesParam
+          .split(",")
+          .map((b) => b.trim())
+          .filter(Boolean)
+      : [];
 
-      setSelectedCategories(nextCategories);
-      setSelectedTags(nextTags);
-      setSelectedBadges(nextBadges);
-      setFavoritesOnly(!!favParam);
-      setMinPriceInput(minParam || "");
-      setMaxPriceInput(maxParam || "");
-    }, 0);
-
-    return () => clearTimeout(t);
+    setSelectedCategories(nextCategories);
+    setSelectedTags(nextTags);
+    setSelectedBadges(nextBadges);
+    setFavoritesOnly(!!favParam);
   }, [searchParams]);
 
   // Update URL when debounced price values change
@@ -182,6 +180,7 @@ export function ProductFilters() {
     setSelectedBadges([]);
     setMinPriceInput("");
     setMaxPriceInput("");
+    setFavoritesOnly(false);
 
     // Release suppression after debounce window to allow normal behavior
     setTimeout(() => {

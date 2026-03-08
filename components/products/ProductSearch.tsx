@@ -12,15 +12,6 @@ export default function ProductSearch() {
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
   const debouncedSearch = useDebounce(searchInput, 500);
 
-  // Sync input with URL on mount
-  useEffect(() => {
-    const currentQuery = searchParams.get("q");
-    if (currentQuery !== searchInput) {
-      setSearchInput(currentQuery || "");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
   // Update URL when debounced value changes
   useEffect(() => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));

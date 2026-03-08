@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -13,6 +13,7 @@ type Props = {
 export function Pagination({ currentPage, totalPages, total }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   if (totalPages <= 1) return null;
 
@@ -25,7 +26,8 @@ export function Pagination({ currentPage, totalPages, total }: Props) {
       params.set("page", page.toString());
     }
 
-    router.push(`/products?${params.toString()}`);
+    const query = params.toString();
+    router.push(`${pathname}${query ? `?${query}` : ""}`);
   };
 
   // Calculate visible page numbers
