@@ -13,6 +13,7 @@ import { Pagination } from "@/components/store/pagination";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
+import { ServiceMarquee } from "@/components/products/ServiceMarquee";
 
 export const metadata: Metadata = {
   title: "Shop Premium Car Accessories",
@@ -264,7 +265,7 @@ export default async function ProductsPage({
       </section>
 
       {/* Layer 3: Browse Categories */}
-      <section className="max-w-7xl mx-auto w-full px-4 pt-12">
+      <section className="max-w-7xl mx-auto w-full px-4 pt-12 pb-4">
         <h2 className="text-2xl font-black uppercase text-red-600 mb-6">
           Browse All Categories
         </h2>
@@ -273,7 +274,10 @@ export default async function ProductsPage({
         </div>
       </section>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Layer 4: Services Marquee */}
+      <ServiceMarquee />
+
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Left Sidebar - Filters */}
         <div className="lg:col-span-1">
           <ProductFilters />
