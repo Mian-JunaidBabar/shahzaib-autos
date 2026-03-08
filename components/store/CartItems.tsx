@@ -109,7 +109,7 @@ export function CartItems() {
 
             {/* Item Total */}
             <div className="flex flex-col items-end justify-between">
-              <p className="text-xl font-bold text-slate-900 dark:text-white">
+              <p className="text-xl font-bold text-red-600 dark:text-red-400">
                 Rs. {(item.price * item.quantity).toLocaleString()}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import { useScroll } from "@/lib/hooks/useScroll";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge as UIBadge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import {
 type Badge = { id: string; name: string; usageCount?: number };
 
 export function ProductFilters() {
+  const isScrolled = useScroll(10);
   const [categories, setCategories] = useState<string[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [topTags, setTopTags] = useState<Badge[]>([]);
@@ -32,6 +34,7 @@ export function ProductFilters() {
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -82,6 +85,7 @@ export function ProductFilters() {
   useEffect(() => {
     const categoryParam = searchParams.get("categories");
     const tagsParam = searchParams.get("tags");
+    const badgesParam = searchParams.get("badges");
     const minParam = searchParams.get("min");
     const maxParam = searchParams.get("max");
     const favParam = searchParams.get("favorites");
@@ -100,9 +104,16 @@ export function ProductFilters() {
             .map((t) => t.trim())
             .filter(Boolean)
         : [];
+      const nextBadges = badgesParam
+        ? badgesParam
+            .split(",")
+            .map((b) => b.trim())
+            .filter(Boolean)
+        : [];
 
       setSelectedCategories(nextCategories);
       setSelectedTags(nextTags);
+      setSelectedBadges(nextBadges);
       setFavoritesOnly(!!favParam);
       setMinPriceInput(minParam || "");
       setMaxPriceInput(maxParam || "");
@@ -151,6 +162,7 @@ export function ProductFilters() {
       "categories",
       "category",
       "tags",
+      "badges",
       "q",
       "search",
       "min",
@@ -167,6 +179,7 @@ export function ProductFilters() {
     );
     setSelectedCategories([]);
     setSelectedTags([]);
+    setSelectedBadges([]);
     setMinPriceInput("");
     setMaxPriceInput("");
 
@@ -215,6 +228,15 @@ export function ProductFilters() {
     setMobileOpen(false);
   };
 
+  const toggleBadge = (badgeId: string) => {
+    const next = selectedBadges.includes(badgeId)
+      ? selectedBadges.filter((b) => b !== badgeId)
+      : [...selectedBadges, badgeId];
+    setSelectedBadges(next);
+    updateArrayParam("badges", next);
+    setMobileOpen(false);
+  };
+
   // Get regular tags (excluding top 3)
   const regularTags = badges.filter(
     (badge) => !topTags.some((topTag) => topTag.id === badge.id),
@@ -223,6 +245,7 @@ export function ProductFilters() {
   const hasActiveFilters =
     selectedCategories.length > 0 ||
     selectedTags.length > 0 ||
+    selectedBadges.length > 0 ||
     minPriceInput ||
     maxPriceInput ||
     favoritesOnly;
@@ -334,59 +357,72 @@ export function ProductFilters() {
         </div>
       </div>
 
-      {/* Top 3 Tags */}
-      {topTags.length > 0 && (
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">
-            ⭐ Top 3 Tags
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {topTags.map((tag) => (
-              <button
-                key={tag.id}
-                onClick={() => toggleTag(tag.id)}
-                className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 flex items-center gap-2 cursor-pointer hover:shadow-md ${
-                  selectedTags.includes(tag.id)
-                    ? "bg-primary text-white border-primary shadow-sm"
-                    : "bg-linear-to-r from-yellow-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 border-yellow-300 dark:border-yellow-700 text-slate-700 dark:text-slate-300 hover:border-primary/50"
-                }`}
-              >
-                <span className="font-semibold">{tag.name}</span>
-                <span className="text-xs opacity-80 bg-white/30 dark:bg-black/30 px-1.5 py-0.5 rounded">
-                  {tag.usageCount}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* All Tags */}
+      {/* More Filters — badges + tags */}
       <div>
         <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">
-          All Tags
+          More Filters
         </h3>
-        <div className="flex flex-wrap gap-2">
-          {regularTags.length > 0 ? (
-            regularTags.map((badge) => (
-              <button
-                key={badge.id}
-                onClick={() => toggleTag(badge.id)}
-                className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 flex items-center gap-2 cursor-pointer hover:shadow-md ${
-                  selectedTags.includes(badge.id)
-                    ? "bg-primary text-white border-primary shadow-sm"
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary/50"
-                }`}
-              >
-                <span>{badge.name}</span>
-                {badge.usageCount !== undefined && (
-                  <span className="text-xs opacity-70">{badge.usageCount}</span>
-                )}
-              </button>
-            ))
-          ) : (
-            <div className="text-sm text-slate-500">No tags available</div>
-          )}
+
+        {/* Badges */}
+        <div className="mb-3">
+          <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+            Badges
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {badges.length > 0 ? (
+              badges.map((badge) => (
+                <button
+                  key={`badge-${badge.id}`}
+                  onClick={() => toggleBadge(badge.id)}
+                  className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 flex items-center gap-2 cursor-pointer hover:shadow-md ${
+                    selectedBadges.includes(badge.id)
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-primary/50"
+                  }`}
+                >
+                  <span>{badge.name}</span>
+                  {badge.usageCount !== undefined && (
+                    <span className="text-xs opacity-70">
+                      {badge.usageCount}
+                    </span>
+                  )}
+                </button>
+              ))
+            ) : (
+              <div className="text-sm text-slate-500">No badges available</div>
+            )}
+          </div>
+        </div>
+
+        {/* Tags (excluding top 3) */}
+        <div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+            Tags
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {regularTags.length > 0 ? (
+              regularTags.map((badge) => (
+                <button
+                  key={`tag-${badge.id}`}
+                  onClick={() => toggleTag(badge.id)}
+                  className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 flex items-center gap-2 cursor-pointer hover:shadow-md ${
+                    selectedTags.includes(badge.id)
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-primary/50"
+                  }`}
+                >
+                  <span>{badge.name}</span>
+                  {badge.usageCount !== undefined && (
+                    <span className="text-xs opacity-70">
+                      {badge.usageCount}
+                    </span>
+                  )}
+                </button>
+              ))
+            ) : (
+              <div className="text-sm text-slate-500">No tags available</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -402,12 +438,14 @@ export function ProductFilters() {
       </div>
 
       {/* Mobile Filter Button & Sheet */}
-      <div className="lg:hidden mb-4">
+      <div
+        className={`lg:hidden mb-4 transition-all duration-300 ${isScrolled ? "shadow-md border-b" : ""}`}
+      >
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" className="gap-2 w-full sm:w-auto">
               <SlidersHorizontal className="h-4 w-4" />
-              Filters
+              More Filters
               {hasActiveFilters && (
                 <UIBadge variant="secondary" className="ml-1">
                   Active
@@ -417,7 +455,7 @@ export function ProductFilters() {
           </SheetTrigger>
           <SheetContent side="left" className="w-80 overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>Product Filters</SheetTitle>
+              <SheetTitle>More Filters</SheetTitle>
             </SheetHeader>
             <div className="mt-6">{filterContent}</div>
           </SheetContent>

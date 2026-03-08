@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { OptimizedImage } from "@/components/optimized-image";
+import Link from "next/link";
 
 const featuredCars = [
   {
@@ -43,7 +43,7 @@ export function FeaturedInventory() {
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
       <div className="flex justify-between items-end mb-12">
         <div>
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">
+          <h2 className="text-3xl font-extrabold text-red-600 dark:text-red-400 mb-2">
             Featured Inventory
           </h2>
           <div className="h-1 w-20 bg-primary rounded-full"></div>

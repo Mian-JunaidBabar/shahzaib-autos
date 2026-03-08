@@ -1,7 +1,4 @@
-import {
-  getStoreProductsPaginated,
-  StoreProduct,
-} from "@/lib/services/product.service";
+import { getStoreProductsPaginated, StoreProduct, } from "@/lib/services/product.service";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { getCategoryBySlug } from "@/lib/services/category.service";
 import { SortDropdown } from "@/components/products/SortDropdown";
@@ -12,6 +9,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -173,7 +171,7 @@ export default async function CategoryPage({
           {/* Top Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-4 mb-4 sm:mb-0">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-bold text-red-600 dark:text-red-400">
                 {category.name}
               </h2>
               <span className="text-sm text-slate-500">
@@ -200,7 +198,7 @@ export default async function CategoryPage({
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {mappedProducts.map((product) => (
                   <ProductCard key={product.id} {...product} />
                 ))}

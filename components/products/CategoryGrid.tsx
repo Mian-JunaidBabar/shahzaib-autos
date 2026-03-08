@@ -19,7 +19,7 @@ export async function CategoryGrid() {
   return (
     <section className="mb-12">
       <div className="text-center mb-8">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">
+        <h2 className="text-2xl md:text-3xl font-black text-red-600 dark:text-red-400">
           Shop by Category
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">

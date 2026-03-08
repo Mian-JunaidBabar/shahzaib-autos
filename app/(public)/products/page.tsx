@@ -31,7 +31,7 @@ type SearchParams = {
 // Loading skeleton for products grid
 function ProductsGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {[...Array(6)].map((_, i) => (
         <div
           key={i}
@@ -171,7 +171,7 @@ async function ProductsGrid({ searchParams }: { searchParams: SearchParams }) {
       {favoritesFlag ? (
         <ProductGridClient products={mappedProducts} favoritesOnly={true} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {mappedProducts.map((product) => (
             <ProductCard key={product.id} {...product} />
           ))}
@@ -244,7 +244,7 @@ export default async function ProductsPage({
           {/* Top Bar - Search & Sorting */}
           <div className="flex flex-col sm:flex-row items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-4 mb-4 sm:mb-0">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h2 className="text-xl font-bold text-red-600 dark:text-red-400">
                 All Products
               </h2>
             </div>
