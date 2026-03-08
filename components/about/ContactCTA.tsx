@@ -60,7 +60,7 @@ export function ContactCTA() {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
                 href="/contact"
-                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 dark:hover:bg-black text-white dark:text-slate-900 py-3.5 px-6 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl"
+                className="flex items-center justify-center gap-2 bg-white hover:bg-slate-100 dark:hover:bg-slate-900 text-primary py-3.5 px-6 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl"
               >
                 <span className="material-symbols-outlined text-[20px]">
                   mail
