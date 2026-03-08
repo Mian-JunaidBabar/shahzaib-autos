@@ -10,6 +10,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const email = (body.email || "").toString().trim().toLowerCase();
+    const source = (body.source || "HOMEPAGE_FORM")
+      .toString()
+      .trim()
+      .toUpperCase();
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return NextResponse.json(
         { success: false, error: "Invalid email" },
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
     }
 
     const subscriber = await subscribeEmail(email, {
-      source: "HOMEPAGE_FORM",
+      source,
       ip,
       userAgent,
     });

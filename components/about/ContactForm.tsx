@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { createLeadAction } from "@/app/actions/leadActions";
 
 export function ContactForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [errors, setErrors] = useState<{
-    fullName?: string;
-    message?: string;
-    contact?: string;
-  }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [newsletterNote, setNewsletterNote] = useState<string | null>(null);
+  // Use a flexible errors map so server-side validation arrays can be mapped
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: typeof errors = {};
+
+    const newErrors: Record<string, string> = {};
 
     if (!fullName.trim()) {
       newErrors.fullName = "Please enter your name.";
@@ -24,9 +27,33 @@ export function ContactForm() {
     if (!message.trim()) {
       newErrors.message = "Please enter a message.";
     }
+
+    // Require at least one contact method
     if (!email.trim() && !phone.trim()) {
       newErrors.contact =
         "Please provide either an email address or a phone number.";
+    }
+    if (subscribeNewsletter && !email.trim()) {
+      newErrors.contact = "Please provide an email to join the newsletter.";
+    }
+
+    // Client-side phone sanity checks for immediate helpful feedback
+    if (phone.trim()) {
+      const digits = phone.replace(/\D/g, "");
+      if (phone.includes("@") || /[a-zA-Z]/.test(phone)) {
+        newErrors.phone =
+          "It looks like you entered an email in the phone field — please put emails in the Email field.";
+      } else if (digits.length < 6 || digits.length > 15) {
+        newErrors.phone =
+          "Phone number looks incorrect — include country code if applicable.";
+      } else if (!/^[\d+\-\s()]+$/.test(phone)) {
+        newErrors.phone = "Phone number contains invalid characters.";
+      }
+    }
+
+    // Quick email format check
+    if (email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
+      newErrors.email = "Please enter a valid email address.";
     }
 
     if (Object.keys(newErrors).length) {
@@ -34,8 +61,69 @@ export function ContactForm() {
       return;
     }
 
-    // proceed with form submission logic (e.g. send to API)
-    setSubmitted(true);
+    setErrors({});
+    setSubmitError(null);
+    setNewsletterNote(null);
+    setIsSubmitting(true);
+
+    try {
+      const result = await createLeadAction({
+        name: fullName.trim(),
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        message: message.trim(),
+        source: "CONTACT_FORM",
+      });
+
+      if (!result.success) {
+        // server may return structured validation errors (array)
+        if (result.error) {
+          try {
+            const parsed = JSON.parse(result.error);
+            if (Array.isArray(parsed)) {
+              const mapped: Record<string, string> = {};
+              parsed.forEach((err: any) => {
+                const key =
+                  Array.isArray(err.path) && err.path[0]
+                    ? err.path[0]
+                    : undefined;
+                if (key) mapped[key] = err.message || JSON.stringify(err);
+              });
+              if (Object.keys(mapped).length) {
+                setErrors(mapped);
+                return;
+              }
+            }
+          } catch (e) {
+            // not JSON - fall through to generic handling
+          }
+        }
+
+        setSubmitError(result.error || "Failed to send your message.");
+        return;
+      }
+
+      if (subscribeNewsletter && email.trim()) {
+        const response = await fetch("/api/newsletter/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), source: "CONTACT_FORM" }),
+        });
+
+        if (!response.ok) {
+          setNewsletterNote(
+            "Your inquiry was sent, but newsletter signup could not be completed.",
+          );
+        }
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Contact form submission error:", error);
+      setSubmitError("Unable to submit right now. Please try again shortly.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -54,9 +142,14 @@ export function ContactForm() {
                 </span>
                 <h4 className="text-2xl font-black text-white">Thank You!</h4>
                 <p className="mt-2 text-white/90">
-                  Your message has been sent successfully. We&apos;ll get back
-                  to you shortly.
+                  Your inquiry has been sent to Shahzaib Autos. We&apos;ll get
+                  back to you shortly.
                 </p>
+                {newsletterNote && (
+                  <p className="mt-4 text-sm text-amber-300">
+                    {newsletterNote}
+                  </p>
+                )}
               </div>
             ) : (
               <form className="space-y-6" onSubmit={handleSubmit}>
@@ -99,6 +192,11 @@ export function ContactForm() {
                       placeholder="example@gmail.com"
                       type="email"
                     />
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.email}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -116,6 +214,11 @@ export function ContactForm() {
                       placeholder="123456789"
                       type="tel"
                     />
+                    {errors.phone && (
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.phone}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -139,16 +242,35 @@ export function ContactForm() {
                   )}
                 </div>
 
+                <label className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800/60">
+                  <input
+                    type="checkbox"
+                    checked={subscribeNewsletter}
+                    onChange={(e) => setSubscribeNewsletter(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    Subscribe me to the newsletter for product updates and
+                    offers.
+                  </span>
+                </label>
+
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="w-full bg-primary hover:bg-primary/90 dark:hover:bg-black text-white dark:text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-lg"
                 >
                   <span className="material-symbols-outlined">send</span>
-                  Send Message
+                  {isSubmitting ? "Sending..." : "Send Message"}
                 </button>
                 {errors.contact && (
                   <p className="mt-2 text-sm text-red-500 text-center">
                     {errors.contact}
+                  </p>
+                )}
+                {submitError && (
+                  <p className="mt-2 text-sm text-red-500 text-center">
+                    {submitError}
                   </p>
                 )}
               </form>

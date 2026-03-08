@@ -1,3 +1,4 @@
+import { adminEmail, sendEmail } from "@/lib/services/mail.service";
 /**
  * Notification Service
  *
@@ -7,6 +8,9 @@
  * - SMS notifications (prepared for future)
  */
 import { Order, Booking, Lead, Customer } from "@prisma/client";
+import AdminNewLeadAlert from "@/emails/AdminNewLeadAlert";
+import { prisma } from "@/lib/prisma";
+import React from "react";
 
 // Types
 export type NotificationChannel = "whatsapp" | "email" | "sms";
@@ -400,13 +404,41 @@ export const EmailNotification = {
     }
   },
 
-  async sendNewLeadAlert(leadId: string, email: string) {
+  async sendNewLeadAlert(leadId: string) {
     try {
       const settings = await getNotificationSettings();
       if (!settings.newLeadEmail) return;
-      console.log(
-        `\n📧 [EMAIL SEND] New Lead Alert! Lead ID: ${leadId} | From: ${email}\n`,
-      );
+
+      const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+      if (!lead) {
+        console.error(`Lead not found for email alert: ${leadId}`);
+        return;
+      }
+
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+      const dashboardUrl = `${siteUrl}/admin/dashboard/leads/${lead.id}`;
+
+      const result = await sendEmail({
+        to: adminEmail,
+        subject: `New Lead: ${lead.name}`,
+        react: React.createElement(AdminNewLeadAlert, {
+          leadName: lead.name,
+          leadEmail: lead.email,
+          leadPhone: lead.phone,
+          leadMessage: lead.message,
+          leadSource: lead.source,
+          createdAt: lead.createdAt,
+          adminUrl: dashboardUrl,
+        }),
+        replyTo: lead.email || undefined,
+      });
+
+      if (!result.success) {
+        console.error(
+          `New lead email failed for lead ${leadId}: ${result.error || "Unknown error"}`,
+        );
+      }
     } catch (e) {
       console.error("Notification Error:", e);
     }
