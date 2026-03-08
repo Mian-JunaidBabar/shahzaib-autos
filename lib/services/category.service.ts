@@ -93,7 +93,7 @@ export function getCategories() {
  */
 async function _getActiveCategories(filters: StoreFilters = {}) {
   // Build where clause for products matching the filters
-  const productWhere: any = buildStoreWhere(filters);
+  const productWhere = buildStoreWhere(filters);
 
   return prisma.category.findMany({
     where: { isActive: true },

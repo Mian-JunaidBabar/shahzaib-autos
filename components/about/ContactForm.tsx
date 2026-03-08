@@ -82,7 +82,7 @@ export function ContactForm() {
             const parsed = JSON.parse(result.error);
             if (Array.isArray(parsed)) {
               const mapped: Record<string, string> = {};
-              parsed.forEach((err: any) => {
+              parsed.forEach((err: { path?: string[]; message?: string }) => {
                 const key =
                   Array.isArray(err.path) && err.path[0]
                     ? err.path[0]
@@ -94,7 +94,7 @@ export function ContactForm() {
                 return;
               }
             }
-          } catch (e) {
+          } catch {
             // not JSON - fall through to generic handling
           }
         }

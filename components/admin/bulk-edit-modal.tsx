@@ -74,6 +74,7 @@ export function BulkEditModal({
       },
     });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const badgesToAdd = watch("badgesToAdd");
   const badgesToRemove = watch("badgesToRemove");
 

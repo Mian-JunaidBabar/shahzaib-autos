@@ -34,7 +34,7 @@ export default async function CheckoutPage({
     // Server-side logging for diagnostics
     // Use console.error here; replace with Sentry or other DSN if available
     // so errors are captured in production monitoring.
-    // eslint-disable-next-line no-console
+    // so errors are captured in production monitoring.
     console.error("Checkout page data fetch error:", err);
 
     // Render a friendly error UI so the page doesn't crash for users.

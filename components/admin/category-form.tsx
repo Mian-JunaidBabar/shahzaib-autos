@@ -107,6 +107,7 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
         },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const watchedName = watch("name");
 
   // Auto-generate slug from name (create mode only)

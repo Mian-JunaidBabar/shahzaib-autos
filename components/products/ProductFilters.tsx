@@ -114,6 +114,7 @@ export function ProductFilters() {
           .filter(Boolean)
       : [];
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedCategories(nextCategories);
     setSelectedTags(nextTags);
     setSelectedBadges(nextBadges);

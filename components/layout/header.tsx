@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/context/cart-context";
-import { useTheme } from "@/context/theme-context";
+
 import { ShoppingCart } from "lucide-react";
 import { OptimizedImage } from "@/components/optimized-image";
 import { generateWhatsAppUrl } from "@/lib/whatsapp";
