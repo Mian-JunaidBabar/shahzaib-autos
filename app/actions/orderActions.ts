@@ -232,7 +232,7 @@ export async function createPublicOrderAction(
       )
       .join("\n");
 
-    let message = `🛒 *New Order from Shahzaib Autos*
+    let message = `🛒 *New Order from Shahzaib Electronics*
 
 *Order #: ${orderNumber}*
 
@@ -300,7 +300,7 @@ Please confirm availability and delivery.`;
     if (customer.email) {
       sendEmailAsync({
         to: customer.email,
-        subject: `Your Shahzaib Autos Order Confirmation (#${order.orderNumber})`,
+        subject: `Your Shahzaib Electronics Order Confirmation (#${order.orderNumber})`,
         react: CustomerOrderConfirmation({
           customerName: customer.name,
           orderNumber: order.orderNumber,

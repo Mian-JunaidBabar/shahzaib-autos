@@ -16,18 +16,18 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ),
   title: {
-    template: "%s | Shahzaib Autos",
-    default: "Shahzaib Autos - Premium Automotive Accessories & Services",
+    template: "%s | Shahzaib Electronics",
+    default: "Shahzaib Electronics - Premium Automotive Accessories & Services",
   },
   description:
-    "Upgrade your ride with premium car accessories, 7D mats, LEDs, and professional workshop services at Shahzaib Autos.",
+    "Upgrade your ride with premium car accessories, 7D mats, LEDs, and professional workshop services at Shahzaib Electronics.",
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/favicon.ico" }, { url: "/icon1.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png" }],
   },
   appleWebApp: {
-    title: "Shahzaib Autos",
+    title: "Shahzaib Electronics",
   },
 };
 
@@ -44,7 +44,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
-        <meta name="apple-mobile-web-app-title" content="Shahzaib Autos" />
+        <meta name="apple-mobile-web-app-title" content="Shahzaib Electronics" />
       </head>
       <body className={`${inter.variable} antialiased`}>
         {children}

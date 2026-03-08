@@ -260,7 +260,7 @@ export default function BookingDetailsPage({
   const openWhatsApp = () => {
     if (!booking) return;
     const message = encodeURIComponent(
-      `Hello ${booking.customerName}! Regarding your booking #${booking.bookingNumber} at Shahzaib Autos...`,
+      `Hello ${booking.customerName}! Regarding your booking #${booking.bookingNumber} at Shahzaib Electronics...`,
     );
     window.open(
       `https://wa.me/${booking.customerPhone.replace(/\D/g, "")}?text=${message}`,

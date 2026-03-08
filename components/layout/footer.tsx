@@ -20,11 +20,11 @@ export default function Footer() {
             <Link
               href="/"
               className="flex items-center justify-center md:justify-start gap-3 text-text-primary mb-4"
-              aria-label="Shahzaib Autos home"
+              aria-label="Shahzaib Electronics home"
             >
               <OptimizedImage
                 src="/web-app-manifest-512x512.png"
-                alt="Shahzaib Autos"
+                alt="Shahzaib Electronics"
                 width={200}
                 height={200}
                 className="rounded"
@@ -95,7 +95,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="border-t border-border pt-8 text-center text-xs text-text-subtle">
           <p>
-            © {new Date().getFullYear()} Shahzaib Autos. All rights reserved.
+            © {new Date().getFullYear()} Shahzaib Electronics. All rights reserved.
           </p>
         </div>
       </div>

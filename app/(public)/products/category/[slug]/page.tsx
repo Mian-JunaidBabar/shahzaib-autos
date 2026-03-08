@@ -29,10 +29,10 @@ export async function generateMetadata({
   if (!category) return { title: "Category Not Found" };
 
   return {
-    title: `${category.name} — Shahzaib Autos`,
+    title: `${category.name} — Shahzaib Electronics`,
     description:
       category.description ||
-      `Browse ${category.name} products at Shahzaib Autos`,
+      `Browse ${category.name} products at Shahzaib Electronics`,
   };
 }
 

@@ -55,7 +55,7 @@ export function CoreServices({
                 </p>
                 <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">
                   {service.description ||
-                    "Premium automotive service by Shahzaib Autos."}
+                    "Premium automotive service by Shahzaib Electronics."}
                 </p>
 
                 <Link

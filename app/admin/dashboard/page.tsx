@@ -244,7 +244,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col">
             <h1 className="text-xl md:text-2xl font-black text-primary tracking-tight flex items-center gap-2">
-              Shahzaib Autos
+              Shahzaib Electronics
             </h1>
             <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase mt-0.5">
               Command Center

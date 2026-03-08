@@ -99,7 +99,7 @@ export default function AdminSidebar() {
           </span>
           {!isCollapsed && (
             <h2 className="text-foreground text-lg font-bold tracking-tight whitespace-nowrap">
-              Shahzaib Autos
+              Shahzaib Electronics
             </h2>
           )}
         </Link>

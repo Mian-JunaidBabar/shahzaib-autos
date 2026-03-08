@@ -299,7 +299,7 @@ export async function createUnifiedOrderAction(data: CheckoutData) {
 
     const totalRs = result.totalCents / 100;
 
-    const message = `Hello Shahzaib Autos! I would like to place an order/booking.
+    const message = `Hello Shahzaib Electronics! I would like to place an order/booking.
 
 *Reference:* #${orderRef}
 *Name:* ${customerData.fullName}

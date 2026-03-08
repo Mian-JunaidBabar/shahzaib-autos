@@ -6,7 +6,7 @@ import Link from "next/link";
  * CategoryGrid — Server Component
  *
  * Displays active categories as a visual grid on the public /products page.
- * Red & White theme matching Shahzaib Autos brand.
+ * Red & White theme matching Shahzaib Electronics brand.
  */
 export async function CategoryGrid() {
   const categories = await getActiveCategories();

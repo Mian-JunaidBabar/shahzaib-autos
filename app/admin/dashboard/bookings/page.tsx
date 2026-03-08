@@ -212,7 +212,7 @@ export default function BookingsPage() {
 
   const openWhatsApp = (booking: Booking) => {
     const message = encodeURIComponent(
-      `Hello ${booking.customerName}! Regarding your booking #${booking.bookingNumber} for ${booking.serviceType} at Shahzaib Autos...`,
+      `Hello ${booking.customerName}! Regarding your booking #${booking.bookingNumber} for ${booking.serviceType} at Shahzaib Electronics...`,
     );
     window.open(
       `https://wa.me/${booking.customerPhone.replace(/\D/g, "")}?text=${message}`,

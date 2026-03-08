@@ -141,7 +141,7 @@ export function AdminNewOrderAlert({
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              This is an automated notification from Shahzaib Autos.
+              This is an automated notification from Shahzaib Electronics.
             </Text>
             <Text style={footerText}>
               Please contact the customer promptly to confirm the order.

@@ -268,7 +268,7 @@ export default async function ProductsPage({
       <section className="bg-slate-50 dark:bg-slate-900/50 py-16 border-y border-slate-200 dark:border-slate-800 mt-12">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-center text-sm font-bold uppercase tracking-widest text-slate-500 mb-10">
-            The Shahzaib Autos Promise
+            The Shahzaib Electronics Promise
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="flex flex-col items-center text-center group">

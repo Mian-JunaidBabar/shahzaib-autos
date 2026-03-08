@@ -25,7 +25,7 @@ export type NotificationResult = {
 
 // WhatsApp configuration
 const BUSINESS_PHONE = process.env.WHATSAPP_BUSINESS_PHONE || "";
-const BUSINESS_NAME = "Shahzaib Autos";
+const BUSINESS_NAME = "Shahzaib Electronics";
 
 /**
  * Generate WhatsApp URL with pre-filled message
@@ -514,7 +514,7 @@ export const SmsNotification = {
       const settings = await getNotificationSettings();
       if (!settings.orderConfirmSms) return;
       console.log(
-        `\n📱 [SMS SEND] To: ${customerPhone} -> "Shahzaib Autos: Thank you for your order! Your order ID is ${orderId}."\n`,
+        `\n📱 [SMS SEND] To: ${customerPhone} -> "Shahzaib Electronics: Thank you for your order! Your order ID is ${orderId}."\n`,
       );
     } catch (e) {
       console.error("Notification Error:", e);

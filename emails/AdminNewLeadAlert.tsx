@@ -97,7 +97,7 @@ export function AdminNewLeadAlert({
 
           <Section style={footer}>
             <Text style={footerText}>
-              This is an automated notification from Shahzaib Autos.
+              This is an automated notification from Shahzaib Electronics.
             </Text>
           </Section>
         </Container>

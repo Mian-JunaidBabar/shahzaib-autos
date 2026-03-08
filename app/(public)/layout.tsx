@@ -4,7 +4,7 @@ import Footer from "@/components/layout/footer";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Shahzaib Autos - Premium Automotive Services",
+  title: "Shahzaib Electronics - Premium Automotive Services",
   description:
     "Premium car accessories and professional installation services. From detailing to custom modifications, we do it all.",
 };

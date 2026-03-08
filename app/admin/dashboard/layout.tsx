@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard",
-  description: "Admin panel for managing Shahzaib Autos business operations",
+  description: "Admin panel for managing Shahzaib Electronics business operations",
 };
 
 // Force dynamic rendering for all admin routes (uses cookies/session)

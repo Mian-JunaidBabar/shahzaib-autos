@@ -23,7 +23,7 @@ export const TeamInviteEmail = ({
   inviteLink,
   adminName = "Admin",
 }: TeamInviteEmailProps) => {
-  const previewText = "You've been invited to Shahzaib Autos Admin";
+  const previewText = "You've been invited to Shahzaib Electronics Admin";
 
   return (
     <Html>
@@ -33,13 +33,13 @@ export const TeamInviteEmail = ({
         <Body className="bg-white my-auto mx-auto font-sans px-2">
           <Container className="border border-solid border-[#eaeaea] rounded my-10 mx-auto p-5 max-w-116.25">
             <Heading className="text-black text-[24px] font-bold text-center p-0 my-7.5 mx-0">
-              Welcome to <strong>Shahzaib Autos</strong>
+              Welcome to <strong>Shahzaib Electronics</strong>
             </Heading>
             <Text className="text-black text-[14px] leading-6">
               Hello {adminName},
             </Text>
             <Text className="text-black text-[14px] leading-6">
-              You have been invited as an Admin to the Shahzaib Autos Admin
+              You have been invited as an Admin to the Shahzaib Electronics Admin
               Panel. Click the button below to set your password and access the
               dashboard.
             </Text>

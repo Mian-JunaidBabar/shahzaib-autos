@@ -624,7 +624,7 @@ export default function TeamPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="p-4 bg-muted rounded-lg font-mono text-sm whitespace-pre-wrap border">
-              {`🔐 Shahzaib Autos Admin Login
+              {`🔐 Shahzaib Electronics Admin Login
 
 Name: ${credentials?.fullName || "Team Member"}
 Email: ${credentials?.email}
@@ -637,7 +637,7 @@ Password: ${credentials?.password}
             <Button
               className="w-full"
               onClick={() => {
-                const text = `🔐 Shahzaib Autos Admin Login
+                const text = `🔐 Shahzaib Electronics Admin Login
 
 Name: ${credentials?.fullName || "Team Member"}
 Email: ${credentials?.email}

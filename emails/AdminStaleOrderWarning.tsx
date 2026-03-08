@@ -137,7 +137,7 @@ export function AdminStaleOrderWarning({
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              This is an automated daily alert from Shahzaib Autos.
+              This is an automated daily alert from Shahzaib Electronics.
             </Text>
             <Text style={footerText}>
               Orders left unprocessed may result in lost sales and unhappy

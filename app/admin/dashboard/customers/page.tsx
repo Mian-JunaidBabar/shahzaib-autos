@@ -171,7 +171,7 @@ export default function CustomersPage() {
 
   const openWhatsApp = (customer: Customer) => {
     const message = encodeURIComponent(
-      `Hello ${customer.name}! This is Shahzaib Autos. How can we assist you today?`,
+      `Hello ${customer.name}! This is Shahzaib Electronics. How can we assist you today?`,
     );
     window.open(
       `https://wa.me/${customer.phone.replace(/\D/g, "")}?text=${message}`,

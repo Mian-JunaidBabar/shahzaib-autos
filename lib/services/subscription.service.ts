@@ -37,7 +37,7 @@ export async function subscribeEmail(
   try {
     const result = await sendEmail({
       to: subscriber.email,
-      subject: "Thanks for signing up — welcome to Shahzaib Autos!",
+      subject: "Thanks for signing up — welcome to Shahzaib Electronics!",
       react: React.createElement(NewsletterWelcome, {
         recipientEmail: subscriber.email,
       }),

@@ -67,7 +67,7 @@ export function generateOrderMessage(items: CartItem[]): string {
     0,
   );
 
-  return `🚗 *New Order from Shahzaib Autos*
+  return `🚗 *New Order from Shahzaib Electronics*
 
 *Order Details:*
 ${itemsList}
@@ -104,7 +104,7 @@ Please confirm the booking and estimated arrival time.`;
  * Generate general inquiry message
  */
 export function generateInquiryMessage(name: string, message: string): string {
-  return `💬 *General Inquiry from Shahzaib Autos Website*
+  return `💬 *General Inquiry from Shahzaib Electronics Website*
 
 *From:* ${name}
 

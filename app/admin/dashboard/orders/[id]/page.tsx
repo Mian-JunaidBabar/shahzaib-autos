@@ -186,7 +186,7 @@ export default function OrderDetailPage({ params }: OrderDetailsPageProps) {
   const openWhatsApp = () => {
     if (!order) return;
     const message = encodeURIComponent(
-      `Hello ${order.customerName}! Regarding your order #${order.orderNumber} at Shahzaib Autos...`,
+      `Hello ${order.customerName}! Regarding your order #${order.orderNumber} at Shahzaib Electronics...`,
     );
     window.open(
       `https://wa.me/${order.customerPhone.replace(/\D/g, "")}?text=${message}`,

@@ -1,7 +1,7 @@
 import { CartItems } from "@/components/store/CartItems";
 
 export const metadata = {
-  title: "Shopping Cart | Shahzaib Autos",
+  title: "Shopping Cart | Shahzaib Electronics",
   description: "Review your cart and proceed to checkout",
 };
 

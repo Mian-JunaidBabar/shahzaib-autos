@@ -34,14 +34,14 @@ export default function Header() {
           className="flex items-center gap-2 text-primary hover:text-primary transition-colors"
         >
           <OptimizedImage
-            src={"/icon.svg"}
-            alt="Shahzaib Autos"
+            src={"/icon.png"}
+            alt="Shahzaib Electronics"
             width={56}
             height={56}
             className="rounded h-10 md:h-14 w-auto"
           />
           <h2 className="text-primary text-lg font-bold tracking-tight">
-            Shahzaib Autos
+            Shahzaib Electronics
           </h2>
         </Link>
 

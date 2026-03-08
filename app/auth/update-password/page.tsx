@@ -126,7 +126,7 @@ export default function UpdatePasswordPage() {
             Set Your Password
           </CardTitle>
           <CardDescription className="text-center text-base">
-            Welcome to Shahzaib Autos Admin Panel! Please set your password to
+            Welcome to Shahzaib Electronics Admin Panel! Please set your password to
             complete your account setup.
           </CardDescription>
         </CardHeader>

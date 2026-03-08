@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!product) {
     return {
-      title: "Product Not Found | Shahzaib Autos",
+      title: "Product Not Found | Shahzaib Electronics",
     };
   }
 
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const rawDescription =
     product.description ||
-    `Shop ${product.name} at Shahzaib Autos. Premium quality car accessories.`;
+    `Shop ${product.name} at Shahzaib Electronics. Premium quality car accessories.`;
   const seoDescription =
     rawDescription.length > 160
       ? rawDescription.substring(0, 157) + "..."

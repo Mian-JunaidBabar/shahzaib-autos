@@ -22,11 +22,11 @@ export default function NewsletterWelcome({
   return (
     <Html>
       <Head />
-      <Preview>Thanks for signing up — welcome to Shahzaib Autos</Preview>
+      <Preview>Thanks for signing up — welcome to Shahzaib Electronics</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={h1}>Welcome to Shahzaib Autos</Heading>
+            <Heading style={h1}>Welcome to Shahzaib Electronics</Heading>
           </Section>
 
           <Section style={section}>
@@ -34,7 +34,7 @@ export default function NewsletterWelcome({
               Hi{recipientEmail ? `, ${recipientEmail}` : ""},
             </Text>
             <Text style={paragraph}>
-              Thanks for signing up to the Shahzaib Autos newsletter. We&apos;re
+              Thanks for signing up to the Shahzaib Electronics newsletter. We&apos;re
               thrilled to have you — expect vehicle tips, parts deals, and early
               access to new arrivals.
             </Text>
@@ -45,7 +45,7 @@ export default function NewsletterWelcome({
 
             <Section style={buttonSection}>
               <Button style={button} href={siteUrl}>
-                Visit Shahzaib Autos
+                Visit Shahzaib Electronics
               </Button>
             </Section>
 
@@ -68,7 +68,7 @@ export default function NewsletterWelcome({
 
           <Section style={footer}>
             <Text style={footerText}>
-              © {new Date().getFullYear()} Shahzaib Autos
+              © {new Date().getFullYear()} Shahzaib Electronics
             </Text>
           </Section>
         </Container>

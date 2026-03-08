@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide - Shahzaib Autos
+# 🚀 Deployment Guide - Shahzaib Electronics
 
 ## ✅ Build Status
 Your application is now **production-ready** with all dependencies at stable versions.

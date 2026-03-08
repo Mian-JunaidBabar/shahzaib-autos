@@ -46,7 +46,7 @@ export function CustomerOrderConfirmation({
     <Html>
       <Head />
       <Preview>
-        Order Confirmed! Your Shahzaib Autos order #{orderNumber} has been
+        Order Confirmed! Your Shahzaib Electronics order #{orderNumber} has been
         received.
       </Preview>
       <Body style={main}>
@@ -153,7 +153,7 @@ export function CustomerOrderConfirmation({
             <Text style={footerText}>Email: support@shahzaibautos.com</Text>
             <Hr style={footerHr} />
             <Text style={copyright}>
-              © {new Date().getFullYear()} Shahzaib Autos. All rights reserved.
+              © {new Date().getFullYear()} Shahzaib Electronics. All rights reserved.
             </Text>
           </Section>
         </Container>

@@ -225,7 +225,7 @@ export default function LeadsPage() {
       return;
     }
     const message = encodeURIComponent(
-      `Hello ${lead.name}! Thank you for contacting Shahzaib Autos. How can we help you today?`,
+      `Hello ${lead.name}! Thank you for contacting Shahzaib Electronics. How can we help you today?`,
     );
     window.open(
       `https://wa.me/${lead.phone.replace(/\D/g, "")}?text=${message}`,

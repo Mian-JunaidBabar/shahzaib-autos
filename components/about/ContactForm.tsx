@@ -142,7 +142,7 @@ export function ContactForm() {
                 </span>
                 <h4 className="text-2xl font-black text-white">Thank You!</h4>
                 <p className="mt-2 text-white/90">
-                  Your inquiry has been sent to Shahzaib Autos. We&apos;ll get
+                  Your inquiry has been sent to Shahzaib Electronics. We&apos;ll get
                   back to you shortly.
                 </p>
                 {newsletterNote && (

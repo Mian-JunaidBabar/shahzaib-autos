@@ -1,6 +1,6 @@
-# Shahzaib Autos — Production-ready Next.js App
+# Shahzaib Electronics — Production-ready Next.js App
 
-This repository contains the production-ready Next.js application for Shahzaib Autos — an e-commerce and service booking platform.
+This repository contains the production-ready Next.js application for Shahzaib Electronics — an e-commerce and service booking platform.
 
 ## Purpose
 The project powers online product listings, service bookings, admin dashboards, and order management. It uses Next.js App Router, Prisma (Postgres), Supabase for authentication, and Cloudinary for image handling.
