@@ -6,16 +6,41 @@ import cloudinary from "@/lib/cloudinary";
  */
 import { prisma } from "@/lib/prisma";
 
-
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { unstable_cache } = require("next/cache");
 
 type StoryDelegate = {
-  create: (args: unknown) => Promise<any>;
-  findMany: (args?: unknown) => Promise<any[]>;
-  findUnique: (args: unknown) => Promise<any | null>;
-  update: (args: unknown) => Promise<any>;
-  delete: (args: unknown) => Promise<any>;
+  create: (args: { data: StoryInput }) => Promise<StoryEntity>;
+  findMany: (args?: {
+    where?: { isActive?: boolean };
+    orderBy?: { createdAt: "asc" | "desc" };
+  }) => Promise<StoryEntity[]>;
+  findUnique: (args: {
+    where: { id: string };
+    select?: { mediaPublicId?: boolean; mediaType?: boolean };
+  }) => Promise<unknown>;
+  update: (args: {
+    where: { id: string };
+    data: Partial<StoryInput>;
+  }) => Promise<StoryEntity>;
+  delete: (args: { where: { id: string } }) => Promise<StoryEntity>;
+};
+
+type StoryEntity = {
+  id: string;
+  title: string;
+  description: string | null;
+  mediaUrl: string;
+  mediaPublicId: string;
+  mediaType: "IMAGE" | "VIDEO";
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type StoryMediaSelection = {
+  mediaPublicId: string | null;
+  mediaType: "IMAGE" | "VIDEO";
 };
 
 type StoryRow = {
@@ -41,7 +66,7 @@ function getStoryDelegate(): StoryDelegate | null {
   return candidate ?? null;
 }
 
-function mapStoryRow(row: StoryRow) {
+function mapStoryRow(row: StoryRow): StoryEntity {
   return {
     id: row.id,
     title: row.title,
@@ -150,7 +175,7 @@ export async function getStoryById(id: string) {
   if (story) {
     return story.findUnique({
       where: { id },
-    });
+    }) as Promise<StoryEntity | null>;
   }
 
   const rows = await prisma.$queryRaw<StoryRow[]>`
@@ -176,10 +201,10 @@ export async function updateStory(id: string, input: Partial<StoryInput>) {
 
   // If we're replacing the media, delete the old one from Cloudinary
   if (input.mediaUrl !== undefined && input.mediaPublicId !== undefined) {
-    const existing = await story.findUnique({
+    const existing = (await story.findUnique({
       where: { id },
       select: { mediaPublicId: true, mediaType: true },
-    }) as { mediaPublicId?: string; mediaType?: "IMAGE" | "VIDEO" } | null;
+    })) as StoryMediaSelection | null;
 
     if (
       existing?.mediaPublicId &&
@@ -227,10 +252,10 @@ export async function deleteStory(id: string) {
     );
   }
 
-  const story = await storyDelegate.findUnique({
+  const story = (await storyDelegate.findUnique({
     where: { id },
     select: { mediaPublicId: true, mediaType: true },
-  }) as { mediaPublicId?: string; mediaType?: "IMAGE" | "VIDEO" } | null;
+  })) as StoryMediaSelection | null;
 
   if (!story) {
     throw new Error("Story not found");
