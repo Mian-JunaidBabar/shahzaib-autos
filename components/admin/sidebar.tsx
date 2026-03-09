@@ -39,6 +39,11 @@ const navItems = [
         label: "Services",
       },
       {
+        href: "/admin/dashboard/stories",
+        icon: "Collections",
+        label: "Stories",
+      },
+      {
         href: "/admin/dashboard/customers",
         icon: "people",
         label: "Customers",

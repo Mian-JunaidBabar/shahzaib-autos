@@ -322,6 +322,15 @@ Please confirm my request.`;
     };
   } catch (error: unknown) {
     console.error("UnifiedCheckout Error:", error);
-    return { success: false, error: "Something went wrong. Please try again." };
+
+    // Surface actionable checkout failures to the customer (e.g., stock issues).
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: false,
+      error: "Unable to process checkout right now. Please try again.",
+    };
   }
 }

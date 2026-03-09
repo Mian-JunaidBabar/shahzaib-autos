@@ -429,6 +429,12 @@ enum ServiceLocation {
   BOTH
 }
 
+// Media types for stories
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
 model Service {
   id          String          @id @default(cuid())
   title       String
@@ -514,4 +520,21 @@ model NewsletterSubscriber {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("newsletter_subscribers")
+}
+
+// ============================================
+// STORIES (Media Gallery - Images & Videos)
+// ============================================
+model Story {
+  id            String    @id @default(uuid())
+  title         String
+  description   String?   @db.Text
+  mediaUrl      String    @map("media_url")
+  mediaPublicId String    @unique @map("media_public_id") // For Cloudinary deletion
+  mediaType     MediaType // IMAGE or VIDEO
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("stories")
 }
