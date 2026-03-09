@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     default: "Shahzaib Electronics - Premium Automotive Accessories & Services",
   },
   description:
-    "Upgrade your ride with premium car accessories, 7D mats, LEDs, and professional workshop services at Shahzaib Electronics.",
+    "Shahzaib Electronics is the leading direct importer and wholesale distributor of premium car accessories, Android panels, and audio systems in Lahore, Pakistan.",
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/favicon.ico" }, { url: "/icon1.png", type: "image/png" }],
@@ -36,6 +36,32 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const APP_URL =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://shahzaib-electronics.vercel.app";
+  const BUSINESS_NAME =
+    process.env.NEXT_PUBLIC_BUSINESS_NAME || "Shahzaib Electronics";
+  const CONTACT_PHONE =
+    process.env.NEXT_PUBLIC_CONTACT_PHONE || "+92-337-4990542";
+  const CONTACT_EMAIL =
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL || "info@shahzaib-electronics.com";
+
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: BUSINESS_NAME,
+    url: APP_URL,
+    logo: `${APP_URL}/icon.png`,
+    description:
+      "Shahzaib Electronics is the leading direct importer and wholesale distributor of premium car accessories, Android panels, and audio systems in Lahore, Pakistan.",
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: CONTACT_PHONE,
+      contactType: "Customer Service",
+      email: CONTACT_EMAIL,
+    },
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -44,12 +70,21 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
-        <meta name="apple-mobile-web-app-title" content="Shahzaib Electronics" />
+        <meta
+          name="apple-mobile-web-app-title"
+          content="Shahzaib Electronics"
+        />
       </head>
       <body className={`${inter.variable} antialiased`}>
         {children}
         <Toaster position="top-right" />
         <Analytics />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationJsonLd),
+          }}
+        />
       </body>
     </html>
   );

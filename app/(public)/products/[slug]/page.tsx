@@ -87,9 +87,123 @@ export default async function ProductDetailPage({ params }: Props) {
     product.productBadges?.map((pb) => pb.badge).filter(Boolean) || [];
 
   const primaryImage = product.images[0]?.secureUrl ?? "/placeholder.jpg";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const productUrl = `${appUrl}/products/${product.slug}`;
+  const displayPrice =
+    (defaultVariant.salePrice ?? defaultVariant.price ?? 0) / 100;
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description:
+      product.description ||
+      `Buy ${product.name} direct from the importer in Lahore.`,
+    image: product.images.map((img) => img.secureUrl).filter(Boolean),
+    sku: defaultVariant.sku,
+    brand: {
+      "@type": "Brand",
+      name: "Shahzaib Electronics",
+    },
+    category: categoryName,
+    offers: {
+      "@type": "Offer",
+      url: productUrl,
+      priceCurrency: "PKR",
+      price: displayPrice,
+      availability:
+        defaultVariant.inventoryQty > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      seller: {
+        "@type": "Organization",
+        name: "Shahzaib Electronics",
+      },
+    },
+  };
+
+  const faqEntities = product.isUniversal
+    ? [
+        {
+          "@type": "Question",
+          name: "Will this fit my car?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: `Yes, ${product.name} is a universal product and is designed to fit a wide range of compatible vehicles. Contact Shahzaib Electronics for model-specific installation guidance.`,
+          },
+        },
+      ]
+    : (product.fitments || []).map((fitment) => ({
+        "@type": "Question",
+        name: `Will this fit a ${fitment.make} ${fitment.model}?`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: `Yes, ${product.name} supports ${fitment.make} ${fitment.model}${fitment.startYear ? ` (${fitment.startYear}${fitment.endYear ? `-${fitment.endYear}` : ""})` : ""}. For perfect compatibility and installation support, contact Shahzaib Electronics before ordering.`,
+        },
+      }));
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity:
+      faqEntities.length > 0
+        ? faqEntities
+        : [
+            {
+              "@type": "Question",
+              name: `Is ${product.name} available with installation support?`,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Yes, Shahzaib Electronics provides product guidance and professional installation support for compatible vehicles.",
+              },
+            },
+          ],
+  };
+
+  const categoryUrl = product.categoryRelation?.slug
+    ? `${appUrl}/products/category/${product.categoryRelation.slug}`
+    : `${appUrl}/products`;
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: appUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Products",
+        item: `${appUrl}/products`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: categoryName,
+        item: categoryUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: product.name,
+        item: productUrl,
+      },
+    ],
+  };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([productJsonLd, faqJsonLd, breadcrumbJsonLd]),
+        }}
+      />
+
       {/* Breadcrumb */}
       <section className="border-b bg-muted/30 pt-6 pb-6">
         <div className="container px-4 md:px-8 lg:px-16 max-w-7xl mx-auto">

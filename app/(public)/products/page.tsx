@@ -1,10 +1,8 @@
-import {
-  getStoreProductsPaginated,
-  getRecentlyUpdatedProducts,
-  StoreProduct,
-} from "@/lib/services/product.service";
+import { getStoreProductsPaginated, getRecentlyUpdatedProducts, StoreProduct, } from "@/lib/services/product.service";
 import ProductGridClient from "@/components/products/ProductGridClient";
+import { ServiceMarquee } from "@/components/products/ServiceMarquee";
 import { ProductFilters } from "@/components/products/ProductFilters";
+import { getActiveCategories } from "@/lib/services/category.service";
 import { SortDropdown } from "@/components/products/SortDropdown";
 import { CategoryGrid } from "@/components/products/CategoryGrid";
 import ProductSearch from "@/components/products/ProductSearch";
@@ -13,7 +11,7 @@ import { Pagination } from "@/components/store/pagination";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { ServiceMarquee } from "@/components/products/ServiceMarquee";
+
 
 export const metadata: Metadata = {
   title: "Shop Premium Car Accessories",
@@ -219,6 +217,25 @@ export default async function ProductsPage({
   };
 
   const freshArrivals = await getRecentlyUpdatedProducts(parsedFilters);
+  const categoriesForFaq = await getActiveCategories();
+
+  const topCategories = categoriesForFaq
+    .filter((category) => category._count?.products > 0)
+    .sort((a, b) => (b._count?.products || 0) - (a._count?.products || 0))
+    .slice(0, 5);
+
+  const categoryFaqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: topCategories.map((category) => ({
+      "@type": "Question",
+      name: `Where can I buy original ${category.name} accessories at wholesale price in Lahore?`,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: `Shahzaib Electronics is a direct importer and wholesale distributor in Lahore for ${category.name} accessories, offering original products, competitive pricing, and professional installation support.`,
+      },
+    })),
+  };
 
   const mappedFreshArrivals = freshArrivals
     .map(mapProductToCard)
@@ -226,6 +243,15 @@ export default async function ProductsPage({
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-display flex flex-col">
+      {topCategories.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(categoryFaqJsonLd),
+          }}
+        />
+      )}
+
       {/* Page Header */}
       <div className="bg-slate-900 py-16 px-4 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-primary via-slate-900 to-slate-900"></div>

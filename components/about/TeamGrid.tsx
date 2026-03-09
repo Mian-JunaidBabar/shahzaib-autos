@@ -38,13 +38,13 @@ export function TeamGrid() {
               key={idx}
               className="flex flex-col items-center text-center space-y-4 group"
             >
-              <div className="size-32 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl group-hover:scale-105 group-hover:border-primary transition-all duration-300">
+              <div className="size-40 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl group-hover:scale-105 group-hover:border-primary transition-all duration-300">
                 <Image
                   className="w-full h-full object-cover"
                   alt={member.name}
                   src={member.image}
-                  width={128}
-                  height={128}
+                  width={160}
+                  height={160}
                   priority={idx === 0}
                 />
               </div>
