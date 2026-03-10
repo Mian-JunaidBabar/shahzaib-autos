@@ -92,11 +92,23 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Copyright */}
-        <div className="border-t border-border pt-8 text-center text-xs text-text-subtle">
-          <p>
+        {/* Copyright / Agency Credit */}
+        <div className="mt-12 flex flex-col md:flex-row items-center justify-between border-t border-border pt-6 pb-8">
+          <p className="text-xs text-text-subtle">
             © {new Date().getFullYear()} Shahzaib Electronics. All rights
             reserved.
+          </p>
+
+          <p className="text-xs text-text-subtle mt-4 md:mt-0">
+            Designed &amp; Developed by{" "}
+            <a
+              href="https://deep-dev-solutions.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium hover:text-primary transition-colors"
+            >
+              Deep Dev Solutions
+            </a>
           </p>
         </div>
       </div>
