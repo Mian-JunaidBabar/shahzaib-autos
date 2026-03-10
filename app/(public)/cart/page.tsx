@@ -1,9 +1,16 @@
 import { CartItems } from "@/components/store/CartItems";
+import type { Metadata } from "next";
 
-
-export const metadata = {
+export const metadata: Metadata = {
   title: "Shopping Cart | Shahzaib Electronics",
   description: "Review your cart and proceed to checkout",
+  alternates: {
+    canonical: "/cart",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function CartPage() {

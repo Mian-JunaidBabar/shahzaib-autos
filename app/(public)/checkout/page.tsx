@@ -3,8 +3,16 @@ import type { Service } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 
+
 export const metadata: Metadata = {
   title: "Secure Checkout",
+  alternates: {
+    canonical: "/checkout",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export const revalidate = 0; // Don't cache checkout

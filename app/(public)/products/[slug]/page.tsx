@@ -1,7 +1,4 @@
-import {
-  getStorefrontProduct,
-  getRelatedProducts,
-} from "@/lib/services/storefront.service";
+import { getStorefrontProduct, getRelatedProducts, } from "@/lib/services/storefront.service";
 import { ProductVariantSelector } from "@/components/store/product-variant-selector";
 import { Calendar, Truck, Shield, Headphones, ChevronLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +10,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 
 import { ImageGallery } from "./image-gallery";
+
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -35,6 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const displayPrice =
     (defaultVariant?.salePrice ?? defaultVariant?.price ?? 0) / 100;
   const primaryImage = product.images[0]?.secureUrl ?? "/placeholder.jpg";
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.shahzaibelectronics.pk";
+  const productUrl = `${appUrl.replace(/\/$/, "")}/products/${product.slug}`;
 
   const rawDescription =
     product.description ||
@@ -47,11 +48,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: product.name,
     description: seoDescription,
+    alternates: {
+      canonical: productUrl,
+    },
     openGraph: {
       title: product.name,
       description: seoDescription,
+      url: productUrl,
       images: [{ url: primaryImage, alt: product.name }],
       type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description: seoDescription,
+      images: [primaryImage],
     },
     other: {
       "product:price:amount": displayPrice.toString(),

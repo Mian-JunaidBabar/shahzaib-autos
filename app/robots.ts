@@ -1,38 +1,21 @@
 import type { MetadataRoute } from "next";
 
+
 export default function robots(): MetadataRoute.Robots {
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://shahzaib-electronics.vercel.app";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.shahzaibelectronics.pk";
+
+  const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
 
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-      },
-      {
-        userAgent: "Googlebot",
-        allow: "/",
-      },
-      {
-        userAgent: "Bingbot",
-        allow: "/",
-      },
-      {
-        userAgent: "GPTBot",
-        allow: "/",
-      },
-      {
-        userAgent: "ChatGPT-User",
-        allow: "/",
-      },
-      {
-        userAgent: "Google-Extended",
-        allow: "/",
+        disallow: ["/admin", "/api", "/auth", "/checkout", "/cart"],
       },
     ],
-    sitemap: `${appUrl}/sitemap.xml`,
-    host: appUrl,
+    sitemap: `${normalizedBaseUrl}/sitemap.xml`,
+    host: normalizedBaseUrl,
   };
 }

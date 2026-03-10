@@ -13,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.shahzaibelectronics.pk",
   ),
   title: {
     template: "%s | Shahzaib Electronics",
@@ -21,6 +21,47 @@ export const metadata: Metadata = {
   },
   description:
     "Shahzaib Electronics is the leading direct importer and wholesale distributor of premium car accessories, Android panels, and audio systems in Lahore, Pakistan.",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_PK",
+    url: "/",
+    siteName: "Shahzaib Electronics",
+    title: "Shahzaib Electronics - Premium Automotive Accessories & Services",
+    description:
+      "Shahzaib Electronics is the leading direct importer and wholesale distributor of premium car accessories, Android panels, and audio systems in Lahore, Pakistan.",
+    images: [
+      {
+        url: "/apple-icon.png",
+        width: 512,
+        height: 512,
+        alt: "Shahzaib Electronics",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shahzaib Electronics - Premium Automotive Accessories & Services",
+    description:
+      "Shahzaib Electronics is the leading direct importer and wholesale distributor of premium car accessories, Android panels, and audio systems in Lahore, Pakistan.",
+    images: ["/apple-icon.png"],
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+  },
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/favicon.ico" }, { url: "/icon1.png", type: "image/png" }],
@@ -37,8 +78,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const APP_URL =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://shahzaib-electronics.vercel.app";
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.shahzaibelectronics.pk";
   const BUSINESS_NAME =
     process.env.NEXT_PUBLIC_BUSINESS_NAME || "Shahzaib Electronics";
   const CONTACT_PHONE =

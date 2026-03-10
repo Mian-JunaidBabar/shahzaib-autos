@@ -18,6 +18,18 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shop Premium Car Accessories",
+  description:
+    "Browse premium car accessories, Android panels, and audio upgrades with importer pricing from Shahzaib Electronics.",
+  alternates: {
+    canonical: "/products",
+  },
+  openGraph: {
+    title: "Shop Premium Car Accessories",
+    description:
+      "Browse premium car accessories, Android panels, and audio upgrades with importer pricing from Shahzaib Electronics.",
+    url: "/products",
+    type: "website",
+  },
 };
 
 type SearchParams = {

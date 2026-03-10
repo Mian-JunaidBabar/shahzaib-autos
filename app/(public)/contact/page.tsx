@@ -3,6 +3,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Contact Us",
+  description:
+    "Contact Shahzaib Electronics for product availability, fitment guidance, and installation services in Lahore.",
+  alternates: {
+    canonical: "/contact",
+  },
 };
 
 export default function ContactPage() {

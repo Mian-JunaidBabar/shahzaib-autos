@@ -5,6 +5,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About Us",
+  description:
+    "Learn about Shahzaib Electronics, Lahore's trusted importer and installer of premium automotive accessories and upgrades.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutPage() {
